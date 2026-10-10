@@ -23,12 +23,17 @@ Run the offline validator and synthetic unit tests:
 ```text
 python -B -m builder.compiler.validate local_freya/workflows/freya_bank_collections_base.json
 python -B -m builder.compiler.validate <workflow-path> --json
+python -B -m builder.brief.openapi <openapi-json-path>
 python -B -m unittest discover -s tests -v
 ```
 
 See [docs/WORKFLOW_VALIDATION.md](docs/WORKFLOW_VALIDATION.md) for checks and
 limitations. Structural validity does not establish official Freya acceptance or
 collections-policy compliance.
+
+The offline [OpenAPI contract loader](docs/OPENAPI_CONTRACTS.md) extracts typed
+operation and schema contracts from a configurable local specification. Its CLI
+prints a sanitized summary; it makes no network requests or output files.
 
 Keep all Freya-provided materials under ignored `local_freya/`: workflow exports,
 briefs, specifications, starter-kit source, private documentation, customer records,
