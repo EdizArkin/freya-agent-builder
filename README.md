@@ -40,6 +40,11 @@ strict JSON round trips, and original-source provenance validation. Successful
 foundation validation never makes a policy compilable; semantic and runtime
 capability checks remain future work.
 
+The [offline brief pipeline](docs/BRIEF_EXTRACTION.md) adds source-linked sections,
+a provider-independent extraction boundary, explicit policy composition and coverage
+diagnostics. Synthetic adapters exercise it without live LLM calls. Results remain
+non-compilable.
+
 Keep all Freya-provided materials under ignored `local_freya/`: workflow exports,
 briefs, specifications, starter-kit source, private documentation, customer records,
 and simulation payloads. Never commit these materials, even to a private remote.
