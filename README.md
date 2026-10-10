@@ -45,6 +45,11 @@ a provider-independent extraction boundary, explicit policy composition and cove
 diagnostics. Synthetic adapters exercise it without live LLM calls. Results remain
 non-compilable.
 
+The [Freya integration adapter](docs/FREYA_INTEGRATION.md) supports explicit server
+dry-run, save, approved version publication and sanitized export using the local
+official client. External operations are disabled by default; implementation tests
+use synthetic clients only.
+
 Keep all Freya-provided materials under ignored `local_freya/`: workflow exports,
 briefs, specifications, starter-kit source, private documentation, customer records,
 and simulation payloads. Never commit these materials, even to a private remote.
