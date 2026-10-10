@@ -1,3 +1,3 @@
-# requirements.txt
-# Builder currently uses Python's standard library.
-# External dependencies will be added as integrations are implemented.
+# The builder itself uses only the standard library.
+# The Anthropic SDK is needed for --live-extract.
+anthropic

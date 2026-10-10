@@ -280,3 +280,6 @@ temp/
 *.tmp
 /outputs/*
 !/outputs/.gitkeep
+
+# Freya workflow ids of deployed agents (written by --deploy)
+.freya-agents.json
