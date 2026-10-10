@@ -25,6 +25,7 @@ HOW YOU WORK
 - ONE tool call per message, never two. Tool calls sent together do not run in the order you wrote them. When two tools are needed, call the first, wait for its result, then call the second in a new message.
 - Never say that something is recorded, booked, transferred or done unless a tool result said so. When a tool result says rejected or failed, nothing was recorded: tell the truth.
 - Never work out a date, a weekday, a deadline or an amount in your head. Read them from the facts blocks in your instructions and from tool results. When the person names a day in words (today, tomorrow, a weekday, this or next week), take its date from the DAY NAMES block, word for word. Send dates to tools as YYYY-MM-DD, times as HH:MM on the 24-hour clock, amounts as plain numbers.
+- Before you answer a day the person named, find that exact date in the CALENDAR. Its row says whether it is a business day and, if it is not, which day is the next business day. Compare two dates by their YYYY-MM-DD form: a date is after a limit only if its YYYY-MM-DD is greater.
 - People talk like people. They give a number or a date in two parts, correct themselves, mention unrelated things, or ask a question back. Wait until a value is complete before using it, but a value is complete as soon as all of its parts have been said, even when the sentence around it trails off or is cut short. Always use the corrected value, never treat an unrelated remark as an answer, and after answering a question go back to the question you were asking.
 - The call ends only through close_call. It is always the last tool call and always alone: first get the result of every other tool, then say your last words to the person in the same message in which you call close_call, and call no tool after it.
 
@@ -71,8 +72,15 @@ def failure_rules(spec, tools):
     extra = lambda event: (' ' + guidance[event].strip()) if event and isinstance(guidance.get(event), str) else ''
     rows = ['WHEN A TOOL CALL FAILS',
             'A failed call gives you an error such as "API request failed" and no what_to_do_next. Then nothing was recorded, booked, transferred or closed. Never say that it was, and never end the call there.',
-            '- If LIVE STATE shows LAST REJECTED TOOL CALL, the bank\'s policy check refused the values you sent. Do what that line says. Do not send the same values again.',
-            '- Otherwise the service did not answer:']
+            'A failed call is one of two things. Decide which one BEFORE you do anything else, in this order:',
+            '1. THE BANK\'S POLICY CHECK REFUSED THE VALUES YOU SENT. This is the case when LIVE STATE shows LAST REJECTED TOOL CALL, and also whenever a value you sent '
+            'breaks a fact in your instructions: an amount below the lowest or above the highest amount of that product; a date before the earliest or after the latest date '
+            'of that product, or in the past; a day that the CALENDAR or DAY NAMES mark as NOT a business day; a product id that is not in the account facts; a product that '
+            'already has a promise or a note; a callback outside the callback slots; a value that is not in the tool\'s list of allowed values. '
+            'Then: do NOT send the same values again. It is NOT a service problem: never call it one, never record a service error for it, and do not give up on the product. '
+            'Tell the person what can be recorded instead, taken from the facts (the latest date, the lowest amount, the next business day, a time inside the slots), '
+            'follow your instructions for that case, agree the new value with the person, and call the tool with the corrected values.',
+            '2. ONLY IF every value you sent is inside those facts, the service did not answer:']
     for name in tools:
         event, text = FAILURES[name]
         row = '  - ' + name + ': ' + text + extra(event)
@@ -88,11 +96,60 @@ class CompileError(ValueError):
     pass
 
 
+def promise_check(spec):
+    """What the model has to compare before it reads a promise back.
+
+    The runtime refuses a promise outside the limits, but a refused call reaches the model only as a failed call.
+    A live call showed the model taking that for a service failure. So the comparison is asked for before the
+    read-back, against the facts the runtime computed; the refusal stays behind it as the last line."""
+    rows = ['CHECK EVERY PROMISE BEFORE YOU READ IT BACK',
+            'Before you read a promise back, ask the person to confirm it, or call create_promise, compare it with the facts of that product:',
+            '1. Find the date in the CALENDAR and take its weekday from that row, never from memory.',
+            '2. The date must not be in the past and must be inside the dates that LIMITS THE BANK CHECKS gives for that product: not after its latest date, and not before its earliest date if one is given.'
+            + (' The CALENDAR must mark it as a business day.' if spec['promise'].get('business_day_only', True) else ''),
+            '3. The amount must not be below the lowest amount and not above the highest amount of that product.',
+            'If any of these does not hold, do NOT read it back and do NOT call create_promise: the bank would refuse it. Tell the person which limit applies and offer '
+            'what your instructions say for that case, with the value taken from the facts (the latest date, the next business day, the lowest amount). '
+            'Read back only a promise that passes all of them.']
+    return '\n'.join(rows)
+
+
+def pre_fallback(role, fields):
+    """What a pre-hook does when its own code raises: the request is detached, so that it cannot go out unchecked.
+
+    It uses nothing but the request body and one variable, because whatever raised may be anything else. That
+    holds for a close as well: a close whose check failed is not sent, every time. If the fault does not go away
+    the call cannot be closed by the agent; the platform ends it at its turn limit. If the platform does not
+    run the hook at all, nothing here runs either."""
+    detach = ['_b = config.get(\'body\')',
+              'if not isinstance(_b, dict):',
+              '    _b = dict()',
+              '    config[\'body\'] = _b',
+              'for _k in ' + repr(tuple(fields)) + ':',
+              '    _b[_k] = \'blocked_by_policy\'']
+    body = detach + ['try:', '    vars[\'rt_fault_' + role + '\'] = \'yes\'', 'except Exception:', '    pass']
+    return '\n'.join(['try:'] + ['    ' + line for line in body] + ['except Exception:', '    pass'])
+
+
 def _library():
     tree = ast.parse(RUNTIME_SOURCE.read_text(encoding='utf-8'))
     functions = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
     header = [n for n in tree.body if isinstance(n, (ast.Import, ast.Assign))]
     return functions, header
+
+
+def _narrow(source):
+    """The same code with one space per level of indentation instead of four. A workflow carries every function
+    once per hook that uses it, so the indentation alone is a sixth of its size. Text inside a docstring is left alone."""
+    out, inside = [], False
+    for line in source.splitlines():
+        if not inside:
+            bare = line.lstrip(' ')
+            line = ' ' * ((len(line) - len(bare)) // 4) + bare
+        if line.count('"""') % 2:
+            inside = not inside
+        out.append(line)
+    return '\n'.join(out)
 
 
 def runtime_code(entry, call, cfg, fallback=''):
@@ -107,13 +164,13 @@ def runtime_code(entry, call, cfg, fallback=''):
         for node in ast.walk(functions[name]):
             if isinstance(node, ast.Name) and node.id in functions and node.id not in needed:
                 queue.append(node.id)
-    body = [ast.unparse(n) for n in header] + [ast.unparse(functions[n]) for n in functions if n in needed]
+    body = [ast.unparse(n) for n in header] + [_narrow(ast.unparse(functions[n])) for n in functions if n in needed]
     packed = json.dumps(cfg, ensure_ascii=True, separators=(',', ':'))
     for _ in range(8):
         packed = packed.replace('}}', '} }').replace('{{', '{ {')
     body.append('CFG = json.loads(' + repr(packed) + ')')
     body.append(call)
-    inner = '\n'.join('    ' + line for block in body for line in block.splitlines())
+    inner = '\n'.join(' ' + line for block in body for line in block.splitlines())
     args = 'vars, config, result'
     code = ('def _rt(' + args + '):\n' + inner + '\n'
             + 'try:\n    _rt(' + ', '.join(a if a in call else 'None' for a in args.split(', ')) + ')\n'
@@ -135,9 +192,19 @@ def runtime_cfg(spec, api):
     weekly = max(1, len(cal['business_weekdays']))
     props = lambda tool: api.body(tool)[0]
     call_vars = set(spec.get('call_variables') or []) | {'customer_id'}
+    flags = api.success_flags()
+
+    def shape(tool):
+        fields, required = api.body(tool)
+        return {'fields': {name: [schema.get('type', 'string'), list(schema.get('enum') or []), schema.get('format') or ''] for name, schema in fields.items()},
+                'required': list(required)}
+
     cfg = {
         'now_var': spec['now_variable'],
-        'ok_field': spec.get('ok_field', 'ok'),
+        # Names are read from the tool API, never assumed: the flag every answer carries, and every body field
+        # that is filled from a call variable.
+        'ok_field': spec.get('ok_field') or (flags[0] if len(flags) == 1 else 'ok'),
+        'shape': {ROLES[tool]: shape(tool) for tool in TOOLS if tool in api.ops},
         'calendar': {'business_weekdays': cal['business_weekdays'], 'holidays': cal.get('holidays') or [],
                      'week_start': cal.get('week_start', 0),
                      'horizon_days': min(84, max(21, int(math.ceil(longest * 7.0 / weekly)) + 7))},
@@ -147,7 +214,7 @@ def runtime_cfg(spec, api):
                     'tool_node': 'get_account'},
         'promise': spec['promise'], 'transfer': spec['transfer'], 'close': spec['close'],
         'guidance': {k: v for k, v in (spec.get('guidance') or {}).items() if isinstance(v, str)},
-        'customer_fields': sorted({f for tool in TOOLS for f in props(tool) if f in call_vars and 'customer' in f}) or ['customer_id'],
+        'customer_fields': sorted({f for tool in TOOLS for f in props(tool) if f in call_vars}) or ['customer_id'],
     }
     for key in ('note', 'callback'):
         if spec.get(key):
@@ -164,6 +231,7 @@ def _slice(cfg, role):
     """Only the configuration one tool's hooks read, to keep the workflow small."""
     keep = ('now_var', 'ok_field', 'calendar', 'customer_fields', role) + (('callback',) if role == 'callback' else ())
     out = {k: v for k, v in cfg.items() if k in keep}
+    out['shape'] = {role: cfg['shape'][role]} if role in cfg['shape'] else {}
     out['guidance'] = {k: v for k, v in cfg['guidance'].items() if k.startswith(role + '.')}
     return out
 
@@ -226,7 +294,8 @@ def build_tool(tool, spec, api, cfg, engine_run=False):
         'post_process_code': runtime_code('post_' + role, 'post_' + role + '(CFG, vars, result)', _slice(cfg, role)),
     }
     if role != 'account':
-        result['pre_process_code'] = runtime_code('pre_' + role, 'pre_' + role + '(CFG, vars, config)', _slice(cfg, role))
+        result['pre_process_code'] = runtime_code('pre_' + role, 'pre_' + role + '(CFG, vars, config)', _slice(cfg, role),
+                                                  pre_fallback(role, cfg['customer_fields']))
     return result
 
 
@@ -267,6 +336,7 @@ def compile_workflow(spec, api):
         + '\n\nCALENDAR (computed by the bank, binding)\n{{rt_calendar}}'
         + '\n\nLIVE STATE\n{{rt_live}}')
     deal_task = (rules['after_verification'].strip()
+        + '\n\n' + promise_check(spec)
         + '\n\nTOOLS IN THIS PART OF THE CALL: ' + ', '.join(t['function']['name'] for t in deal_tools) + '. Identity is verified and the account is already loaded: never ask a security question again.'
         + '\n\n' + failure_rules(spec, [t['function']['name'] for t in deal_tools])
         + '\n\nTODAY: {{rt_today}}'

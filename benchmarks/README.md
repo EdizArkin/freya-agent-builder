@@ -94,24 +94,26 @@ Each scenario also says where it can be run: `offline`, `live`, `both`, or `spec
 - `expect` is how a call must end: `ok`, `refused` (blocked, with the reason as the tool result), `detached` (blocked, the bank never saw the customer), `blocked` (either), `error` (HTTP failure), `bank_refused`, `unavailable` (the tool does not exist at this point).
 - `says` is text the model must be given: in the tool result when there is one, in the live state otherwise.
 - `spoken` is what a correct agent says. It is never checked offline. In a live run it becomes the judge's criteria.
-- `known_gap` and `gap_kind` mark a scenario that the builder is known to fail, and why: `defect` (the builder does something wrong), `unenforced` (left to the model although code could enforce it), `schema` (agent-spec/1 cannot express the rule).
+- `known_gap` and `gap_kind` mark a scenario that the builder is known to fail, and why: `defect` (the builder does something wrong), `unenforced` (left to the model although code could enforce it), `schema` (agent-spec/1 cannot express the rule), `platform` (not enforceable from inside tool hooks), `tool_api` (the tool API has no operation that could enforce it).
 
 The bank's final records, the calls that may or may not reach it, and whether the call must have ended are in `expected/ledger_assertions.yaml`, keyed by scenario id.
 
 ## What the last run showed
 
-123 scenarios: 112 executable offline, 11 specification only.
+124 scenarios: 113 executable offline, 11 specification only.
 
 | Result | Count |
 | --- | --- |
-| PASS | 99 |
-| GAP, known and confirmed | 13 |
+| PASS | 108 |
+| GAP, known and confirmed | 5 |
 | FAIL | 0 |
 | NOT RUN | 11 |
 
 The same numbers hold when the Brief A and B scenarios run against the two specs Claude extracted on 2026-10-10.
 
-**Nine gaps are rules agent-spec/1 cannot express**, all found by the synthetic briefs: text answers that need a fixed form, a promise that is not allowed for a product, an earliest promise date, a rule that depends on the time of day, a promise that depends on another product, a minimum across products, a closing rule on the reason of a note, a limit on the number of transfers, and an exception to "nothing after a transfer" for one queue.
+**The nine schema gaps of the first runs are closed since M15**; their scenarios pass. Seven rules are enforced. Two are enforced in part and stay reported so: a minimum on the total of all promises is refused once it is out of reach, but a promise already recorded cannot be taken back (`SD-08b` documents that as a gap of kind `tool_api`), and a promise after a transfer to a named queue is allowed without the runtime knowing whether it was confirmed before the transfer.
+
+Before M15 these nine were rules agent-spec/1 could not express, all found by the synthetic briefs: text answers that need a fixed form, a promise that is not allowed for a product, an earliest promise date, a rule that depends on the time of day, a promise that depends on another product, a minimum across products, a closing rule on the reason of a note, a limit on the number of transfers, and an exception to "nothing after a transfer" for one queue.
 
 **Four gaps cannot be closed from inside a tool hook** (`EC-RT-04`, `EC-TR-03`, `EC-TR-09`, `EC-RT-10`). A live call on 2026-10-10 showed that the tool calls of one model message run side by side, each on its own copy of the variables. No hook can see another call of the same message, so a close cannot wait for a promise, transfer or callback sent with it, and the same promise sent twice is carried out twice. Earlier versions of this suite counted three of these as passing, because the offline engine let the hooks of one message share their variables. The engine now copies what was seen live, and the scenarios keep their expectations and fail.
 

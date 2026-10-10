@@ -243,7 +243,7 @@
             "amount": 480,
             "date": "2026-10-16"
           },
-          "expect": "refused",
+          "expect": "blocked",
           "says": [
             "Do not try again for this product"
           ]

@@ -95,14 +95,21 @@ explanations is the prompt in `extraction/claude.py`.
 | --- | --- | --- |
 | Call | `language`, `call_variables`, `now_variable`, `opening_line`, `test_variables` | compiler |
 | Calendar | `calendar.business_weekdays`, `holidays`, `week_start` | runtime |
-| Identity | `identity.questions` (field, wording, format), `max_wrong`, response field names, `hints` | runtime |
-| Products | `account.values`: named expressions per product; `account.limits`: which values bound a promise | runtime |
-| Tools | `promise`, `note`, `callback`, `transfer`, `close`: field names, callback window, outcome table, `close.forced` | runtime, compiler |
+| Identity | `identity.questions` (field, wording, format, `normalize`), `max_wrong`, response field names, `hints` | runtime |
+| Products | `account.values`: named expressions per product; `account.limits`: which values bound a promise (`min_amount`, `max_amount`, `latest_date`, `earliest_date`, `promise_allowed`) | runtime |
+| Tools | `promise`, `note`, `callback`, `transfer`, `close`: field names, callback window, outcome table, `close.forced`; `promise.resolve_first`, `promise.min_total`, `promise.allowed_after_transfer_to`, `transfer.max_transfers` | runtime, compiler |
 | Guidance | `guidance`: the brief's instruction for a moment after a tool result | runtime |
 | Rule text | `rules.always`, `rules.before_verification`, `rules.after_verification`, `tool_descriptions` | phone model |
 | Escape hatch | `unsupported`: policy the extractor could not express | validation |
 
-Expressions (`runtime.evaluate`): `by` (cases on product fields), `const`, `text`, `field`,
+Every field added in M15 is optional; a spec without it compiles to the behaviour it had.
+
+Two names are not in the spec at all, because the tool API states them: the true/false field that
+every answer carries (the success flag) and the body fields that are filled from call variables
+(the fields that tie a request to the call). `Api.success_flags` and `compiler.runtime_cfg` read
+them; `validation/spec.py` refuses a tool API in which they cannot be determined.
+
+Expressions (`runtime.evaluate`): `by` (cases on product fields), `by_time` (cases on the call's clock), `const`, `text`, `field`,
 `percent`, `fixed_amount`, and the date kinds `today`, `next_business_day`,
 `business_days_after`, `calendar_days_after`, `last_business_day_of_week`,
 `first_business_day_of_week`, `end_of_month`, `fixed_date`, `earliest`, `latest`, `named`,
@@ -236,6 +243,55 @@ the judge both passed the call in which this defect occurred.
 The reason of a blocked call is kept per tool (`rt_block_<tool>`), and a post-hook never
 turns an answer in which the bank carried the call out into a rejection.
 
+## What a block relies on
+
+A blocked call is still sent; a hook can only rewrite it. Every block detaches the request: each body
+field that is filled from a call variable is replaced, so the request cannot be attributed to the call
+whatever the bank checks. A refused call is never sent in a form the bank could carry out in order to
+obtain the bank's refusal.
+
+Until M15 a refused promise or note on a verified call kept its customer and named an unknown product,
+so that the bank's own refusal could carry the reason back as the tool result. That held only if the
+bank refuses a product id it did not issue. It was removed: the reason of every block now reaches the
+model through `LAST REJECTED TOOL CALL` in the live state and the failure rules of the prompt, and the
+model sees the blocked call itself as a failed call. Whether the phone model follows that as well as it
+followed a tool result is not known; it has not run on Freya.
+
+`tests/test_block_safety.py` plays all 27 places where the runtime blocks under eight namings of the
+tool API, against a bank that follows the documented contract and against one that carries out
+anything that still names the call: 432 blocked calls, no change at either bank, and no value of the
+call left in any blocked request.
+
+Before a call leaves, `send` compares it with the tool API: fields the API does not have are
+dropped, a number sent as text is converted, and a missing required field, a value outside an
+enum or a date that is not one blocks the call. A call also does not leave while the records of
+earlier calls could not be read in full.
+
+A tool API in which a block could not be relied on is not built: a request that carries anything
+outside its JSON body, an operation without a required free-text field filled from a call
+variable, or no single success flag. `--best-effort` does not override this.
+
+### When a pre-hook fails
+
+A pre-hook whose own code raises used to leave the request as the phone model wrote it. The
+wrapper the compiler puts around every pre-hook now detaches the request in that case, using only
+the request body and one variable (`compiler.pre_fallback`). `tests/test_hook_faults.py` raises an
+error at every point of every pre-hook: no request the policy refuses changes the bank, and a
+request that still goes out is one that every check had already passed.
+
+That holds for a close too: a close whose check failed is not sent, however often it is tried. The
+runtime retries nothing itself. If the fault does not go away the agent cannot close the call, and the
+call ends at the platform's turn limit without an outcome at the bank; that is the price of not sending
+an unchecked close, and nothing a hook can do recovers from it.
+
+One limit remains and no claim here goes beyond it. If the platform does not run a pre-hook at all,
+skips it or stops it, nothing of ours runs and the request goes out unchecked. The kit does not say
+that a hook always runs. Every rule below that is "enforced by the runtime" holds only when the
+pre-hook ran to its end or failed inside our own code.
+
+A compiled tool that departs from the tool API (URL, method, fields, types, allowed values) fails the
+build. `send` checks every outgoing request again.
+
 ## How a refusal or a failure reaches the model
 
 Live calls showed two things the design has to work around. The engine runs a post-hook
@@ -244,10 +300,10 @@ that the model puts into one message are not run in the order written.
 
 | Situation | What the runtime does | How the model learns of it |
 | --- | --- | --- |
-| A promise or note breaks a rule, on a verified call | The pre-hook keeps the customer and replaces the product id with a placeholder, so the bank refuses the request with an ordinary answer and records nothing | The post-hook replaces the result with the reason and what to do next |
-| Any other call breaks a rule (callback outside the window, anything before verification) | The pre-hook detaches the request from the customer; the bank answers with an HTTP error and records nothing | `LAST REJECTED TOOL CALL` in the live state, and the fixed failure rules in the prompt |
+| A call breaks a rule | The pre-hook detaches the request from the call; the bank answers with an HTTP error and records nothing | `LAST REJECTED TOOL CALL` in the live state, and the fixed failure rules in the prompt |
 | The service fails (HTTP error) | Every `create_promise` request that goes out leaves a variable of its own. Requests for a product that has no recorded promise have failed, with or without an answer, and are counted | The fixed failure rules in the prompt, per tool, with the spec's own guidance; the live state repeats them while the mark is there |
 | More promise attempts than the spec allows | `pre_promise` blocks the call | As in the first row |
+| A pre-hook's own code fails | The wrapper detaches the request | The model sees a failed call; there is no reason to give |
 | A close breaks a rule of the outcome table or leaves products open | `pre_close` blocks it, once per kind of problem; the next close goes through | `LAST REJECTED TOOL CALL` in the live state only: a close has no answer that could carry the reason |
 
 ## What is enforced in code, and what is not
@@ -259,14 +315,18 @@ Enforced by the runtime or by the graph, whatever the phone model does:
 | No account tool before identity is fully verified | graph: the tools exist only in `negotiate`; `get_account` is engine-run |
 | State supplied by the caller is discarded | `setup` |
 | Wrong answers counted across questions; hints and unreadable answers not counted; the lower of the brief's and the service's limit ends the check; a failed check stays failed whatever the service answers | `pre_identity`, `post_identity` |
-| Promise amount within the limits; date not past, not after the latest date, a business day | `pre_promise` |
-| One promise per product; known product only; none after a transfer; none without a loaded account | `pre_promise` |
+| Promise amount within the limits; date not past, not before the earliest date, not after the latest date, a business day | `pre_promise` |
+| One promise per product; known product only; none after a transfer (except to a queue the spec names); none without a loaded account; none for a product the spec excludes; none while a product that comes first is open | `pre_promise` |
+| A promise is refused once the required total of all promises can no longer be reached. **Partial:** a promise already recorded cannot be taken back, so "all or none" is not enforced | `pre_promise` |
+| No transfer beyond the number the spec allows | `pre_transfer` |
+| A text answer to a security question is sent in the form the spec prescribes | `pre_identity` |
+| Every request has the fields, types and allowed values of the tool API | `send` |
 | One note per product; none for a promised product; none after a transfer when the spec says so; only a reason the tool API lists | `pre_note` |
 | Callback only inside the computed slots; only one | `pre_callback` |
 | Retry-or-stop after a failed `create_promise`, by attempt count; no attempt beyond the limit | `pre_promise`, `post_promise` |
 | A record made by one call of a message survives the other calls of that message | one variable per record; `load_state` |
 | A close with open products (when the brief uses notes), without the reason its outcome needs, or with an unknown outcome is refused, once per kind of problem | `pre_close` |
-| Close outcome from what was recorded (`close.forced`); no reason on an outcome that takes none | `pre_close` |
+| Close outcome from what was recorded (`close.forced`), including a note with a given reason beside a promise; no reason on an outcome that takes none | `pre_close` |
 | The call ends only after `close_call` succeeded | graph |
 | Calendar, deadlines, floors, offer dates | computed in `setup` and `account_facts`, given to the model as facts |
 
@@ -347,6 +407,10 @@ Not yet verified live:
 - that Freya accepts a workflow of about 200 KB (185 KB was accepted);
 - that the phone model uses the day names block and the failure rules;
 - amount blocks, callback blocks, notes and calls with several products.
+
+Not verified live after M15: any workflow built with the code of this milestone. The runtime and the
+hook wrappers changed, and the workflows are larger (Brief A about 232 KB, Brief A+B about 258 KB;
+the largest accepted so far was about 231 KB).
 
 Other limits: the tests and `--deploy` need the git-ignored starter kit; persuasion
 counting and other conversational rules are prompt-dependent; the tool names are assumed

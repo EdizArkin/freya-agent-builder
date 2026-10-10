@@ -134,9 +134,9 @@ class Evaluation(unittest.TestCase):
         layers = lambda pid: {r['id']: r['layer'] for r in rules.evaluate(pid)['rules'] if r['layer'] in ('schema', 'compiler/runtime')}
         self.assertEqual(layers('g'), {'G-03': 'schema', 'G-14': 'schema'})
         self.assertEqual(layers('c'), {'C-04': 'schema', 'C-08': 'schema', 'C-11': 'schema'})
-        # Package F renames the call id. A block that detaches a request then reaches the bank: four callbacks
-        # outside the window are booked and a refused close ends the call. Step 3b has to remove these two.
-        self.assertEqual(layers('f'), {'F-04': 'compiler/runtime', 'F-18': 'schema', 'F-19': 'schema', 'F-25': 'compiler/runtime'})
+        # Package F renames the call id. Before the call fields were read from the tool API, a block that
+        # detaches a request reached the bank there (F-04, F-25). Nothing but the two known gaps is left.
+        self.assertEqual(layers('f'), {'F-18': 'schema', 'F-19': 'schema'})
 
     def test_the_reference_spec_itself_is_a_correct_extraction(self):
         report = rules.evaluate('g', packages.key('g')['spec'])
@@ -155,12 +155,12 @@ class Evaluation(unittest.TestCase):
         g = by_id(rules.evaluate('g'))
         self.assertEqual((g['G-21']['policy_evidence'], g['G-21']['enforcement_evidence'], g['G-21']['end_to_end']), ('2/2', '1/1', 'enforced'))
         f = by_id(rules.evaluate('f'))
-        # The notes reach the bank when the agent sends them; that a close before them is refused does not hold
-        # for this tool API today. The two are not one result.
-        self.assertEqual((f['F-25']['policy_evidence'], f['F-25']['enforcement_evidence'], f['F-25']['layer']), ('2/2', '0/1', 'compiler/runtime'))
+        # That the notes reach the bank when the agent sends them, and that a close before them is refused,
+        # are counted apart.
+        self.assertEqual((f['F-25']['policy_evidence'], f['F-25']['enforcement_evidence'], f['F-25']['layer']), ('2/2', '1/1', None))
         summary = rules.evaluate('f')['summary']
         self.assertEqual(summary['behaviour']['policy']['passed'], summary['behaviour']['policy']['run'])
-        self.assertEqual(summary['behaviour']['enforcement']['run'] - summary['behaviour']['enforcement']['passed'], 4)
+        self.assertEqual(summary['behaviour']['enforcement']['run'] - summary['behaviour']['enforcement']['passed'], 2, 'the two rules unsupported by design')
 
     def test_consent_before_recording_stays_critical_and_is_not_called_confirmed(self):
         report = rules.evaluate('f')
@@ -209,8 +209,7 @@ class Evaluation(unittest.TestCase):
         self.assertEqual(rule['F-06']['extraction'], 'incorrect', 'the question is there, in the wrong place')
         self.assertEqual(rule['F-53']['extraction'], 'incorrect')
         self.assertEqual(rule['F-08']['extraction'], 'correct', 'the limit of two is kept although the tool API says three')
-        self.assertEqual(rule['F-04']['extraction'], 'correct', 'judged on the checks the reference passes')
-        self.assertEqual(rule['F-04']['layer'], 'compiler/runtime', 'the earlier stage keeps the rule')
+        self.assertEqual((rule['F-04']['extraction'], rule['F-04']['layer']), ('correct', None))
 
     def test_a_spec_that_does_not_validate_is_wrong_everywhere_and_says_so(self):
         report = rules.evaluate('g', {'spec_version': 'agent-spec/1'})

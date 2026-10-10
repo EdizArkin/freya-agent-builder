@@ -29,7 +29,7 @@ MATRIX = BENCH / 'requirements' / 'coverage_matrix.md'
 TIERS = ('runtime', 'scripted', 'live_only')
 MODES = ('offline', 'live', 'both', 'specification')
 STEP_KINDS = ('call', 'together', 'faults', 'check')
-GAP_KINDS = ('defect', 'unenforced', 'schema', 'platform')
+GAP_KINDS = ('defect', 'unenforced', 'schema', 'platform', 'tool_api')
 DEFAULT_VARIABLES = {'now': '2026-10-14T11:00', 'title': 'Ms', 'first_name': 'Ada', 'last_name': 'Okafor'}
 CUSTOMER_ID = 'c_benchmark'
 

@@ -58,7 +58,7 @@
             "amount": 180,
             "date": "2026-10-16"
           },
-          "expect": "refused",
+          "expect": "blocked",
           "says": [
             "is not a business day",
             "Offer Sun 2026-10-18"
@@ -148,7 +148,7 @@
             "amount": 180,
             "date": "2026-10-25"
           },
-          "expect": "refused",
+          "expect": "blocked",
           "says": [
             "is after the latest date",
             "Thu 2026-10-22"
@@ -239,7 +239,7 @@
             "amount": 180,
             "date": "2026-11-01"
           },
-          "expect": "refused",
+          "expect": "blocked",
           "says": [
             "is after the latest date"
           ]
@@ -328,7 +328,7 @@
             "amount": 250,
             "date": "2026-10-19"
           },
-          "expect": "refused",
+          "expect": "blocked",
           "says": [
             "is after the latest date"
           ]
@@ -416,7 +416,7 @@
             "amount": 34.99,
             "date": "2026-10-15"
           },
-          "expect": "refused",
+          "expect": "blocked",
           "says": [
             "below the lowest amount",
             "35.00"
@@ -526,9 +526,7 @@
       "spoken": [
         "The agent makes one transfer only."
       ],
-      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards.",
-      "known_gap": "Nothing limits the number of transfers. A second transfer is carried out and its queue then decides the closing reason.",
-      "gap_kind": "schema"
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
     },
     {
       "id": "SE-07",
@@ -605,9 +603,7 @@
       "spoken": [
         "Nothing specific."
       ],
-      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards.",
-      "known_gap": "promise.forbidden_after_transfer is one switch for every queue. An exception for one queue cannot be written, and the reference spec keeps the general rule.",
-      "gap_kind": "schema"
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
     },
     {
       "id": "SE-08",
@@ -671,7 +667,7 @@
             "amount": 180,
             "date": "2026-10-15"
           },
-          "expect": "refused",
+          "expect": "blocked",
           "says": [
             "No promise may be recorded after a transfer"
           ]
@@ -824,7 +820,7 @@
             "amount": 180,
             "date": "2026-10-14"
           },
-          "expect": "refused"
+          "expect": "blocked"
         },
         {
           "call": "create_promise",
@@ -846,9 +842,7 @@
       "spoken": [
         "The agent says the earliest day is tomorrow."
       ],
-      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards.",
-      "known_gap": "No limit depends on the time of day, and there is no earliest date. The 16:00 rule is rule text only.",
-      "gap_kind": "schema"
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
     },
     {
       "id": "SE-11",
@@ -982,7 +976,7 @@
             "amount": 79.99,
             "date": "2026-10-15"
           },
-          "expect": "refused",
+          "expect": "blocked",
           "says": [
             "below the lowest amount",
             "80.00"

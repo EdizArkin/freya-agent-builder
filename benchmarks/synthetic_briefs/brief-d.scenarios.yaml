@@ -57,7 +57,7 @@
             "amount": 750,
             "date": "2026-10-16"
           },
-          "expect": "refused",
+          "expect": "blocked",
           "says": [
             "below the lowest amount",
             "1500.00"
@@ -162,7 +162,7 @@
             "amount": 1500,
             "date": "2026-10-20"
           },
-          "expect": "refused",
+          "expect": "blocked",
           "says": [
             "Mon 2026-10-19"
           ]
@@ -379,7 +379,7 @@
             "amount": 600,
             "date": "2026-10-21"
           },
-          "expect": "refused",
+          "expect": "blocked",
           "says": [
             "No promise may be recorded after a transfer"
           ]
@@ -592,7 +592,7 @@
             "amount": 1500,
             "date": "2026-10-19"
           },
-          "expect": "refused",
+          "expect": "blocked",
           "says": [
             "Do not try again for this product"
           ]
@@ -710,9 +710,7 @@
       "spoken": [
         "The agent deals with the mortgage first."
       ],
-      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards.",
-      "known_gap": "The schema has no rule that makes a promise on one product depend on the state of another. Product order is rule text only.",
-      "gap_kind": "schema"
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
     },
     {
       "id": "SD-08",
@@ -805,9 +803,7 @@
       "spoken": [
         "The agent says the total is too low and asks the customer to raise it."
       ],
-      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards.",
-      "known_gap": "Limits are per product. The schema has no limit across products, so a minimum on the sum of all promises is rule text only.",
-      "gap_kind": "schema"
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
     },
     {
       "id": "SD-09",
@@ -893,9 +889,7 @@
       "spoken": [
         "Nothing specific."
       ],
-      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards.",
-      "known_gap": "close.forced can test \"a promise was recorded\" and \"notes without any promise\", but not \"some product has a note with this reason\". The promise rule fires first.",
-      "gap_kind": "schema"
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
     },
     {
       "id": "SD-10",
@@ -1110,6 +1104,93 @@
         "All promises are read back together and confirmed once."
       ],
       "strategy": "Live only: the behaviour is decided by what the phone model says and understands. Run it on Freya with a simulated customer; score with the ledger and the conversation checks. No bank serves this brief, so it stays a specification until one does."
+    },
+    {
+      "id": "SD-08b",
+      "title": "A promise that was allowed stays although the call ends below the household minimum",
+      "category": "brief_d",
+      "brief": "D",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "D-11"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1972-02-28",
+          "phone_last4": "9034"
+        },
+        "variables": {
+          "title": "Mr",
+          "first_name": "Erik",
+          "last_name": "Lindqvist"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "4417",
+            "past_due": 600.0,
+            "days_late": 16,
+            "secured": false
+          },
+          {
+            "type": "overdraft",
+            "past_due": 1000.0,
+            "days_late": 5,
+            "secured": false
+          }
+        ]
+      },
+      "behavior": "The card floor is promised first, while the minimum of 640.00 can still be reached with the overdraft. Then the customer refuses the overdraft.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1972-02-28"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "9034"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 180,
+            "date": "2026-10-16"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "add_note",
+          "args": {
+            "product_id": "p2",
+            "reason": "refused"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "no_promise",
+            "reason": "refused"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The agent says the total is too low and that the promise already recorded cannot be taken back."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards.",
+      "known_gap": "All or none cannot be enforced: promises reach the bank one at a time and the tool API has no operation that takes one back. The runtime refuses a promise only once the minimum can no longer be reached; here it still could when the first promise was made.",
+      "gap_kind": "tool_api"
     }
   ]
 }

@@ -565,7 +565,7 @@
             "product_id": "p1",
             "reason": "dispute"
           },
-          "expect": "refused",
+          "expect": "blocked",
           "says": [
             "A note already exists"
           ]
@@ -585,7 +585,7 @@
             "product_id": "p2",
             "reason": "refused"
           },
-          "expect": "refused",
+          "expect": "blocked",
           "says": [
             "needs no note"
           ]

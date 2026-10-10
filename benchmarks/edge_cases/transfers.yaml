@@ -428,7 +428,7 @@
             "product_id": "p1",
             "reason": "refused"
           },
-          "expect": "refused",
+          "expect": "blocked",
           "says": [
             "No note may be added"
           ]
@@ -439,7 +439,7 @@
             "product_id": "p2",
             "reason": "refused"
           },
-          "expect": "refused",
+          "expect": "blocked",
           "says": [
             "No note may be added"
           ]
@@ -531,7 +531,7 @@
             "amount": 900,
             "date": "2026-10-16"
           },
-          "expect": "refused",
+          "expect": "blocked",
           "says": [
             "No promise may be recorded after a transfer"
           ]

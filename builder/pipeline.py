@@ -39,11 +39,12 @@ def build_workflow(spec, document, best_effort=False):
     problems = check_workflow(workflow)
     if problems:
         raise CompileError('; '.join(problems))
-    try:
-        departures = contract.check_tools(workflow, api) + contract.document_notes(api)
-    except Exception as exc:      # the comparison is a report; it must never be the reason a build fails
-        departures = ['the comparison with the tool API did not run: %s: %s' % (type(exc).__name__, exc)]
-    return workflow, dict({'warnings': warnings, 'contract': departures}, **report)
+    # A compiled tool that departs from the tool API would send requests the bank does not expect: not built.
+    # The runtime checks every outgoing request again (runtime.send).
+    departures = contract.check_tools(workflow, api)
+    if departures:
+        raise CompileError('the compiled tools do not match the tool API: ' + '; '.join(departures))
+    return workflow, dict({'warnings': warnings, 'contract': contract.document_notes(api)}, **report)
 
 
 def arguments(argv=None):

@@ -161,7 +161,7 @@
             "amount": "$p1.past_due",
             "date": "2026-11-06"
           },
-          "expect": "refused",
+          "expect": "blocked",
           "says": [
             "is after the latest date"
           ]
@@ -365,7 +365,7 @@
             "amount": "$p1.past_due",
             "date": "2026-10-20"
           },
-          "expect": "refused",
+          "expect": "blocked",
           "says": [
             "already recorded"
           ]

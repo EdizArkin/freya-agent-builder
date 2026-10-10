@@ -68,7 +68,8 @@
     "limits": {
       "min_amount": "floor",
       "max_amount": "full",
-      "latest_date": "deadline"
+      "latest_date": "deadline",
+      "earliest_date": "earliest"
     },
     "values": [
       {
@@ -176,6 +177,29 @@
             }
           ]
         }
+      },
+      {
+        "name": "earliest",
+        "label": "EARLIEST DATE that can be recorded",
+        "expr": {
+          "kind": "by_time",
+          "cases": [
+            {
+              "when": {
+                "after": "16:00"
+              },
+              "expr": {
+                "kind": "next_business_day"
+              }
+            },
+            {
+              "when": {},
+              "expr": {
+                "kind": "today"
+              }
+            }
+          ]
+        }
       }
     ]
   },
@@ -184,7 +208,10 @@
     "amount_param": "amount",
     "date_param": "date",
     "max_attempts": 2,
-    "business_day_only": true
+    "business_day_only": true,
+    "allowed_after_transfer_to": [
+      "plans"
+    ]
   },
   "callback": {
     "date_param": "date",
@@ -196,7 +223,8 @@
     "after_now": true
   },
   "transfer": {
-    "queue_param": "queue"
+    "queue_param": "queue",
+    "max_transfers": 1
   },
   "close": {
     "outcome_param": "outcome",

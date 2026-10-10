@@ -493,7 +493,6 @@
         "get_account",
         "create_promise!500",
         "create_promise!500",
-        "create_promise!refused",
         "close_call"
       ],
       "ended": true
@@ -2201,6 +2200,26 @@
         "callbacks": [],
         "transfers": []
       }
+    },
+    "SD-08b": {
+      "ledger": {
+        "outcome": "no_promise",
+        "reason": "refused",
+        "promises": [],
+        "callbacks": [],
+        "transfers": [],
+        "notes": [
+          {
+            "product_id": "p1",
+            "reason": "refused"
+          },
+          {
+            "product_id": "p2",
+            "reason": "refused"
+          }
+        ]
+      },
+      "ended": true
     }
   }
 }

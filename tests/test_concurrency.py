@@ -12,6 +12,8 @@ import itertools
 import json
 import unittest
 
+from tests.support import refusal
+
 from builder.runtime import runtime as rt
 from tests.test_enforcement import start as start_call, tools_called, verified
 from tests.test_runtime import ledger, start as start_case, verify
@@ -159,8 +161,7 @@ class Failures(unittest.TestCase):
             sim.together(promise('p1', 420), note('p2'), **way)
             self.assertEqual(sim.tool('create_promise', product_id='p1', amount=420, date=D16), {}, way)
             third = sim.tool('create_promise', product_id='p1', amount=420, date=D16)
-            self.assertTrue(third['rejected_by_policy'], way)
-            self.assertIn('Do not try again for this product', third['what_to_do_next'], way)
+            self.assertIn('Do not try again for this product', refusal(sim, third), way)
             self.assertEqual((bank.ledger['promises'], view(sim)['fails']), ([], {'p1': 2}), way)
 
     def test_a_failed_note_leaves_its_product_open_and_the_close_says_so(self):
@@ -230,8 +231,8 @@ class Duplicates(unittest.TestCase):
             state = view(sim)
             self.assertEqual((state['promises'], state['notes']), ({'p1': {'amount': 420.0, 'date': D14}}, {'p2': 'refused'}), way)
             before = (len(bank.ledger['promises']), len(bank.ledger['notes']))
-            self.assertIn('already recorded', sim.tool('create_promise', product_id='p1', amount=420, date=D14)['what_to_do_next'], way)
-            self.assertIn('A note already exists', sim.tool('add_note', product_id='p2', reason='refused')['what_to_do_next'], way)
+            self.assertIn('already recorded', refusal(sim, sim.tool('create_promise', product_id='p1', amount=420, date=D14)), way)
+            self.assertIn('A note already exists', refusal(sim, sim.tool('add_note', product_id='p2', reason='refused')), way)
             self.assertEqual((len(bank.ledger['promises']), len(bank.ledger['notes'])), before, way)
 
 

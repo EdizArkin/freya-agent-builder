@@ -55,7 +55,7 @@
             "amount": 143.99,
             "date": "2026-10-16"
           },
-          "expect": "refused",
+          "expect": "blocked",
           "says": [
             "below the lowest amount",
             "144.00"
@@ -136,7 +136,7 @@
             "amount": 480.01,
             "date": "2026-10-16"
           },
-          "expect": "refused",
+          "expect": "blocked",
           "says": [
             "more than the amount due"
           ]
@@ -213,7 +213,7 @@
             "amount": 0,
             "date": "2026-10-16"
           },
-          "expect": "refused",
+          "expect": "blocked",
           "says": [
             "positive number"
           ]
@@ -225,7 +225,7 @@
             "amount": -50,
             "date": "2026-10-16"
           },
-          "expect": "refused",
+          "expect": "blocked",
           "says": [
             "positive number"
           ]
@@ -237,7 +237,7 @@
             "amount": "a lot",
             "date": "2026-10-16"
           },
-          "expect": "refused",
+          "expect": "blocked",
           "says": [
             "positive number"
           ]
@@ -315,7 +315,7 @@
             "amount": 144,
             "date": "2026-10-20"
           },
-          "expect": "refused",
+          "expect": "blocked",
           "says": [
             "already recorded"
           ]

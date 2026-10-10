@@ -15,7 +15,7 @@ The phone agent is a smaller language model that talks to the person. It is not 
 - The call has two parts. Part 1 (`before_verification`): finding out who is on the line and checking identity. Part 2 (`after_verification`): everything after identity is fully verified. The runtime loads the account by itself between the two parts; the model never calls get_account.
 - In part 1 the model can call only: verify_identity, schedule_callback, transfer_to_agent, close_call. In part 2 only: create_promise, add_note (if you enable it), transfer_to_agent, close_call. Do not write rules that need another tool in a part.
 - The runtime computes, from your structured fields, a calendar of the coming weeks (business days, holidays, next business day), the allowed callback slots, and for every product the named values you define (amounts, dates, counts). The model sees them as facts blocks appended to your rule text. Your rule text must refer to these values by the names and labels you define, and must never restate a computation the runtime does ("the 12th business day after today"): say "the DEADLINE" instead.
-- The runtime rejects a create_promise whose amount is outside `limits.min_amount..limits.max_amount`, whose date is in the past, after `limits.latest_date`, or not a business day, and a second promise for the same product. It rejects a schedule_callback outside the slots. It rejects a duplicate note. A rejected call records nothing and tells the model why.
+- The runtime rejects a create_promise whose amount is outside `limits.min_amount..limits.max_amount`, whose date is in the past, before `limits.earliest_date`, after `limits.latest_date`, or not a business day, a second promise for the same product, and a promise for a product whose `limits.promise_allowed` is false. With `promise.resolve_first` it rejects a promise while a product that comes first is still open; with `promise.min_total` it rejects a promise once the required total can no longer be reached (it cannot take back a promise that is already recorded, so the rule must also be in your rule text); with `transfer.max_transfers` it rejects a further transfer. It rejects a schedule_callback outside the slots. It rejects a duplicate note. A rejected call records nothing and tells the model why.
 - After every tool call the runtime tells the model what happened in plain words (answer wrong and how many tries are left, promise recorded and which products remain, service failed and whether to retry). Through `guidance` you add the brief's own instruction for that moment: what to say and which tool to call next.
 - At close_call the runtime overrides the model's outcome and reason with the first `close.forced` rule whose condition holds. Use it for every outcome that follows mechanically from what was recorded. Outcomes that depend on what the person said stay with the model, guided by your rule text.
 
@@ -37,6 +37,7 @@ Return one JSON object and nothing else: no prose before or after, no code fence
    "questions": [{"field": "...",                  // the value sent in field_param, from the tool API
                   "ask": "...",                    // how to ask it, as a noun phrase: "your date of birth"
                   "format": "date|digits|text",    // date: sent as YYYY-MM-DD; digits: digits only
+                  "normalize": ["uppercase"],      // only when the brief prescribes the form of a text answer; any of uppercase, lowercase, remove_spaces, alphanumeric
                   "numeric_order": "DMY|MDY"}],    // only for date: how to read a date given as numbers
    "max_wrong": 3,                                 // wrong answers in total that end the check
    "response": {"verified": "...", "all_verified": "...", "wrong_left": "...", "hint": "..."}, // verify_identity response fields; leave out the ones the API does not have
@@ -46,17 +47,23 @@ Return one JSON object and nothing else: no prose before or after, no code fence
    "products_path": "...",                   // dot path to the product list in the get_account response
    "id_field": "...",                        // product field holding the product id
    "values": [ {"name": "snake_case", "label": "LABEL SHOWN TO THE MODEL", "expr": EXPR} ],  // computed per product, in order
-   "limits": {"min_amount": "<value name>", "max_amount": "<value name>", "latest_date": "<value name>"}
+   "limits": {"min_amount": "<value name>", "max_amount": "<value name>", "latest_date": "<value name>",
+              "earliest_date": "<value name>",      // only if the brief sets an earliest promise date other than today
+              "promise_allowed": "<value name>"}    // only if the brief forbids a promise for some products: a value that is true or false
  },
  "promise": {"product_param": "...", "amount_param": "...", "date_param": "...",   // body fields of create_promise
              "max_attempts": 2,              // create_promise calls per product before giving up on a failing service
-             "business_day_only": true},
+             "business_day_only": true,
+             // The next three only when the brief has such a rule:
+             "resolve_first": [WHEN, ...],              // products matching an earlier WHEN must have a promise or a note before a promise on any later product
+             "min_total": {"percent": 40, "of": "<amount value name>"},   // all promises of a call must add up to this share of the sum of that value over all products
+             "allowed_after_transfer_to": ["<queue>"]}, // queues after which a promise may still be recorded although promises after a transfer are forbidden
  "note": {"product_param": "...", "reason_param": "...", "forbidden_after_transfer": true},  // body fields of add_note. OMIT "note" entirely when the brief says add_note is not used.
  "callback": {"date_param": "...", "time_param": "...",                           // body fields of schedule_callback
               "include_today": true, "next_business_days": 1,                     // which days are allowed
               "start": "HH:MM", "end": "HH:MM",                                   // both included
               "after_now": true},                                                 // must be later than the current time
- "transfer": {"queue_param": "..."},
+ "transfer": {"queue_param": "...", "max_transfers": 1},      // max_transfers only if the brief limits the number of transfers in a call
  "close": {
    "outcome_param": "...", "reason_param": "...",
    "outcomes": {"<outcome>": ["<reason>", "..."]},     // the brief's complete outcome table; [] for an outcome without reason
@@ -73,7 +80,8 @@ Return one JSON object and nothing else: no prose before or after, no code fence
 
 An expression is evaluated for one product. Kinds:
 - {"kind":"by","cases":[{"when":WHEN,"expr":EXPR}, ...]}  first case whose WHEN matches. WHEN is {"<product field>": value | [values] | {"min":n,"max":n}}; {} always matches. Cover every product the API can return.
-- {"kind":"const","value": ...}  a fixed number or word (a band name, a count of attempts).
+- {"kind":"by_time","cases":[{"when":TIME,"expr":EXPR}, ...]}  first case whose TIME matches the call's clock. TIME is {"from":"HH:MM"} (at or after), {"after":"HH:MM"} (later than), {"until":"HH:MM"} (up to and including), {"before":"HH:MM"}, or a combination; {} always matches. Use it only where a brief's rule depends on the time of day, and choose "after" or "from" by the brief's wording.
+- {"kind":"const","value": ...}  a fixed number or word (a band name, a count of attempts), or true / false for "promise_allowed".
 - {"kind":"text","template":"savings plan {plan_code}"}  text with {product field} or {earlier value name} placeholders.
 - {"kind":"field","field":"..."}  a numeric product field.
 - {"kind":"percent","of":EXPR,"percent":30} and {"kind":"fixed_amount","value":50}.
@@ -84,12 +92,12 @@ An expression is evaluated for one product. Kinds:
 
 ## FLAG (for close.forced)
 
-"transferred" (any transfer succeeded) or "transferred:<queue>"; "promise_recorded" (at least one promise recorded); "identity_failed" (wrong answers used up); "callback_booked"; "all_products_noted:<reason>" (no promise, every product has a note with that reason); "any_note" (no promise, at least one note). `reason_from` may be "last_transfer_queue" (uses queue_reasons) or "first_note_not:<reason>" (the note reason of the first product, in account order, whose note is not that reason). Order the rules by the brief's precedence.
+"transferred" (any transfer succeeded) or "transferred:<queue>"; "promise_recorded" (at least one promise recorded); "identity_failed" (wrong answers used up); "callback_booked"; "all_products_noted:<reason>" (no promise, every product has a note with that reason); "any_note" (no promise, at least one note); "note_recorded:<reason>" (some product has a note with that reason, whether or not promises were recorded). `reason_from` may be "last_transfer_queue" (uses queue_reasons) or "first_note_not:<reason>" (the note reason of the first product, in account order, whose note is not that reason). Order the rules by the brief's precedence.
 
 ## guidance events
 
 Each value is one or two imperative sentences added to the runtime's own message: what to say (quote sentences the brief prescribes word for word) and which tool to call next with which values.
-identity.next_question, identity.all_verified, identity.wrong, identity.failed, identity.unreadable, identity.service_error, identity.hint.<hint value>, promise.recorded_more (recorded, other products still open), promise.recorded_all (recorded, nothing open), promise.failed_retry, promise.failed_final, note.recorded_more, note.recorded_all, note.failed, callback.booked, callback.failed, transfer.done, transfer.failed.
+identity.next_question, identity.all_verified, identity.wrong, identity.failed, identity.unreadable, identity.service_error, identity.hint.<hint value>, promise.recorded_more (recorded, other products still open), promise.recorded_all (recorded, nothing open), promise.failed_retry, promise.failed_final, promise.not_allowed (a promise was tried for a product that may not have one), note.recorded_more, note.recorded_all, note.failed, callback.booked, callback.failed, transfer.done, transfer.failed.
 Write guidance only where the brief has something specific for that moment.
 
 ## rules

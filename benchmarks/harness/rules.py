@@ -65,6 +65,7 @@ FITS = ('structured', 'text', 'partial', 'unsupported')
 REPORTS = packages.BENCH / 'reports'
 EXPOSURE = REPORTS / 'm15.exposure.jsonl'
 PLACEHOLDER = 'blocked_by_policy'
+CHANNEL = 'expected refused, got detached'
 
 
 class MappedBank(Bank):
@@ -211,7 +212,7 @@ def structure(target, c):
 
 def run_check(target, c):
     """{'spec': pass|fail|na, 'compiled': pass|fail|na, 'detail': [...], 'requests': n, 'blocked': n, 'contract': [...]}"""
-    out = {'spec': 'na', 'compiled': 'na', 'detail': [], 'requests': 0, 'blocked': 0, 'contract': []}
+    out = {'spec': 'na', 'compiled': 'na', 'detail': [], 'requests': 0, 'blocked': 0, 'contract': [], 'channel': []}
     if c['kind'] == 'live':
         return out
     if target.problems:
@@ -227,6 +228,12 @@ def run_check(target, c):
                 out['contract'] += contract.check_request(target.api, tool, request)
 
     def level(name, bad):
+        # Since M15 every block detaches the request, so a refusal reaches the model through the live state and
+        # not as a tool result. A check that expected the reason as the tool result, and found the call blocked
+        # with nothing at the bank, differs in the channel only. That is listed apart; it is not a failure of
+        # enforcement, and the rest of the check (texts, later steps, the bank's records) is judged as written.
+        out['channel'] += [line for line in bad if line.endswith(CHANNEL)]
+        bad = [line for line in bad if not line.endswith(CHANNEL)]
         out[name] = 'fail' if bad else 'pass'
         out['detail'] += ['%s level: %s' % (name, line) for line in bad]
 
@@ -237,7 +244,8 @@ def run_check(target, c):
             level('spec', [] if norm(c['literal']) in all_text(target.spec) else ['the text of the spec lacks %r' % c['literal']])
         elif c['kind'] == 'fact':
             account = target.spec['account']
-            fact = (rt.product_facts(target.cfg, [dict(c['product'], **{account['id_field']: 'p1'})], rt.parse_now(c['now']).date()) or [{}])[0]
+            when = rt.parse_now(c['now'])
+            fact = (rt.product_facts(target.cfg, [dict(c['product'], **{account['id_field']: 'p1'})], when.date(), when.strftime('%H:%M')) or [{}])[0]
             level('spec', differences(c['expect'], fact, ' | '.join(pair[1] for pair in fact.get('shown') or [])))
         if c['kind'] == 'fact':
             sim, bank = target.start({'products': [c['product']]}, {'now': c['now']})
@@ -469,6 +477,7 @@ def summary(report, who):
                        'not_evaluated': [r['id'] for r in rules if r['critical'] and verdict(r).startswith('not evaluated')],
                        'weak_evidence_only': [r['id'] for r in rules if r['critical'] and r['weak_only']],
                        'not_confirmed_by_behaviour': [r['id'] for r in rules if r['critical'] and r['unconfirmed']]}
+    out['refusal_channel'] = sorted(c['id'] for c in checks if c[who] and c[who]['channel'])
     out['contract'] = {'requests': sum(c['requests'] for c in ran), 'blocked_by_policy': sum(c['blocked'] for c in ran),
                        'problems': sorted({p for c in ran for p in c['contract']})}
     if who == 'extracted':
@@ -576,6 +585,9 @@ def report_text(reports, mutations=None):
                     ', '.join(s['critical']['not_confirmed_by_behaviour']) or 'none'),
                 '| Requests checked against the tool API | %d sent, %d blocked by policy, %d kind(s) of problem |' % (
                     s['contract']['requests'], s['contract']['blocked_by_policy'], len(s['contract']['problems']))]
+        if s['refusal_channel']:
+            out.append('| Checks that expected a refusal as the tool result and found it in the live state (blocked, nothing at the bank) | %d: %s |' % (
+                len(s['refusal_channel']), ', '.join(s['refusal_channel'])))
         if 'extraction' in s:
             e = s['extraction']
             out += ['| Extraction, rules judged | %d: %d correct, %d partial, %d incorrect, %d missing |' % (e['judged'], e['correct'], e['partial'], e['incorrect'], e['missing']),

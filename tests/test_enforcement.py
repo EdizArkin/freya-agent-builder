@@ -122,22 +122,13 @@ class Authorization(unittest.TestCase):
 
 class Blocking(unittest.TestCase):
     def rejected(self, sim, bank, tool, **args):
-        """A blocked call records nothing. Its reason is always in the live state, and it is the
-        tool result as well whenever the bank answers the blocked request with a refusal."""
+        """A blocked call records nothing and never reaches this customer at the bank: every block detaches the
+        request. Its reason is in the live state."""
         before, ledger = len(bank.calls), copy.deepcopy(bank.ledger)
         data = sim.tool(tool, **args)
         self.assertEqual(bank.ledger, ledger, 'a blocked call must record nothing')
-        for call in bank.calls[before:]:
-            self.assertIs(call[2]['ok'], False)
-        reason = sim.vars['rt_live'].split('LAST REJECTED TOOL CALL: ', 1)[1]
-        if tool in ('create_promise', 'add_note'):
-            self.assertTrue(data.get('rejected_by_policy'), data)
-            self.assertTrue(data['nothing_was_recorded'])
-            self.assertIs(data['ok'], False)
-            self.assertEqual(data['what_to_do_next'], reason)
-        else:
-            self.assertEqual((data, len(bank.calls)), ({}, before), 'a detached call must not reach this customer')
-        return reason
+        self.assertEqual((data, len(bank.calls)), ({}, before), 'a detached call must not reach this customer')
+        return sim.vars['rt_live'].split('LAST REJECTED TOOL CALL: ', 1)[1]
 
     def test_promise_restrictions(self):
         sim, bank = verified(products=(CARD, LOAN), brief_b=True)

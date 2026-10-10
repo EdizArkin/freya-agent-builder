@@ -25,7 +25,8 @@ from benchmarks.harness import scenarios as defs  # noqa: E402
 PASS, FAIL, GAP, FIXED, SPEC_ONLY = 'PASS', 'FAIL', 'GAP', 'UNEXPECTED PASS', 'NOT RUN'
 GAP_KINDS = {'defect': 'the builder does something wrong', 'unenforced': 'left to the phone model although code could enforce it',
              'schema': 'agent-spec/1 cannot express the rule',
-             'platform': 'cannot be enforced from inside tool hooks on this platform'}
+             'platform': 'cannot be enforced from inside tool hooks on this platform',
+             'tool_api': 'the tool API has no operation that could enforce it'}
 
 
 def run_steps(scenario, sim, bank, products, identity):

@@ -1,7 +1,10 @@
 """builder/validation/contract.py: requests and compiled tools against the tool API document."""
 import copy
 import unittest
+from unittest import mock
 
+from builder import pipeline
+from builder.compiler.compiler import CompileError
 from builder.pipeline import build_workflow
 from builder.spec.openapi import Api
 from builder.validation import contract
@@ -98,6 +101,14 @@ class Tools(unittest.TestCase):
             workflow, report = build_workflow(fixture(brief_b), OPENAPI)
             self.assertEqual(contract.check_tools(workflow, API), [])
             self.assertEqual(report['contract'], [])
+
+    def test_a_compiled_tool_that_departs_from_the_tool_api_fails_the_build(self):
+        workflow, report = build_workflow(fixture(True), OPENAPI)
+        workflow['nodes']['negotiate']['tools'][0]['function']['parameters']['properties']['body']['properties']['amount']['type'] = 'string'
+        with mock.patch.object(pipeline, 'compile_workflow', return_value=(workflow, {'nodes': [], 'bytes': 0, 'tools': {}})):
+            with self.assertRaises(CompileError) as ctx:
+                build_workflow(fixture(True), OPENAPI)
+        self.assertIn('the compiled tools do not match the tool API: create_promise.amount: type string, the tool API says number', str(ctx.exception))
 
     def test_a_tool_that_departs_from_the_tool_api_is_named(self):
         workflow, _ = build_workflow(fixture(True), OPENAPI)

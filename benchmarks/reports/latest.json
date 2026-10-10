@@ -1,5 +1,5 @@
 {
- "at": "2026-10-10 22:14:51",
+ "at": "2026-10-11 02:32:48",
  "specs": {
   "A": "tests/fixture_spec.py (hand-written)",
   "B": "tests/fixture_spec.py (hand-written)",
@@ -8,9 +8,9 @@
   "E": "benchmarks/synthetic_briefs/brief-e.spec.yaml (hand-written reference)"
  },
  "totals": {
-  "PASS": 99,
+  "PASS": 108,
   "FAIL": 0,
-  "GAP": 13,
+  "GAP": 5,
   "UNEXPECTED PASS": 0,
   "NOT RUN": 11
  },
@@ -243,7 +243,6 @@
     "verify_identity",
     "verify_identity",
     "get_account",
-    "create_promise!refused",
     "close_call"
    ],
    "known_gap": null,
@@ -344,7 +343,6 @@
     "verify_identity",
     "get_account",
     "create_promise",
-    "create_promise!refused",
     "close_call"
    ],
    "known_gap": null,
@@ -439,7 +437,6 @@
     "verify_identity",
     "verify_identity",
     "get_account",
-    "create_promise!refused",
     "create_promise",
     "close_call"
    ],
@@ -462,7 +459,6 @@
     "verify_identity",
     "verify_identity",
     "get_account",
-    "create_promise!refused",
     "create_promise",
     "close_call"
    ],
@@ -487,7 +483,6 @@
     "verify_identity",
     "verify_identity",
     "get_account",
-    "create_promise!refused",
     "create_promise",
     "close_call"
    ],
@@ -511,7 +506,6 @@
     "verify_identity",
     "verify_identity",
     "get_account",
-    "create_promise!refused",
     "create_promise",
     "close_call"
    ],
@@ -535,7 +529,6 @@
     "verify_identity",
     "verify_identity",
     "get_account",
-    "create_promise!refused",
     "create_promise",
     "close_call"
    ],
@@ -559,7 +552,6 @@
     "verify_identity",
     "verify_identity",
     "get_account",
-    "create_promise!refused",
     "close_call"
    ],
    "known_gap": null,
@@ -582,10 +574,6 @@
     "verify_identity",
     "verify_identity",
     "get_account",
-    "create_promise!refused",
-    "create_promise!refused",
-    "create_promise!refused",
-    "create_promise!refused",
     "create_promise",
     "close_call"
    ],
@@ -655,9 +643,6 @@
     "verify_identity",
     "verify_identity",
     "get_account",
-    "create_promise!refused",
-    "create_promise!refused",
-    "create_promise!refused",
     "create_promise",
     "close_call"
    ],
@@ -912,7 +897,6 @@
     "verify_identity",
     "get_account",
     "create_promise",
-    "create_promise!refused",
     "create_promise",
     "close_call"
    ],
@@ -937,7 +921,6 @@
     "verify_identity",
     "get_account",
     "create_promise",
-    "create_promise!refused",
     "create_promise",
     "close_call"
    ],
@@ -1014,11 +997,9 @@
     "verify_identity",
     "get_account",
     "create_promise",
-    "create_promise!refused",
     "create_promise!500",
     "create_promise!500",
     "create_promise",
-    "create_promise!refused",
     "add_note",
     "close_call"
    ],
@@ -1067,7 +1048,6 @@
     "verify_identity",
     "verify_identity",
     "get_account",
-    "create_promise!refused",
     "create_promise",
     "add_note",
     "add_note",
@@ -1281,9 +1261,7 @@
     "verify_identity",
     "get_account",
     "add_note",
-    "add_note!refused",
     "create_promise",
-    "add_note!refused",
     "close_call"
    ],
    "known_gap": null,
@@ -1355,7 +1333,6 @@
     "verify_identity",
     "verify_identity",
     "get_account",
-    "add_note!refused",
     "add_note",
     "add_note",
     "close_call"
@@ -1379,7 +1356,6 @@
     "verify_identity",
     "verify_identity",
     "get_account",
-    "create_promise!refused",
     "create_promise",
     "close_call"
    ],
@@ -1404,7 +1380,6 @@
     "verify_identity",
     "verify_identity",
     "get_account",
-    "create_promise!refused",
     "create_promise",
     "close_call"
    ],
@@ -1427,9 +1402,6 @@
     "verify_identity",
     "verify_identity",
     "get_account",
-    "create_promise!refused",
-    "create_promise!refused",
-    "create_promise!refused",
     "close_call"
    ],
    "known_gap": null,
@@ -1452,7 +1424,6 @@
     "verify_identity",
     "get_account",
     "create_promise",
-    "create_promise!refused",
     "close_call"
    ],
    "known_gap": null,
@@ -1591,7 +1562,6 @@
     "get_account",
     "create_promise!500",
     "create_promise!500",
-    "create_promise!refused",
     "close_call"
    ],
    "known_gap": null,
@@ -1911,8 +1881,6 @@
     "verify_identity",
     "get_account",
     "transfer_to_agent",
-    "add_note!refused",
-    "add_note!refused",
     "close_call"
    ],
    "known_gap": null,
@@ -1936,7 +1904,6 @@
     "get_account",
     "create_promise",
     "transfer_to_agent",
-    "create_promise!refused",
     "close_call"
    ],
    "known_gap": null,
@@ -2066,19 +2033,16 @@
    "brief": "C",
    "tier": "runtime",
    "mode": "offline",
-   "status": "GAP",
-   "failures": [
-    "step 1 (verify_identity): tool result lacks 'That answer is correct' (it says: That answer is WRONG. Wrong answers left before the check ends: 1. Do not move to another question. Ask the same question again: \"the postcode of your registered address\" (field postcode).)",
-    "step 3 (check): the call is in contact, expected negotiate",
-    "step 3 (check): state wrong is 1, expected 0"
-   ],
+   "status": "PASS",
+   "failures": [],
    "bank_calls": [
     "verify_identity",
     "verify_identity",
+    "get_account",
     "close_call"
    ],
-   "known_gap": "Answers of format text are only trimmed. The schema has no way to say \"upper case, no spaces\", so the normalisation depends on the model.",
-   "gap_kind": "schema",
+   "known_gap": null,
+   "gap_kind": null,
    "requirements": [
     "C-04"
    ]
@@ -2096,7 +2060,6 @@
     "verify_identity",
     "verify_identity",
     "get_account",
-    "create_promise!refused",
     "create_promise",
     "close_call"
    ],
@@ -2119,7 +2082,6 @@
     "verify_identity",
     "verify_identity",
     "get_account",
-    "create_promise!refused",
     "create_promise",
     "close_call"
    ],
@@ -2137,22 +2099,17 @@
    "brief": "C",
    "tier": "runtime",
    "mode": "offline",
-   "status": "GAP",
-   "failures": [
-    "step 3 (create_promise): expected refused, got ok",
-    "step 4 (create_promise): expected ok, got refused",
-    "ledger promises is [('p1', 300.0, '2026-10-14')], expected [('p1', 300.0, '2026-10-15')]"
-   ],
+   "status": "PASS",
+   "failures": [],
    "bank_calls": [
     "verify_identity",
     "verify_identity",
     "get_account",
     "create_promise",
-    "create_promise!refused",
     "close_call"
    ],
-   "known_gap": "The schema has a latest date per product but no earliest date. \"Tomorrow or later\" lives in the rule text only.",
-   "gap_kind": "schema",
+   "known_gap": null,
+   "gap_kind": null,
    "requirements": [
     "C-11"
    ]
@@ -2164,21 +2121,17 @@
    "brief": "C",
    "tier": "runtime",
    "mode": "offline",
-   "status": "GAP",
-   "failures": [
-    "step 3 (create_promise): expected blocked, got ok",
-    "ledger promises is [('p1', 500.0, '2026-10-16')], expected []"
-   ],
+   "status": "PASS",
+   "failures": [],
    "bank_calls": [
     "verify_identity",
     "verify_identity",
     "get_account",
-    "create_promise",
     "transfer_to_agent",
     "close_call"
    ],
-   "known_gap": "The schema cannot say that a product is not eligible for a promise. Limits are an amount range and a latest date; a condition on other fields is rule text only.",
-   "gap_kind": "schema",
+   "known_gap": null,
+   "gap_kind": null,
    "requirements": [
     "C-08"
    ]
@@ -2197,7 +2150,6 @@
     "verify_identity",
     "get_account",
     "create_promise!500",
-    "create_promise!refused",
     "close_call"
    ],
    "known_gap": null,
@@ -2219,8 +2171,6 @@
     "verify_identity",
     "verify_identity",
     "get_account",
-    "create_promise!refused",
-    "create_promise!refused",
     "create_promise",
     "close_call"
    ],
@@ -2280,7 +2230,6 @@
     "verify_identity",
     "verify_identity",
     "get_account",
-    "create_promise!refused",
     "create_promise",
     "close_call"
    ],
@@ -2303,7 +2252,6 @@
     "verify_identity",
     "verify_identity",
     "get_account",
-    "create_promise!refused",
     "create_promise",
     "create_promise",
     "create_promise",
@@ -2356,7 +2304,6 @@
     "get_account",
     "create_promise",
     "transfer_to_agent",
-    "create_promise!refused",
     "add_note",
     "close_call"
    ],
@@ -2406,7 +2353,6 @@
     "create_promise!500",
     "create_promise!500",
     "create_promise!500",
-    "create_promise!refused",
     "add_note",
     "close_call"
    ],
@@ -2424,22 +2370,18 @@
    "brief": "D",
    "tier": "runtime",
    "mode": "offline",
-   "status": "GAP",
-   "failures": [
-    "step 3 (create_promise): expected blocked, got ok",
-    "step 5 (create_promise): expected ok, got refused"
-   ],
+   "status": "PASS",
+   "failures": [],
    "bank_calls": [
     "verify_identity",
     "verify_identity",
     "get_account",
     "create_promise",
     "create_promise",
-    "create_promise!refused",
     "close_call"
    ],
-   "known_gap": "The schema has no rule that makes a promise on one product depend on the state of another. Product order is rule text only.",
-   "gap_kind": "schema",
+   "known_gap": null,
+   "gap_kind": null,
    "requirements": [
     "D-06"
    ]
@@ -2451,26 +2393,18 @@
    "brief": "D",
    "tier": "runtime",
    "mode": "offline",
-   "status": "GAP",
-   "failures": [
-    "step 4 (create_promise): expected blocked, got ok",
-    "step 5 (add_note): expected ok, got refused",
-    "ledger outcome is 'promise', expected 'no_promise'",
-    "ledger reason is None, expected 'refused'",
-    "ledger promises is [('p2', 180.0, '2026-10-16')], expected []",
-    "ledger notes is [('p1', 'refused')], expected [('p1', 'refused'), ('p2', 'refused')]"
-   ],
+   "status": "PASS",
+   "failures": [],
    "bank_calls": [
     "verify_identity",
     "verify_identity",
     "get_account",
     "add_note",
-    "create_promise",
-    "add_note!refused",
+    "add_note",
     "close_call"
    ],
-   "known_gap": "Limits are per product. The schema has no limit across products, so a minimum on the sum of all promises is rule text only.",
-   "gap_kind": "schema",
+   "known_gap": null,
+   "gap_kind": null,
    "requirements": [
     "D-11"
    ]
@@ -2482,11 +2416,8 @@
    "brief": "D",
    "tier": "runtime",
    "mode": "offline",
-   "status": "GAP",
-   "failures": [
-    "ledger outcome is 'promise', expected 'no_promise'",
-    "ledger reason is None, expected 'dispute'"
-   ],
+   "status": "PASS",
+   "failures": [],
    "bank_calls": [
     "verify_identity",
     "verify_identity",
@@ -2495,8 +2426,8 @@
     "add_note",
     "close_call"
    ],
-   "known_gap": "close.forced can test \"a promise was recorded\" and \"notes without any promise\", but not \"some product has a note with this reason\". The promise rule fires first.",
-   "gap_kind": "schema",
+   "known_gap": null,
+   "gap_kind": null,
    "requirements": [
     "D-17",
     "D-18"
@@ -2564,6 +2495,34 @@
    ]
   },
   {
+   "id": "SD-08b",
+   "title": "A promise that was allowed stays although the call ends below the household minimum",
+   "category": "brief_d",
+   "brief": "D",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "GAP",
+   "failures": [
+    "ledger outcome is 'promise', expected 'no_promise'",
+    "ledger reason is None, expected 'refused'",
+    "ledger promises is [('p1', 180.0, '2026-10-16')], expected []",
+    "ledger notes is [('p2', 'refused')], expected [('p1', 'refused'), ('p2', 'refused')]"
+   ],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise",
+    "add_note",
+    "close_call"
+   ],
+   "known_gap": "All or none cannot be enforced: promises reach the bank one at a time and the tool API has no operation that takes one back. The runtime refuses a promise only once the minimum can no longer be reached; here it still could when the first promise was made.",
+   "gap_kind": "tool_api",
+   "requirements": [
+    "D-11"
+   ]
+  },
+  {
    "id": "SE-01",
    "title": "Friday is not a business day, Sunday is",
    "category": "brief_e",
@@ -2576,7 +2535,6 @@
     "verify_identity",
     "verify_identity",
     "get_account",
-    "create_promise!refused",
     "create_promise",
     "close_call"
    ],
@@ -2600,7 +2558,6 @@
     "verify_identity",
     "verify_identity",
     "get_account",
-    "create_promise!refused",
     "create_promise",
     "close_call"
    ],
@@ -2624,7 +2581,6 @@
     "verify_identity",
     "verify_identity",
     "get_account",
-    "create_promise!refused",
     "create_promise",
     "close_call"
    ],
@@ -2648,7 +2604,6 @@
     "verify_identity",
     "verify_identity",
     "get_account",
-    "create_promise!refused",
     "create_promise",
     "close_call"
    ],
@@ -2671,7 +2626,6 @@
     "verify_identity",
     "verify_identity",
     "get_account",
-    "create_promise!refused",
     "create_promise",
     "create_promise",
     "close_call"
@@ -2690,22 +2644,17 @@
    "brief": "E",
    "tier": "runtime",
    "mode": "offline",
-   "status": "GAP",
-   "failures": [
-    "step 4 (transfer_to_agent): expected blocked, got ok",
-    "ledger reason is 'complaint', expected 'plan'",
-    "ledger transfers is ['plans', 'complaints'], expected ['plans']"
-   ],
+   "status": "PASS",
+   "failures": [],
    "bank_calls": [
     "verify_identity",
     "verify_identity",
     "get_account",
     "transfer_to_agent",
-    "transfer_to_agent",
     "close_call"
    ],
-   "known_gap": "Nothing limits the number of transfers. A second transfer is carried out and its queue then decides the closing reason.",
-   "gap_kind": "schema",
+   "known_gap": null,
+   "gap_kind": null,
    "requirements": [
     "E-16"
    ]
@@ -2717,21 +2666,18 @@
    "brief": "E",
    "tier": "runtime",
    "mode": "offline",
-   "status": "GAP",
-   "failures": [
-    "step 4 (create_promise): expected ok, got refused",
-    "ledger promises is [], expected [('p1', 180.0, '2026-10-15')]"
-   ],
+   "status": "PASS",
+   "failures": [],
    "bank_calls": [
     "verify_identity",
     "verify_identity",
     "get_account",
     "transfer_to_agent",
-    "create_promise!refused",
+    "create_promise",
     "close_call"
    ],
-   "known_gap": "promise.forbidden_after_transfer is one switch for every queue. An exception for one queue cannot be written, and the reference spec keeps the general rule.",
-   "gap_kind": "schema",
+   "known_gap": null,
+   "gap_kind": null,
    "requirements": [
     "E-18",
     "E-17"
@@ -2751,7 +2697,6 @@
     "verify_identity",
     "get_account",
     "transfer_to_agent",
-    "create_promise!refused",
     "close_call"
    ],
    "known_gap": null,
@@ -2791,22 +2736,17 @@
    "brief": "E",
    "tier": "runtime",
    "mode": "offline",
-   "status": "GAP",
-   "failures": [
-    "step 3 (create_promise): expected refused, got ok",
-    "step 4 (create_promise): expected ok, got refused",
-    "ledger promises is [('p1', 180.0, '2026-10-14')], expected [('p1', 180.0, '2026-10-15')]"
-   ],
+   "status": "PASS",
+   "failures": [],
    "bank_calls": [
     "verify_identity",
     "verify_identity",
     "get_account",
     "create_promise",
-    "create_promise!refused",
     "close_call"
    ],
-   "known_gap": "No limit depends on the time of day, and there is no earliest date. The 16:00 rule is rule text only.",
-   "gap_kind": "schema",
+   "known_gap": null,
+   "gap_kind": null,
    "requirements": [
     "E-10"
    ]
@@ -2843,7 +2783,6 @@
     "verify_identity",
     "verify_identity",
     "get_account",
-    "create_promise!refused",
     "create_promise",
     "close_call"
    ],

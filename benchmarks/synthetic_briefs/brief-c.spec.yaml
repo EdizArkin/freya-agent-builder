@@ -40,7 +40,11 @@
       {
         "field": "postcode",
         "ask": "the postcode of your registered address",
-        "format": "text"
+        "format": "text",
+        "normalize": [
+          "uppercase",
+          "remove_spaces"
+        ]
       },
       {
         "field": "birth_year",
@@ -62,7 +66,9 @@
     "limits": {
       "min_amount": "floor",
       "max_amount": "full",
-      "latest_date": "deadline"
+      "latest_date": "deadline",
+      "earliest_date": "earliest",
+      "promise_allowed": "eligible"
     },
     "values": [
       {
@@ -159,6 +165,50 @@
             }
           ]
         }
+      },
+      {
+        "name": "earliest",
+        "label": "EARLIEST DATE that can be recorded",
+        "expr": {
+          "kind": "calendar_days_after",
+          "n": 1
+        }
+      },
+      {
+        "name": "eligible",
+        "label": "PROMISE ALLOWED",
+        "expr": {
+          "kind": "by",
+          "cases": [
+            {
+              "when": {
+                "plan_active": true
+              },
+              "expr": {
+                "kind": "const",
+                "value": false
+              }
+            },
+            {
+              "when": {
+                "days_late": {
+                  "min": 61
+                }
+              },
+              "expr": {
+                "kind": "const",
+                "value": false
+              }
+            },
+            {
+              "when": {},
+              "expr": {
+                "kind": "const",
+                "value": true
+              }
+            }
+          ]
+        }
       }
     ]
   },
@@ -220,7 +270,8 @@
     "identity.failed": "Tell the member to visit a branch, thank them, say goodbye and call close_call with outcome not_verified, reason failed.",
     "promise.recorded_all": "Say exactly: \"Your promise is on file.\" Then thank the member, say goodbye and call close_call with outcome promise.",
     "promise.failed_final": "Do not retry. Say you could not record it, then call close_call with outcome no_promise, reason service_error.",
-    "transfer.done": "Say goodbye and call close_call with outcome transferred and the reason of that queue."
+    "transfer.done": "Say goodbye and call close_call with outcome transferred and the reason of that queue.",
+    "promise.not_allowed": "Say that the arrears team will handle the account, call transfer_to_agent with queue arrears_team, then close_call transferred / arrears."
   },
   "tool_descriptions": {
     "verify_identity": "Check one security answer. CALL it every time the customer in person gives a complete answer to a security question.",

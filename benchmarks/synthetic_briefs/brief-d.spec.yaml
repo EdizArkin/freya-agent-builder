@@ -199,7 +199,16 @@
     "amount_param": "amount",
     "date_param": "date",
     "max_attempts": 3,
-    "business_day_only": true
+    "business_day_only": true,
+    "resolve_first": [
+      {
+        "secured": true
+      }
+    ],
+    "min_total": {
+      "percent": 40,
+      "of": "full"
+    }
   },
   "note": {
     "product_param": "product_id",
@@ -249,6 +258,11 @@
       "general": "human"
     },
     "forced": [
+      {
+        "if": "note_recorded:dispute",
+        "outcome": "no_promise",
+        "reason": "dispute"
+      },
       {
         "if": "transferred",
         "outcome": "transferred",

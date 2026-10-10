@@ -11,7 +11,7 @@ from builder.runtime import runtime as rt
 from builder.spec.openapi import Api
 from tests.fixture_spec import spec as fixture
 from tests.freya_sim import Bank, Sim
-from tests.support import OPENAPI
+from tests.support import OPENAPI, refusal
 from tests.test_enforcement import after_error, start as start_call, tools_called, verified
 from tests.test_runtime import ledger, start as start_case, verify
 
@@ -24,16 +24,16 @@ def state(sim):
 
 
 class BlockedCalls(unittest.TestCase):
-    def test_a_blocked_promise_is_refused_by_the_bank_and_explained_in_the_result(self):
+    def test_a_blocked_promise_never_reaches_the_customer_at_the_bank_and_is_explained_in_the_live_state(self):
+        # Until M15 a blocked promise kept its customer and named an unknown product, so that the bank's refusal
+        # could carry the reason back. That relied on the bank refusing unknown products. It is detached now.
         sim, bank, case = start_case('PUB-04')
         verify(sim, bank)
+        seen = len(bank.calls)
         late = sim.tool('create_promise', product_id='p1', amount=1250, date='2026-11-06')
-        self.assertTrue(late['rejected_by_policy'])
-        self.assertIn('is after the latest date', late['what_to_do_next'])
-        self.assertIn('Fri 2026-10-23', late['what_to_do_next'])
-        tool, body, answer = bank.calls[-1]
-        self.assertEqual((tool, body['customer_id'], body['product_id'], answer['ok']),
-                         ('create_promise', bank.customer_id, 'blocked_by_policy', False))
+        self.assertIn('is after the latest date', refusal(sim, late))
+        self.assertIn('Fri 2026-10-23', refusal(sim, late))
+        self.assertEqual(len(bank.calls), seen, 'the bank saw no request of this customer')
         self.assertEqual(bank.ledger['promises'], [])
         good = sim.tool('create_promise', product_id='p1', amount=1250, date='2026-10-23')
         self.assertIn('is now recorded', good['what_to_do_next'])
@@ -91,8 +91,7 @@ class HttpErrors(unittest.TestCase):
         for _ in range(2):
             self.assertEqual(sim.tool('create_promise', product_id='p1', amount=420, date='2026-10-14'), {})
         third = sim.tool('create_promise', product_id='p1', amount=420, date='2026-10-14')
-        self.assertTrue(third['rejected_by_policy'])
-        self.assertIn('Do not try again for this product', third['what_to_do_next'])
+        self.assertIn('Do not try again for this product', refusal(sim, third))
         self.assertEqual(bank.ledger['promises'], [])
         self.assertEqual(state(sim)['fails'], {'p1': 2})
 
@@ -262,8 +261,7 @@ class NotesAndClose(unittest.TestCase):
     def test_a_note_reason_outside_the_tool_api_is_refused(self):
         sim, bank = verified(products=(CARD, LOAN), brief_b=True)
         bad = sim.tool('add_note', product_id='p1', reason='angry')
-        self.assertTrue(bad['rejected_by_policy'])
-        self.assertIn('refused, hardship, dispute, paid, service_error', bad['what_to_do_next'])
+        self.assertIn('refused, hardship, dispute, paid, service_error', refusal(sim, bad))
         self.assertEqual(bank.ledger['notes'], [])
         self.assertIn('The note is saved', sim.tool('add_note', product_id='p1', reason='refused')['what_to_do_next'])
 

@@ -4,7 +4,7 @@ import itertools
 import re
 
 from builder.runtime import runtime as rt
-from builder.spec.models import EXPR_KINDS, FLAGS, GUIDANCE_EVENTS, TOOLS, VERSION, SpecError, exprs, whens
+from builder.spec.models import EXPR_KINDS, FLAGS, GUIDANCE_EVENTS, NORMALIZERS, TIME_TESTS, TOOLS, VERSION, SpecError, exprs, times, whens
 
 
 def sample_products(spec, api):
@@ -53,6 +53,27 @@ def validate(spec, api, best_effort=False):
     if bad:
         raise SpecError(bad)
 
+    # Two names the runtime must not guess: the flag that says the bank did it, and the fields that tie a
+    # request to this call. Without them a refusal could be taken for a success, or a blocked request could
+    # still reach the bank. Nothing overrides these: a build that cannot block reliably is not built.
+    flags = api.success_flags()
+    if spec.get('ok_field'):
+        need(spec['ok_field'] in flags, 'ok_field=%r is not a true/false field of every answer of the tool API (%s)' % (spec['ok_field'], ', '.join(flags) or 'none'))
+    else:
+        need(len(flags) == 1, 'the tool API has no single true/false field that every answer carries (found: %s)' % (', '.join(flags) or 'none'))
+    call_vars = set(spec.get('call_variables') or []) | {'customer_id'}
+    for tool in TOOLS:
+        fields, required = api.body(tool)
+        mine = [f for f in fields if f in call_vars]
+        outside = api.outside_body(tool)
+        if outside:
+            bad.append('a policy block cannot be guaranteed for %s: the request carries %s, which a hook cannot rewrite' % (tool, ', '.join(outside)))
+        elif fields and not mine:
+            bad.append('a policy block cannot be guaranteed for %s: no body field is filled from a call variable (call_variables: %s; body fields: %s)' % (
+                tool, ', '.join(sorted(call_vars)), ', '.join(fields)))
+        elif fields and not [f for f in mine if f in required and fields[f].get('type', 'string') == 'string' and not fields[f].get('enum')]:
+            bad.append('a policy block cannot be guaranteed for %s: none of its call fields (%s) is a required free-text field' % (tool, ', '.join(mine)))
+
     def params(section, tool, keys, optional=False):
         block = spec.get(section)
         if block is None and optional:
@@ -92,6 +113,8 @@ def validate(spec, api, best_effort=False):
             for q in questions:
                 need(isinstance(q, dict) and q.get('field') and q.get('ask'), 'each identity question needs field and ask')
                 need(q.get('format') in ('date', 'digits', 'text'), 'identity question format must be date, digits or text')
+                steps = q.get('normalize') if isinstance(q, dict) else None
+                need(steps is None or (isinstance(steps, list) and all(s in NORMALIZERS for s in steps)), 'identity question normalize may only list: ' + ', '.join(NORMALIZERS))
                 if allowed:
                     need(q.get('field') in allowed, 'identity question field %r is not allowed by the tool API (%s)' % (q.get('field'), ', '.join(allowed)))
         need(type(identity.get('max_wrong')) is int and 1 <= identity['max_wrong'] <= 20, 'identity.max_wrong must be a small integer')
@@ -125,16 +148,22 @@ def validate(spec, api, best_effort=False):
                 for when in whens(value.get('expr')):
                     for field in when:
                         need(field in props, 'account value %s tests unknown product field %r' % (value['name'], field))
+                for when in times(value.get('expr')):
+                    for test, clock in when.items():
+                        need(test in TIME_TESTS and re.fullmatch(r'\d\d:\d\d', str(clock)), 'account value %s: a by_time case tests %s with HH:MM, got %r: %r' % (
+                            value['name'], ', '.join(TIME_TESTS), test, clock))
             need(len(set(names)) == len(names), 'account value names must be unique')
             need('label' in names, 'account.values must define "label", the spoken name of a product')
         limits = account.get('limits') if isinstance(account.get('limits'), dict) else {}
-        for key in ('min_amount', 'max_amount', 'latest_date'):
+        for key in ('min_amount', 'max_amount', 'latest_date', 'earliest_date', 'promise_allowed'):
             if limits.get(key):
                 need(limits[key] in names, 'account.limits.%s refers to undefined value %r' % (key, limits[key]))
         if not bad:
-            calendar = {'business_weekdays': days, 'holidays': cal.get('holidays') or [], 'week_start': cal.get('week_start', 0)}
             today = datetime.date(2030, 1, 9)
-            for product in sample_products(spec, api):
+            # Every value has to compute for every kind of product, and at every time of day a by_time case names.
+            clocks = sorted({'00:00', '23:59'} | {str(clock) for value in values for when in times(value.get('expr')) for clock in when.values()})
+            for product, clock in itertools.product(sample_products(spec, api), clocks):
+                calendar = {'business_weekdays': days, 'holidays': cal.get('holidays') or [], 'week_start': cal.get('week_start', 0), 'clock': clock}
                 named = {}
                 for value in values:
                     try:
@@ -143,11 +172,31 @@ def validate(spec, api, best_effort=False):
                         bad.append('account value %s cannot be computed for a product like %s: %s' % (value['name'], {k: product[k] for k in list(product)[:4]}, exc))
                         break
                 else:
-                    for key, kind in (('min_amount', float), ('max_amount', float), ('latest_date', datetime.date)):
+                    for key, kind in (('min_amount', float), ('max_amount', float), ('latest_date', datetime.date), ('earliest_date', datetime.date)):
                         if limits.get(key) and not isinstance(named.get(limits[key]), kind):
                             bad.append('account.limits.%s must be %s, got %r' % (key, 'a date' if kind is datetime.date else 'an amount', named.get(limits[key])))
+                    allowed = named.get(limits.get('promise_allowed')) if limits.get('promise_allowed') else True
+                    if not isinstance(allowed, bool) and str(allowed).lower() not in ('yes', 'no', 'true', 'false'):
+                        bad.append('account.limits.promise_allowed must be true or false, got %r' % (allowed,))
+                    early, late = named.get(limits.get('earliest_date')), named.get(limits.get('latest_date'))
+                    if isinstance(early, datetime.date) and isinstance(late, datetime.date) and early > late:
+                        warn.append('for a product like %s at %s the earliest date %s is after the latest date %s: no promise can be recorded' % (
+                            {k: product[k] for k in list(product)[:4]}, clock, early, late))
                 if bad:
                     break
+        rule = spec.get('promise') if isinstance(spec.get('promise'), dict) else {}
+        groups = rule.get('resolve_first')
+        if groups is not None and need(isinstance(groups, list) and all(isinstance(g, dict) and g for g in groups), 'promise.resolve_first must be a list of product conditions'):
+            for group in groups:
+                for field in group:
+                    need(field in props, 'promise.resolve_first tests unknown product field %r' % field)
+        total = rule.get('min_total')
+        if total is not None and need(isinstance(total, dict), 'promise.min_total must be an object'):
+            if 'amount' in total:
+                need(type(total['amount']) in (int, float) and total['amount'] > 0, 'promise.min_total.amount must be a positive amount')
+            else:
+                need(type(total.get('percent')) in (int, float) and 0 < total['percent'] <= 100 and total.get('of') in names,
+                     'promise.min_total needs a percent from 0 to 100 and "of", the name of an amount value')
 
     params('promise', 'create_promise', ('product_param', 'amount_param', 'date_param'))
     params('note', 'add_note', ('product_param', 'reason_param'), optional=True)
@@ -156,6 +205,15 @@ def validate(spec, api, best_effort=False):
         for key in ('start', 'end'):
             need(re.fullmatch(r'\d\d:\d\d', str(callback.get(key, ''))), 'callback.%s must be HH:MM' % key)
     transfer = params('transfer', 'transfer_to_agent', ('queue_param',))
+    if transfer:
+        limit = transfer.get('max_transfers')
+        need(limit is None or (type(limit) is int and limit >= 1), 'transfer.max_transfers must be a whole number of at least 1')
+        still = (spec.get('promise') or {}).get('allowed_after_transfer_to') if isinstance(spec.get('promise'), dict) else None
+        known = (api.body('transfer_to_agent')[0].get(transfer.get('queue_param')) or {}).get('enum')
+        if still is not None and need(isinstance(still, list), 'promise.allowed_after_transfer_to must be a list of queues'):
+            for queue in still:
+                if known:
+                    need(queue in known, 'promise.allowed_after_transfer_to names unknown queue %r' % (queue,))
     close = params('close', 'close_call', ('outcome_param', 'reason_param'))
     if close:
         props, _ = api.body('close_call')

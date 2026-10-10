@@ -1,14 +1,14 @@
 # Benchmark report
 
-Run at 2026-10-10 22:14:51, offline. Nothing in this report measures what a phone model says or which tools it chooses; it reports what the generated runtime does with the tool calls each scenario plays.
+Run at 2026-10-11 02:32:48, offline. Nothing in this report measures what a phone model says or which tools it chooses; it reports what the generated runtime does with the tool calls each scenario plays.
 
 Specs used: A = tests/fixture_spec.py (hand-written); B = tests/fixture_spec.py (hand-written); C = benchmarks/synthetic_briefs/brief-c.spec.yaml (hand-written reference); D = benchmarks/synthetic_briefs/brief-d.spec.yaml (hand-written reference); E = benchmarks/synthetic_briefs/brief-e.spec.yaml (hand-written reference)
 
 | Result | Scenarios | Meaning |
 | --- | --- | --- |
-| PASS | 99 | every assertion held |
+| PASS | 108 | every assertion held |
 | FAIL | 0 | an assertion failed and no known gap explains it |
-| GAP | 13 | failed where the definition documents a gap of the builder |
+| GAP | 5 | failed where the definition documents a gap of the builder |
 | UNEXPECTED PASS | 0 | has a documented gap but passed: the definition is out of date |
 | NOT RUN | 11 | specification only, cannot be executed faithfully offline |
 
@@ -16,9 +16,9 @@ Specs used: A = tests/fixture_spec.py (hand-written); B = tests/fixture_spec.py 
 
 | Category | Brief | PASS | FAIL | GAP | NOT RUN |
 | --- | --- | --- | --- | --- | --- |
-| brief_c | C | 8 | 0 | 3 | 1 |
-| brief_d | D | 8 | 0 | 3 | 1 |
-| brief_e | E | 9 | 0 | 3 | 1 |
+| brief_c | C | 11 | 0 | 0 | 1 |
+| brief_d | D | 11 | 0 | 1 | 1 |
+| brief_e | E | 12 | 0 | 0 | 1 |
 | closure | A | 7 | 0 | 0 | 0 |
 | closure | B | 1 | 0 | 0 | 0 |
 | conversations | A | 6 | 0 | 0 | 6 |
@@ -125,11 +125,11 @@ Specs used: A = tests/fixture_spec.py (hand-written); B = tests/fixture_spec.py 
 | SC-01 | runtime | PASS | There is no callback tool in this agent |
 | SC-02 | runtime | PASS | Postcode first, then year of birth |
 | SC-03 | runtime | PASS | Two wrong answers end the check |
-| SC-04 | runtime | GAP | The postcode is sent in capitals without spaces |
+| SC-04 | runtime | PASS | The postcode is sent in capitals without spaces |
 | SC-05 | runtime | PASS | Floor as a percentage of the past-due amount |
 | SC-06 | runtime | PASS | Saturday is a business day and the deadline rolls back over a holiday |
-| SC-07 | runtime | GAP | A promise for today is refused |
-| SC-08 | runtime | GAP | No promise on an account that is already on a plan |
+| SC-07 | runtime | PASS | A promise for today is refused |
+| SC-08 | runtime | PASS | No promise on an account that is already on a plan |
 | SC-09 | runtime | PASS | No retry after a failed promise |
 | SC-10 | runtime | PASS | More than thirty days late: two calendar days, a quarter as the floor |
 | SC-11 | scripted | PASS | A request for a person before verification |
@@ -140,22 +140,23 @@ Specs used: A = tests/fixture_spec.py (hand-written); B = tests/fixture_spec.py 
 | SD-04 | runtime | PASS | No promise after a transfer, but the notes still go in |
 | SD-05 | runtime | PASS | Two failures and a third attempt that works |
 | SD-06 | runtime | PASS | Three failures use up the attempts |
-| SD-07 | runtime | GAP | No promise on the card while the mortgage is open |
-| SD-08 | runtime | GAP | Promises below the household minimum are not recorded |
-| SD-09 | runtime | GAP | A dispute outranks a promise at the close |
+| SD-07 | runtime | PASS | No promise on the card while the mortgage is open |
+| SD-08 | runtime | PASS | Promises below the household minimum are not recorded |
+| SD-09 | runtime | PASS | A dispute outranks a promise at the close |
 | SD-10 | runtime | PASS | Paid and deferred: the close takes the reason that is not paid |
 | SD-11 | runtime | PASS | A callback is never for today |
 | SD-12 | live_only | NOT RUN | Every product is stated, the secured one first |
+| SD-08b | runtime | GAP | A promise that was allowed stays although the call ends below the household minimum |
 | SE-01 | runtime | PASS | Friday is not a business day, Sunday is |
 | SE-02 | runtime | PASS | Two deadline rules: the ten-day rule wins mid-month |
 | SE-03 | runtime | PASS | Two deadline rules: the end of the month wins late in the month |
 | SE-04 | runtime | PASS | More than thirty days late: the next business day, across the weekend |
 | SE-05 | runtime | PASS | The vulnerable floor replaces the product floor |
-| SE-06 | runtime | GAP | A second transfer is refused |
-| SE-07 | runtime | GAP | A confirmed promise may still be recorded after a transfer to plans |
+| SE-06 | runtime | PASS | A second transfer is refused |
+| SE-07 | runtime | PASS | A confirmed promise may still be recorded after a transfer to plans |
 | SE-08 | runtime | PASS | Nothing is recorded after a transfer to welfare |
 | SE-09 | runtime | PASS | A failed identity check outranks an earlier transfer |
-| SE-10 | runtime | GAP | After 16:00 a promise for today is refused |
+| SE-10 | runtime | PASS | After 16:00 a promise for today is refused |
 | SE-11 | runtime | PASS | A callback only on the next business day before noon |
 | SE-12 | runtime | PASS | The gas floor is a fifth of the past-due amount |
 | SE-13 | live_only | NOT RUN | A vulnerable household is offered the floor first, never the full amount |
@@ -164,19 +165,11 @@ Specs used: A = tests/fixture_spec.py (hand-written); B = tests/fixture_spec.py 
 
 | Kind | Id | Title |
 | --- | --- | --- |
-| agent-spec/1 cannot express the rule | SC-04 | The postcode is sent in capitals without spaces |
-| agent-spec/1 cannot express the rule | SC-07 | A promise for today is refused |
-| agent-spec/1 cannot express the rule | SC-08 | No promise on an account that is already on a plan |
-| agent-spec/1 cannot express the rule | SD-07 | No promise on the card while the mortgage is open |
-| agent-spec/1 cannot express the rule | SD-08 | Promises below the household minimum are not recorded |
-| agent-spec/1 cannot express the rule | SD-09 | A dispute outranks a promise at the close |
-| agent-spec/1 cannot express the rule | SE-06 | A second transfer is refused |
-| agent-spec/1 cannot express the rule | SE-07 | A confirmed promise may still be recorded after a transfer to plans |
-| agent-spec/1 cannot express the rule | SE-10 | After 16:00 a promise for today is refused |
 | cannot be enforced from inside tool hooks on this platform | EC-RT-04 | A slow promise is overtaken by the close sent with it |
 | cannot be enforced from inside tool hooks on this platform | EC-RT-10 | The same promise sent twice in one message is recorded once |
 | cannot be enforced from inside tool hooks on this platform | EC-TR-03 | Transfer and close in one message, the close arriving first |
 | cannot be enforced from inside tool hooks on this platform | EC-TR-09 | Callback and close in one message, the close arriving first |
+| the tool API has no operation that could enforce it | SD-08b | A promise that was allowed stays although the call ends below the household minimum |
 
 ## Failed assertions
 
@@ -222,65 +215,11 @@ Documented gap (cannot be enforced from inside tool hooks on this platform): The
 - the last call at the bank is schedule_callback!refused, expected close_call
 - bank calls: close_call > schedule_callback!refused
 
-### SC-04 — The postcode is sent in capitals without spaces (GAP)
-Documented gap (agent-spec/1 cannot express the rule): Answers of format text are only trimmed. The schema has no way to say "upper case, no spaces", so the normalisation depends on the model.
-- step 1 (verify_identity): tool result lacks 'That answer is correct' (it says: That answer is WRONG. Wrong answers left before the check ends: 1. Do not move to another question. Ask the same question again: "the postcode of your registered address" (field postcode).)
-- step 3 (check): the call is in contact, expected negotiate
-- step 3 (check): state wrong is 1, expected 0
-- bank calls: verify_identity > verify_identity > close_call
-
-### SC-07 — A promise for today is refused (GAP)
-Documented gap (agent-spec/1 cannot express the rule): The schema has a latest date per product but no earliest date. "Tomorrow or later" lives in the rule text only.
-- step 3 (create_promise): expected refused, got ok
-- step 4 (create_promise): expected ok, got refused
-- ledger promises is [('p1', 300.0, '2026-10-14')], expected [('p1', 300.0, '2026-10-15')]
-- bank calls: verify_identity > verify_identity > get_account > create_promise > create_promise!refused > close_call
-
-### SC-08 — No promise on an account that is already on a plan (GAP)
-Documented gap (agent-spec/1 cannot express the rule): The schema cannot say that a product is not eligible for a promise. Limits are an amount range and a latest date; a condition on other fields is rule text only.
-- step 3 (create_promise): expected blocked, got ok
-- ledger promises is [('p1', 500.0, '2026-10-16')], expected []
-- bank calls: verify_identity > verify_identity > get_account > create_promise > transfer_to_agent > close_call
-
-### SD-07 — No promise on the card while the mortgage is open (GAP)
-Documented gap (agent-spec/1 cannot express the rule): The schema has no rule that makes a promise on one product depend on the state of another. Product order is rule text only.
-- step 3 (create_promise): expected blocked, got ok
-- step 5 (create_promise): expected ok, got refused
-- bank calls: verify_identity > verify_identity > get_account > create_promise > create_promise > create_promise!refused > close_call
-
-### SD-08 — Promises below the household minimum are not recorded (GAP)
-Documented gap (agent-spec/1 cannot express the rule): Limits are per product. The schema has no limit across products, so a minimum on the sum of all promises is rule text only.
-- step 4 (create_promise): expected blocked, got ok
-- step 5 (add_note): expected ok, got refused
+### SD-08b — A promise that was allowed stays although the call ends below the household minimum (GAP)
+Documented gap (the tool API has no operation that could enforce it): All or none cannot be enforced: promises reach the bank one at a time and the tool API has no operation that takes one back. The runtime refuses a promise only once the minimum can no longer be reached; here it still could when the first promise was made.
 - ledger outcome is 'promise', expected 'no_promise'
 - ledger reason is None, expected 'refused'
-- ledger promises is [('p2', 180.0, '2026-10-16')], expected []
-- ledger notes is [('p1', 'refused')], expected [('p1', 'refused'), ('p2', 'refused')]
-- bank calls: verify_identity > verify_identity > get_account > add_note > create_promise > add_note!refused > close_call
-
-### SD-09 — A dispute outranks a promise at the close (GAP)
-Documented gap (agent-spec/1 cannot express the rule): close.forced can test "a promise was recorded" and "notes without any promise", but not "some product has a note with this reason". The promise rule fires first.
-- ledger outcome is 'promise', expected 'no_promise'
-- ledger reason is None, expected 'dispute'
+- ledger promises is [('p1', 180.0, '2026-10-16')], expected []
+- ledger notes is [('p2', 'refused')], expected [('p1', 'refused'), ('p2', 'refused')]
 - bank calls: verify_identity > verify_identity > get_account > create_promise > add_note > close_call
-
-### SE-06 — A second transfer is refused (GAP)
-Documented gap (agent-spec/1 cannot express the rule): Nothing limits the number of transfers. A second transfer is carried out and its queue then decides the closing reason.
-- step 4 (transfer_to_agent): expected blocked, got ok
-- ledger reason is 'complaint', expected 'plan'
-- ledger transfers is ['plans', 'complaints'], expected ['plans']
-- bank calls: verify_identity > verify_identity > get_account > transfer_to_agent > transfer_to_agent > close_call
-
-### SE-07 — A confirmed promise may still be recorded after a transfer to plans (GAP)
-Documented gap (agent-spec/1 cannot express the rule): promise.forbidden_after_transfer is one switch for every queue. An exception for one queue cannot be written, and the reference spec keeps the general rule.
-- step 4 (create_promise): expected ok, got refused
-- ledger promises is [], expected [('p1', 180.0, '2026-10-15')]
-- bank calls: verify_identity > verify_identity > get_account > transfer_to_agent > create_promise!refused > close_call
-
-### SE-10 — After 16:00 a promise for today is refused (GAP)
-Documented gap (agent-spec/1 cannot express the rule): No limit depends on the time of day, and there is no earliest date. The 16:00 rule is rule text only.
-- step 3 (create_promise): expected refused, got ok
-- step 4 (create_promise): expected ok, got refused
-- ledger promises is [('p1', 180.0, '2026-10-14')], expected [('p1', 180.0, '2026-10-15')]
-- bank calls: verify_identity > verify_identity > get_account > create_promise > create_promise!refused > close_call
 

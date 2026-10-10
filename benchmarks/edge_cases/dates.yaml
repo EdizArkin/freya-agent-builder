@@ -53,7 +53,7 @@
             "amount": 480,
             "date": "2026-10-13"
           },
-          "expect": "refused",
+          "expect": "blocked",
           "says": [
             "is in the past"
           ]
@@ -132,7 +132,7 @@
             "amount": 480,
             "date": "2026-10-27"
           },
-          "expect": "refused",
+          "expect": "blocked",
           "says": [
             "is after the latest date",
             "Fri 2026-10-23"
@@ -217,7 +217,7 @@
             "amount": 260,
             "date": "2026-11-03"
           },
-          "expect": "refused",
+          "expect": "blocked",
           "says": [
             "Mon 2026-11-02"
           ]
@@ -295,7 +295,7 @@
             "amount": 480,
             "date": "2026-10-17"
           },
-          "expect": "refused",
+          "expect": "blocked",
           "says": [
             "is not a business day",
             "Offer Mon 2026-10-19"
@@ -374,7 +374,7 @@
             "amount": 260,
             "date": "2026-10-26"
           },
-          "expect": "refused",
+          "expect": "blocked",
           "says": [
             "is not a business day",
             "Offer Tue 2026-10-27"
@@ -453,7 +453,7 @@
             "amount": 480,
             "date": "2026-10-24"
           },
-          "expect": "refused",
+          "expect": "blocked",
           "says": [
             "is after the latest date",
             "Fri 2026-10-23"
@@ -527,7 +527,7 @@
             "amount": 480,
             "date": "next Friday"
           },
-          "expect": "refused",
+          "expect": "blocked",
           "says": [
             "YYYY-MM-DD"
           ]
@@ -539,7 +539,7 @@
             "amount": 480,
             "date": "16/10/2026"
           },
-          "expect": "refused",
+          "expect": "blocked",
           "says": [
             "YYYY-MM-DD"
           ]
@@ -551,7 +551,7 @@
             "amount": 480,
             "date": "2026-13-40"
           },
-          "expect": "refused",
+          "expect": "blocked",
           "says": [
             "YYYY-MM-DD"
           ]
@@ -563,7 +563,7 @@
             "amount": 480,
             "date": ""
           },
-          "expect": "refused",
+          "expect": "blocked",
           "says": [
             "YYYY-MM-DD"
           ]
@@ -809,7 +809,7 @@
             "amount": 480,
             "date": "2026-12-25"
           },
-          "expect": "refused",
+          "expect": "blocked",
           "says": [
             "Offer Mon 2026-12-28"
           ]
@@ -821,7 +821,7 @@
             "amount": 480,
             "date": "2027-01-01"
           },
-          "expect": "refused",
+          "expect": "blocked",
           "says": [
             "Offer Mon 2027-01-04"
           ]
@@ -833,7 +833,7 @@
             "amount": 480,
             "date": "2027-01-05"
           },
-          "expect": "refused",
+          "expect": "blocked",
           "says": [
             "is after the latest date"
           ]

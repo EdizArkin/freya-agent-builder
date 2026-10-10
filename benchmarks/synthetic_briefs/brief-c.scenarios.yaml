@@ -274,9 +274,7 @@
       "spoken": [
         "Nothing specific."
       ],
-      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards.",
-      "known_gap": "Answers of format text are only trimmed. The schema has no way to say \"upper case, no spaces\", so the normalisation depends on the model.",
-      "gap_kind": "schema"
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
     },
     {
       "id": "SC-05",
@@ -332,7 +330,7 @@
             "amount": 119.99,
             "date": "2026-10-16"
           },
-          "expect": "refused",
+          "expect": "blocked",
           "says": [
             "below the lowest amount",
             "120.00"
@@ -422,7 +420,7 @@
             "amount": 300,
             "date": "2026-10-18"
           },
-          "expect": "refused",
+          "expect": "blocked",
           "says": [
             "is after the latest date"
           ]
@@ -506,7 +504,7 @@
             "amount": 300,
             "date": "2026-10-14"
           },
-          "expect": "refused"
+          "expect": "blocked"
         },
         {
           "call": "create_promise",
@@ -528,9 +526,7 @@
       "spoken": [
         "The agent says the earliest day is tomorrow."
       ],
-      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards.",
-      "known_gap": "The schema has a latest date per product but no earliest date. \"Tomorrow or later\" lives in the rule text only.",
-      "gap_kind": "schema"
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
     },
     {
       "id": "SC-08",
@@ -606,9 +602,7 @@
       "spoken": [
         "The agent says the arrears team will handle the account."
       ],
-      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards.",
-      "known_gap": "The schema cannot say that a product is not eligible for a promise. Limits are an amount range and a latest date; a condition on other fields is rule text only.",
-      "gap_kind": "schema"
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
     },
     {
       "id": "SC-09",
@@ -679,7 +673,7 @@
             "amount": 300,
             "date": "2026-10-16"
           },
-          "expect": "refused",
+          "expect": "blocked",
           "says": [
             "Do not try again for this product"
           ]
@@ -759,7 +753,7 @@
             "amount": 199,
             "date": "2026-10-16"
           },
-          "expect": "refused",
+          "expect": "blocked",
           "says": [
             "below the lowest amount"
           ]
@@ -771,7 +765,7 @@
             "amount": 200,
             "date": "2026-10-17"
           },
-          "expect": "refused",
+          "expect": "blocked",
           "says": [
             "is after the latest date"
           ]

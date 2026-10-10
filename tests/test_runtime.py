@@ -6,7 +6,7 @@ from builder.pipeline import build_workflow
 from builder.runtime import runtime as rt
 from tests.fixture_spec import spec as fixture
 from tests.freya_sim import Bank, Sim
-from tests.support import CASES, OPENAPI
+from tests.support import CASES, OPENAPI, refusal
 
 
 CAL = fixture()['calendar']
@@ -111,17 +111,17 @@ class Calls(unittest.TestCase):
         sim, bank, case = start('PUB-04')
         verify(sim, bank)
         late = sim.tool('create_promise', product_id='p1', amount=1250, date='2026-11-06')
-        self.assertIn('Fri 2026-10-23', late['what_to_do_next'])
+        self.assertIn('Fri 2026-10-23', refusal(sim, late))
         self.assertEqual(bank.ledger['promises'], [])
         sim.tool('create_promise', product_id='p1', amount=1250, date='2026-10-23')
         again = sim.tool('create_promise', product_id='p1', amount=1250, date='2026-10-22')
-        self.assertIn('already recorded', again['what_to_do_next'])
+        self.assertIn('already recorded', refusal(sim, again))
         sim.tool('close_call', outcome='promise')
         self.assertEqual(ledger(bank), case['expected'])
         sim, bank, case = start('PUB-07')
         verify(sim, bank)
         holiday = sim.tool('create_promise', product_id='p1', amount=540, date='2026-10-26')
-        self.assertIn('Offer Tue 2026-10-27', holiday['what_to_do_next'])
+        self.assertIn('Offer Tue 2026-10-27', refusal(sim, holiday))
         sim.tool('create_promise', product_id='p1', amount=540, date='2026-10-27')
         sim.tool('close_call', outcome='promise')
         self.assertEqual(ledger(bank), case['expected'])
@@ -129,8 +129,8 @@ class Calls(unittest.TestCase):
     def test_amount_limits(self):
         sim, bank, case = start('PUB-06')
         verify(sim, bank)
-        self.assertTrue(sim.tool('create_promise', product_id='p1', amount=500, date='2026-10-16')['rejected_by_policy'])
-        self.assertTrue(sim.tool('create_promise', product_id='p1', amount=2200, date='2026-10-16')['rejected_by_policy'])
+        self.assertIn('is below the lowest amount', refusal(sim, sim.tool('create_promise', product_id='p1', amount=500, date='2026-10-16')))
+        self.assertIn('is more than the amount due', refusal(sim, sim.tool('create_promise', product_id='p1', amount=2200, date='2026-10-16')))
         sim.tool('create_promise', product_id='card', amount='637.50', date='2026-10-16')
         sim.tool('close_call', outcome='promise', reason='refused')
         self.assertEqual(ledger(bank), case['expected'])
@@ -172,7 +172,7 @@ class Calls(unittest.TestCase):
         sim, bank, case = start('PUB-13', brief_b=True)
         verify(sim, bank)
         self.assertIn('2 late product(s)', sim.prompt())
-        self.assertTrue(sim.tool('create_promise', product_id='p2', amount=900, date='2026-10-30')['rejected_by_policy'])
+        self.assertIn('is after the latest date', refusal(sim, sim.tool('create_promise', product_id='p2', amount=900, date='2026-10-30')))
         more = sim.tool('create_promise', product_id='p1', amount=300, date='2026-10-30')
         self.assertIn('p2 "personal loan"', more['what_to_do_next'])
         sim.tool('create_promise', product_id='p2', amount=900, date='2026-10-23')
@@ -181,9 +181,9 @@ class Calls(unittest.TestCase):
         sim, bank, case = start('PUB-12', brief_b=True)
         verify(sim, bank)
         sim.tool('create_promise', product_id='p1', amount=510, date='2026-10-15')
-        self.assertTrue(sim.tool('add_note', product_id='p1', reason='refused')['rejected_by_policy'])
+        self.assertIn('needs no note', refusal(sim, sim.tool('add_note', product_id='p1', reason='refused')))
         sim.tool('add_note', product_id='p2', reason='refused')
-        self.assertTrue(sim.tool('add_note', product_id='p2', reason='refused')['rejected_by_policy'])
+        refusal(sim, sim.tool('add_note', product_id='p2', reason='refused'))
         self.assertIn('Every product', sim.tool('add_note', product_id='p3', reason='refused')['what_to_do_next'])
         sim.tool('close_call', outcome='no_promise', reason='refused')
         self.assertEqual(ledger(bank), case['expected'])

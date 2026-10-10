@@ -140,6 +140,20 @@ def evaluate(expr, today, cal, product, named):
             if matches(case.get('when'), product):
                 return evaluate(case.get('expr'), today, cal, product, named)
         raise ValueError('no case matched')
+    if kind == 'by_time':
+        clock = str(cal.get('clock') or '00:00')
+        for case in expr.get('cases', []):
+            w = case.get('when') or dict()
+            if w.get('from') is not None and clock < str(w['from']):
+                continue
+            if w.get('after') is not None and clock <= str(w['after']):
+                continue
+            if w.get('until') is not None and clock > str(w['until']):
+                continue
+            if w.get('before') is not None and clock >= str(w['before']):
+                continue
+            return evaluate(case.get('expr'), today, cal, product, named)
+        raise ValueError('no case matched')
     if kind == 'const':
         return expr.get('value')
     if kind == 'text':
@@ -384,8 +398,9 @@ def load_state(vars):
     fresh = dict(wrong=0, identity='pending', verified=[], products=[], promises=dict(), notes=dict(),
                  fails=dict(), transfers=[], callback=None, closed=False, blocks=0, open=None, held=[], run='')
     st = fresh
+    raw = vars.get('rt_state')
     try:
-        got = json.loads(vars.get('rt_state') or '')
+        got = json.loads(raw or '')
         if isinstance(got, dict):
             for key in fresh:
                 if not isinstance(got.get(key), type(fresh[key])) and fresh[key] is not None:
@@ -393,10 +408,13 @@ def load_state(vars):
             st = got
     except Exception:
         pass
+    st.pop('broken', None)
     try:
         absorb(vars, st)
     except Exception:
-        pass
+        # What earlier calls recorded could not be read in full. A state with holes must not let a call
+        # through: `send` refuses while this mark is set.
+        st['broken'] = True
     return st
 
 
@@ -413,8 +431,14 @@ def opened(st, tool, key, hint):
     st['open'] = [tool, str(key), hint]
 
 
-def product_facts(cfg, products, today):
-    cal = cfg['calendar']
+def allowed(value):
+    return not (value is False or str(value).strip().lower() in ('false', 'no'))
+
+
+def product_facts(cfg, products, today, clock=None):
+    cal = dict(cfg['calendar'])
+    cal['clock'] = clock or '00:00'
+    rule = cfg.get('promise') or dict()
     out = []
     for raw in products:
         if not isinstance(raw, dict):
@@ -432,9 +456,18 @@ def product_facts(cfg, products, today):
         pid = str(raw.get(cfg['account']['id_field']))
         limits = cfg['account'].get('limits') or dict()
         fact = dict(id=pid, label=str(named.get('label') or pid), shown=shown, raw=raw)
-        for key in ('min_amount', 'max_amount', 'latest_date'):
+        for key in ('min_amount', 'max_amount', 'latest_date', 'earliest_date'):
             value = named.get(limits.get(key)) if limits.get(key) else None
             fact[key] = value.isoformat() if is_date(value) else value
+        fact['promise_allowed'] = allowed(named.get(limits.get('promise_allowed'))) if limits.get('promise_allowed') else True
+        groups = rule.get('resolve_first') or []
+        fact['rank'] = len(groups)
+        for i in range(len(groups)):
+            if matches(groups[i], raw):
+                fact['rank'] = i
+                break
+        total = rule.get('min_total') or dict()
+        fact['base'] = number(named.get(total.get('of'))) if total.get('of') else None
         out.append(fact)
     return out
 
@@ -455,9 +488,13 @@ def account_text(cfg, facts):
             limits.append('lowest amount ' + money(f['min_amount']))
         if f.get('max_amount') is not None:
             limits.append('highest amount ' + money(f['max_amount']))
+        if f.get('earliest_date'):
+            limits.append('earliest date ' + say_date(to_date(f['earliest_date'])) + ' (no earlier date can be recorded)')
         if f.get('latest_date'):
             limits.append('latest date ' + say_date(to_date(f['latest_date'])) + ' (no later date can be recorded, whatever the person asks for)')
-        if limits:
+        if f.get('promise_allowed') is False:
+            rows.append('  NO PROMISE CAN BE RECORDED for this product. Follow your instructions for this case.')
+        elif limits:
             rows.append('  LIMITS THE BANK CHECKS ON EVERY PROMISE for this product: ' + '; '.join(limits))
         blocks.append('\n'.join(rows))
     return '\n'.join(blocks)
@@ -477,6 +514,11 @@ def live_text(cfg, st):
             rows.append(p['id'] + ' "' + p['label'] + '": note recorded, reason ' + str(st['notes'][p['id']]))
         else:
             rows.append(p['id'] + ' "' + p['label'] + '": nothing recorded yet')
+    need = number(st.get('min_total'))
+    if need is not None and st['promises'] and not pending(st):
+        got = sum([number(st['promises'][k].get('amount')) or 0.0 for k in st['promises']])
+        if got < need - 0.004:
+            rows.append('THE RECORDED PROMISES ADD UP TO ' + money(got) + ', LESS THAN THE REQUIRED ' + money(need) + '. A recorded promise cannot be taken back in this call.')
     if st['transfers']:
         rows.append('Transfer done to queue: ' + ', '.join(st['transfers']))
     if st.get('last_block'):
@@ -488,7 +530,9 @@ def live_text(cfg, st):
 
 
 def save_state(cfg, vars, st):
-    vars['rt_state'] = json.dumps(st)
+    kept = dict(st)
+    kept.pop('broken', None)
+    vars['rt_state'] = json.dumps(kept)
     vars['rt_live'] = live_text(cfg, st)
     vars['rt_identity'] = st['identity']
     vars['rt_closed'] = 'yes' if st['closed'] else 'no'
@@ -543,10 +587,27 @@ def find_products(cfg, vars):
 
 def load_account(cfg, vars):
     st = load_state(vars)
-    facts = product_facts(cfg, find_products(cfg, vars), to_date(st['today']))
+    facts = product_facts(cfg, find_products(cfg, vars), to_date(st['today']), str(st.get('now') or '')[11:16])
     st['products'] = [dict(id=f['id'], label=f['label'], min_amount=f['min_amount'], max_amount=f['max_amount'],
                            latest_date=f['latest_date']) for f in facts]
-    vars['rt_account_facts'] = account_text(cfg, facts)
+    text = account_text(cfg, facts)
+    # Limits a brief may add. A product carries them only when its brief has them.
+    for i in range(len(facts)):
+        f = facts[i]
+        if f.get('earliest_date'):
+            st['products'][i]['earliest_date'] = f['earliest_date']
+        if f.get('promise_allowed') is False:
+            st['products'][i]['promise_allowed'] = False
+        if (cfg.get('promise') or dict()).get('resolve_first'):
+            st['products'][i]['rank'] = f['rank']
+    total = (cfg.get('promise') or dict()).get('min_total')
+    if total and facts:
+        need = number(total.get('amount'))
+        if need is None:
+            need = round(sum([f['base'] or 0.0 for f in facts]) * float(total.get('percent', 0)) / 100.0, 2)
+        st['min_total'] = need
+        text += '\nALL PROMISES OF THIS CALL TOGETHER must add up to at least ' + money(need) + '. The bank refuses a promise once that total can no longer be reached.'
+    vars['rt_account_facts'] = text
     vars['rt_account'] = 'ok' if facts else 'error'
     save_state(cfg, vars, st)
 
@@ -564,9 +625,20 @@ def block(cfg, vars, config, st, tool, message, field=None):
     # error, no post-hook runs, and the reason is left in the live state only.
     # The reason is kept per tool, so that the post-hook of another call cannot take it for its own.
     body = body_of(config)
-    if field and st.get('identity') == 'verified':
-        body[field] = 'blocked_by_policy'
-    else:
+    if isinstance(config, dict) and config.get('body') is not body:
+        config['body'] = body
+    # Every block detaches the request: each field that carries a value of this call is replaced, so that
+    # the request cannot be attributed to it whatever the bank checks or does not check. A refused call is
+    # never sent in a form the bank could carry out only to obtain its refusal; the reason reaches the model
+    # through the live state. If none of the call fields is in the body, nothing in the body is trusted.
+    hit = 0
+    for name in cfg['customer_fields']:
+        if name in body:
+            body[name] = 'blocked_by_policy'
+            hit += 1
+    if not hit:
+        for name in list(body.keys()):
+            body[name] = 'blocked_by_policy'
         for name in cfg['customer_fields']:
             body[name] = 'blocked_by_policy'
     st['open'] = None
@@ -639,8 +711,61 @@ def keep_args(vars, tool, config):
     vars['rt_block_' + tool] = ''
 
 
+def shape_problem(cfg, tool, body):
+    """What is wrong with a request body against the tool API, after putting right what can be put right."""
+    shape = (cfg.get('shape') or dict()).get(tool)
+    if not shape:
+        return ''
+    fields = shape['fields']
+    for name in list(body.keys()):
+        if name not in fields:
+            body.pop(name)
+    for name in shape['required']:
+        if body.get(name) is None or body.get(name) == '':
+            return 'the value ' + str(name) + ' is missing'
+    for name in list(body.keys()):
+        kind = fields[name][0]
+        value = body[name]
+        if kind == 'string':
+            if isinstance(value, (int, float)) and not isinstance(value, bool):
+                value = str(int(value)) if float(value) == int(value) else str(value)
+                body[name] = value
+            if not isinstance(value, str):
+                return str(name) + ' must be text'
+            if fields[name][2] == 'date':
+                try:
+                    if len(value) != 10:
+                        return str(name) + ' must be a date YYYY-MM-DD'
+                    to_date(value)
+                except Exception:
+                    return str(name) + ' must be a date YYYY-MM-DD'
+        elif kind in ('number', 'integer'):
+            if number(value) is None:
+                return str(name) + ' must be a number'
+            if isinstance(value, str) or isinstance(value, bool):
+                body[name] = int(number(value)) if kind == 'integer' else number(value)
+        elif kind == 'boolean':
+            if not isinstance(value, bool):
+                return str(name) + ' must be true or false'
+        if fields[name][1] and body[name] not in fields[name][1]:
+            return str(body[name]) + ' is not allowed for ' + str(name) + '. Use one of: ' + ', '.join([str(v) for v in fields[name][1]])
+    return ''
+
+
 def send(cfg, vars, config, st, tool, key, hint):
     """A call that passed every check goes out: keep its final values and mark it as on its way."""
+    # Last check before the bank: the request has the fields, types and allowed values of the tool API.
+    problem = shape_problem(cfg, tool, body_of(config))
+    if problem and tool == 'close':
+        # A close is refused once per kind of problem; one that was already refused goes through.
+        if st['held']:
+            problem = ''
+        else:
+            st['held'].append('shape')
+    if not problem and st.get('broken'):
+        problem = 'the record of this call could not be read'
+    if problem:
+        return block(cfg, vars, config, st, tool, 'NOT SENT: ' + problem + '. Correct it and call the tool again.')
     keep_args(vars, tool, config)
     st['last_block'] = ''
     opened(st, tool, key, hint)
@@ -686,6 +811,15 @@ def pre_identity(cfg, vars, config):
             digits = re.sub(r'\D', '', text)
             if digits:
                 text = digits
+        for step in q.get('normalize') or []:
+            if step == 'uppercase':
+                text = text.upper()
+            elif step == 'lowercase':
+                text = text.lower()
+            elif step == 'remove_spaces':
+                text = re.sub(r'\s+', '', text)
+            elif step == 'alphanumeric':
+                text = re.sub(r'[^A-Za-z0-9]', '', text)
         body[idc['answer_param']] = text
     st = load_state(vars)
     left = number(st.get('left'))
@@ -797,7 +931,15 @@ def pre_promise(cfg, vars, config):
     if pid in st['promises']:
         return block(cfg, vars, config, st, 'promise', 'A promise is already recorded for ' + prod['label'] + '. It cannot be recorded again or changed. Do not call create_promise for this product again.', soft)
     if st['transfers'] and pc.get('forbidden_after_transfer', True):
-        return block(cfg, vars, config, st, 'promise', 'The call has been transferred. No promise may be recorded after a transfer.', soft)
+        still = pc.get('allowed_after_transfer_to') or []
+        if [q for q in st['transfers'] if q not in still]:
+            return block(cfg, vars, config, st, 'promise', 'The call has been transferred. No promise may be recorded after a transfer.', soft)
+    if prod.get('promise_allowed') is False:
+        return block(cfg, vars, config, st, 'promise', guide(cfg, 'promise.not_allowed', 'NOT RECORDED: no promise can be recorded for ' + prod['label'] + '. Follow your instructions for this case.'), soft)
+    first = [p for p in pending(st) if p['id'] != pid and number(p.get('rank')) is not None and number(prod.get('rank')) is not None and p['rank'] < prod['rank']]
+    if first:
+        return block(cfg, vars, config, st, 'promise', 'NOT RECORDED: ' + prod['label'] + ' has to wait. First record a promise or a note for: '
+                     + ', '.join([p['id'] + ' "' + p['label'] + '"' for p in first]) + '.', soft)
     # Every request that went out for this product and did not end in a recorded promise has failed,
     # with or without an answer.
     failures = attempts(vars, st, pid)
@@ -812,6 +954,19 @@ def pre_promise(cfg, vars, config):
         return block(cfg, vars, config, st, 'promise', 'NOT RECORDED: ' + money(amount) + ' is below the lowest amount that can be recorded for ' + prod['label'] + ', which is ' + money(lo) + '. Follow the amount rules of your instructions.', soft)
     if hi is not None and amount > hi + 0.004:
         return block(cfg, vars, config, st, 'promise', 'NOT RECORDED: ' + money(amount) + ' is more than the amount due for ' + prod['label'] + ', which is ' + money(hi) + '. Read back the correct amount and get a new confirmation.', soft)
+    need = number(st.get('min_total'))
+    if need is not None:
+        # The most this call can still reach: what is recorded, this amount, and the full amount of every
+        # product that is still open. Below the required total, no later promise could make it up.
+        reach = amount
+        for key in st['promises']:
+            reach += number(st['promises'][key].get('amount')) or 0.0
+        for p in pending(st):
+            if p['id'] != pid and p.get('promise_allowed') is not False:
+                reach += number(p.get('max_amount')) or 0.0
+        if reach < need - 0.004:
+            return block(cfg, vars, config, st, 'promise', 'NOT RECORDED: all promises of this call must add up to at least ' + money(need)
+                         + ', and with ' + money(amount) + ' for ' + prod['label'] + ' that can no longer be reached. Ask the customer to raise an amount.', soft)
     body[pc['amount_param']] = amount
     try:
         day = to_date(body.get(pc['date_param']))
@@ -821,6 +976,9 @@ def pre_promise(cfg, vars, config):
     latest = to_date(prod['latest_date']) if prod.get('latest_date') else None
     if day < today:
         return block(cfg, vars, config, st, 'promise', 'NOT RECORDED: ' + say_date(day) + ' is in the past. Today is ' + say_date(today) + '.', soft)
+    early = to_date(prod['earliest_date']) if prod.get('earliest_date') else None
+    if early and day < early:
+        return block(cfg, vars, config, st, 'promise', 'NOT RECORDED: ' + say_date(day) + ' is before the earliest date that can be recorded for ' + prod['label'] + ', which is ' + say_date(early) + '. Offer that date, read it back and get a clear yes before calling create_promise again.', soft)
     if latest and day > latest:
         return block(cfg, vars, config, st, 'promise', 'NOT RECORDED: ' + say_date(day) + ' is after the latest date that can be recorded for ' + prod['label'] + ', which is ' + say_date(latest) + '. Tell the customer the latest date you can record is ' + say_date(latest) + ', offer it, read it back and get a clear yes before calling create_promise again.', soft)
     if pc.get('business_day_only', True) and not is_biz(day, cal):
@@ -849,7 +1007,7 @@ def post_promise(cfg, vars, result):
         base = 'RECORDED: the promise for ' + label + ' (' + money(args.get(pc['amount_param'])) + ' on ' + str(args.get(pc['date_param'])) + ') is now recorded. Do not call create_promise for this product again.'
         if rest:
             return finish(cfg, vars, result, st, guide(cfg, 'promise.recorded_more', base + ' Products still without a promise or a note: ' + ', '.join([p['id'] + ' "' + p['label'] + '"' for p in rest]) + '.'))
-        return finish(cfg, vars, result, st, guide(cfg, 'promise.recorded_all', base + ' Every product is now handled.'))
+        return finish(cfg, vars, result, st, guide(cfg, 'promise.recorded_all', base + ' Every product is now handled. Now, and not before, tell the person that the promise is recorded.'))
     st['fails'][pid] = max(1, attempts(vars, st, pid))
     return finish(cfg, vars, result, st, promise_failure(cfg, label, st['fails'][pid]))
 
@@ -939,7 +1097,11 @@ def transfer_failure(cfg):
 
 
 def pre_transfer(cfg, vars, config):
-    send(cfg, vars, config, load_state(vars), 'transfer', '', transfer_failure(cfg))
+    st = load_state(vars)
+    limit = number((cfg.get('transfer') or dict()).get('max_transfers'))
+    if limit is not None and len(st['transfers']) >= limit:
+        return block(cfg, vars, config, st, 'transfer', 'NOT TRANSFERRED: the call was already handed over to ' + ', '.join(st['transfers']) + '. No further transfer may be made in this call.')
+    send(cfg, vars, config, st, 'transfer', '', transfer_failure(cfg))
 
 
 def post_transfer(cfg, vars, result):
@@ -970,6 +1132,8 @@ def flag_true(st, flag):
         return bool(ids) and not st['promises'] and all([i in st['notes'] and (not arg or str(st['notes'][i]) == arg) for i in ids])
     if name == 'any_note':
         return bool(st['notes']) and not st['promises']
+    if name == 'note_recorded':
+        return bool([k for k in st['notes'] if not arg or str(st['notes'][k]) == arg])
     return False
 
 

@@ -92,6 +92,8 @@ briefs, tool API file and practice cases.
 | `test_extraction.py` | The extraction and repair loop, with replayed model replies |
 | `test_pipeline.py`, `test_config.py`, `test_freya.py` | The command, key loading and tracing, deployment with a fake client |
 | `test_architecture.py` | Import boundaries and the embedding of the runtime |
+| `test_block_safety.py`, `test_hook_faults.py` | No refused call changes the bank: renamed tool APIs, a permissive bank, a fault at every point of every pre-hook |
+| `test_schema_m15.py`, `test_contract.py`, `test_packages.py` | The rule kinds added in M15; requests against the tool API; the evaluation packages and the rule-level evaluator |
 
 `tests/fixture_spec.py` is a hand-written spec for the kit's Brief A and B. It is test data,
 never an input of a real build. `tests/freya_sim.py` stands in for the Freya engine and the
