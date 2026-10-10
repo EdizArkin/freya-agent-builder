@@ -21,13 +21,17 @@ PLATFORM_RULES = """You are a phone agent on a live call with one person. Speak 
 HOW YOU WORK
 - Tool results come from the bank's own systems. Every tool result carries a field `what_to_do_next`. It is binding: do exactly what it says, even when you expected something else.
 - After every tool result you must speak to the person or call the next tool. Never end a turn with nothing.
-- When a rule says to use a tool, CALL the tool. Saying it in words is not enough. Make one tool call per message.
+- When a rule says to use a tool, CALL the tool. Saying it in words is not enough.
+- ONE tool call per message, never two. Tool calls sent together do not run in the order you wrote them. When two tools are needed, call the first, wait for its result, then call the second in a new message.
 - Never say that something is recorded, booked, transferred or done unless a tool result said so. When a tool result says rejected or failed, nothing was recorded: tell the truth.
-- Never work out a date, a weekday, a deadline or an amount in your head. Read them from the facts blocks in your instructions and from tool results. Send dates to tools as YYYY-MM-DD, times as HH:MM on the 24-hour clock, amounts as plain numbers.
-- People talk like people. They give a number or a date in two parts, correct themselves, mention unrelated things, or ask a question back. Wait until a value is complete before using it, always use the corrected value, never treat an unrelated remark as an answer, and after answering a question go back to the question you were asking.
-- The call ends only through close_call. Say your last words to the person in the same message in which you call close_call, and call no tool after it.
+- Never work out a date, a weekday, a deadline or an amount in your head. Read them from the facts blocks in your instructions and from tool results. When the person names a day in words (today, tomorrow, a weekday, this or next week), take its date from the DAY NAMES block, word for word. Send dates to tools as YYYY-MM-DD, times as HH:MM on the 24-hour clock, amounts as plain numbers.
+- People talk like people. They give a number or a date in two parts, correct themselves, mention unrelated things, or ask a question back. Wait until a value is complete before using it, but a value is complete as soon as all of its parts have been said, even when the sentence around it trails off or is cut short. Always use the corrected value, never treat an unrelated remark as an answer, and after answering a question go back to the question you were asking.
+- The call ends only through close_call. It is always the last tool call and always alone: first get the result of every other tool, then say your last words to the person in the same message in which you call close_call, and call no tool after it.
 
 """
+
+
+DAY_NAMES = '\n\nDAY NAMES (computed by the bank, binding; the date of every day a person can name in words)\n{{rt_days}}'
 
 
 SETUP_FALLBACK = """vars['rt_state'] = ''
@@ -36,6 +40,7 @@ vars['rt_closed'] = 'no'
 vars['rt_live'] = 'Nothing recorded yet.'
 vars['rt_today'] = str(vars.get(NOW_VAR) or '')
 vars['rt_calendar'] = 'Calendar unavailable.'
+vars['rt_days'] = 'Unavailable.'
 vars['rt_callback'] = 'Callback facts unavailable.'
 vars['rt_account_facts'] = 'The account has not been loaded.'
 vars['rt_account_json'] = ''
@@ -44,6 +49,39 @@ vars['rt_account'] = 'none'
 ACCOUNT_FALLBACK = """vars['rt_account'] = 'error'
 vars['rt_account_facts'] = 'ACCOUNT LOOKUP FAILED. You have no account information. Say that you cannot access the account details right now and do not state any amount or product.'
 """
+
+
+FAILURES = {
+    'verify_identity': ('identity.service_error', 'nothing was counted; call verify_identity again with the same answer.'),
+    'create_promise': ('promise.failed_retry', 'nothing was recorded; do not say it was; call create_promise again with exactly the same product, amount and date.'),
+    'add_note': ('note.failed', 'the note was not saved; call add_note once more with the same values.'),
+    'schedule_callback': ('callback.failed', 'the callback was not booked; call schedule_callback once more with the same values.'),
+    'transfer_to_agent': ('transfer.failed', 'the transfer did not happen; call transfer_to_agent once more with the same queue.'),
+    'close_call': (None, 'the call is still open; call close_call again with the same values.'),
+}
+
+
+def failure_rules(spec, tools):
+    """What the model must do when a call returns an error and no result.
+
+    The engine runs no post-hook after an HTTP error, so the runtime cannot say this at that
+    moment; it has to be in the prompt from the start. The wording per tool is the same
+    guidance the runtime gives when it can."""
+    guidance = spec.get('guidance') or {}
+    extra = lambda event: (' ' + guidance[event].strip()) if event and isinstance(guidance.get(event), str) else ''
+    rows = ['WHEN A TOOL CALL FAILS',
+            'A failed call gives you an error such as "API request failed" and no what_to_do_next. Then nothing was recorded, booked, transferred or closed. Never say that it was, and never end the call there.',
+            '- If LIVE STATE shows LAST REJECTED TOOL CALL, the bank\'s policy check refused the values you sent. Do what that line says. Do not send the same values again.',
+            '- Otherwise the service did not answer:']
+    for name in tools:
+        event, text = FAILURES[name]
+        row = '  - ' + name + ': ' + text + extra(event)
+        if name == 'create_promise':
+            attempts = int(spec['promise'].get('max_attempts', 2))
+            row += (' At most ' + str(attempts) + ' attempt(s) for one product. After the last failed attempt: do not try again for that product and tell the person honestly that you could not record the promise.'
+                    + extra('promise.failed_final'))
+        rows.append(row)
+    return '\n'.join(rows)
 
 
 class CompileError(ValueError):
@@ -168,6 +206,8 @@ def build_tool(tool, spec, api, cfg, engine_run=False):
                 leaf.update(extra[name])
         body[name] = leaf
     description = (spec.get('tool_descriptions') or {}).get(tool) or (api.summary(tool) + ' CALL it whenever your instructions say so.')
+    if tool == 'close_call':
+        description = description.rstrip() + ' Always call it alone in its own message, after the result of every other tool call has come back, never together with another tool.'
     result = {
         'type': 'function',
         'config': {'timeoutMs': 15000, 'maxRetries': 2 if engine_run else 0},
@@ -215,13 +255,17 @@ def compile_workflow(spec, api):
         + '\n\nTOOLS IN THIS PART OF THE CALL: ' + ', '.join(t['function']['name'] for t in contact_tools) + '. No other tool exists yet.'
         + '\n\nSECURITY QUESTIONS, in this order, one at a time: ' + '; '.join(str(i + 1) + '. ' + q['ask'] + ' (field ' + q['field'] + ')' for i, q in enumerate(idc['questions']))
         + '. Call verify_identity once for every complete answer, and only for answers given by the customer in person.'
+        + '\n\n' + failure_rules(spec, [t['function']['name'] for t in contact_tools])
         + '\n\nTODAY: {{rt_today}}'
+        + DAY_NAMES
         + ('\n\nCALLBACK FACTS (computed by the bank, binding)\n{{rt_callback}}' if spec.get('callback') else '')
         + '\n\nCALENDAR (computed by the bank, binding)\n{{rt_calendar}}'
         + '\n\nLIVE STATE\n{{rt_live}}')
     deal_task = (rules['after_verification'].strip()
         + '\n\nTOOLS IN THIS PART OF THE CALL: ' + ', '.join(t['function']['name'] for t in deal_tools) + '. Identity is verified and the account is already loaded: never ask a security question again.'
+        + '\n\n' + failure_rules(spec, [t['function']['name'] for t in deal_tools])
         + '\n\nTODAY: {{rt_today}}'
+        + DAY_NAMES
         + '\n\nACCOUNT FACTS (computed by the bank, binding; use these exact product ids, amounts and dates)\n{{rt_account_facts}}'
         + '\n\nCALENDAR (computed by the bank, binding)\n{{rt_calendar}}'
         + '\n\nLIVE STATE (what is recorded so far)\n{{rt_live}}')

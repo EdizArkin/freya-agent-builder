@@ -2,6 +2,13 @@
 
 It executes every snippet with separate globals and locals, the least forgiving
 way a sandbox can call exec, and it plays the phone model's tool calls by hand.
+
+Behaviour copied from live calls on 2026-10-10: the engine runs a post-hook only
+after a 2xx answer, any other status reaches the model as a bare error with no
+hook; the bank answers 404 for a customer it does not know and 200 with ok false
+for an action it refuses; two tool calls of one model message are not kept in order.
+Assumed from the kit's README, not yet seen live: an unknown product id is one of
+those refusals.
 """
 import copy
 import json
@@ -21,7 +28,12 @@ class Bank:
             self.faults[tool] -= 1
             self.calls.append((tool, body, 500))
             return 500, None
-        out = getattr(self, tool)(body)
+        if self.ledger['outcome'] is not None:
+            out = {'ok': False, 'error': 'the call is already closed'}
+        elif 'product_id' in body and body['product_id'] not in [p['product_id'] for p in self.products]:
+            out = {'ok': False, 'error': 'unknown product_id'}
+        else:
+            out = getattr(self, tool)(body)
         self.calls.append((tool, body, out))
         return 200, out
 
@@ -107,7 +119,7 @@ class Sim:
             if self.wf['nodes'][target]['node_type'] == 'end_call':
                 return
 
-    def _api(self, tool, args):
+    def _request(self, tool, args):
         props = tool['function']['parameters']['properties']
         body = {}
         for name, leaf in props['body']['properties'].items():
@@ -119,8 +131,13 @@ class Sim:
         config = {'url': props['url']['default'], 'method': 'POST', 'headers': {}, 'body': body}
         if tool.get('pre_process_code'):
             run(tool['pre_process_code'], vars=self.vars, config=config)
+        return config
+
+    def _respond(self, tool, config):
         status, data = self.bank.call(config['url'].rsplit('/', 1)[-1], config['body'])
-        result = {'status': 'success' if status == 200 else 'error', 'data': data, 'status_code': status,
+        if status != 200:
+            return {'status': 'error', 'error': 'API request failed: ' + repr(data)}
+        result = {'status': 'success', 'data': data, 'status_code': status,
                   'message': 'x', 'header': {'Content-Type': 'application/json'}}
         if tool.get('post_process_code'):
             run(tool['post_process_code'], vars=self.vars, result=result)
@@ -131,15 +148,42 @@ class Sim:
         json.dumps(result)
         return result
 
-    def tool(self, name, **args):
-        """The phone model calls a tool in the current conversation node."""
+    def _api(self, tool, args):
+        return self._respond(tool, self._request(tool, args))
+
+    def _find(self, name):
         node = self.wf['nodes'][self.node]
         found = [t for t in node.get('tools') or [] if t['function']['name'] == name]
         if not found:
             raise LookupError(name + ' is not available in node ' + self.node)
-        result = self._api(found[0], args)
+        return found[0]
+
+    def _new_message(self):
+        """A model turn lies between two messages: let the runtime's clock see that time pass."""
+        try:
+            state = json.loads(self.vars.get('rt_state') or '')
+            if state.get('open') and state['open'][2] is not None:
+                state['open'][2] -= 30
+                self.vars['rt_state'] = json.dumps(state)
+        except (ValueError, AttributeError, IndexError, TypeError):
+            pass
+
+    def tool(self, name, **args):
+        """The phone model calls a tool in the current conversation node."""
+        self._new_message()
+        result = self._api(self._find(name), args)
         self.advance()
         return result['data'] if isinstance(result.get('data'), dict) else {}
+
+    def together(self, *calls):
+        """The phone model puts several tool calls into one message: the requests are prepared in
+        the order written, but they reach the bank in reverse, as seen live."""
+        self._new_message()
+        tools = [self._find(name) for name, _ in calls]
+        configs = [self._request(t, args) for t, (_, args) in zip(tools, calls)]
+        results = [self._respond(t, c) for t, c in reversed(list(zip(tools, configs)))][::-1]
+        self.advance()
+        return [r['data'] if isinstance(r.get('data'), dict) else {} for r in results]
 
     def prompt(self):
         text = self.wf['nodes'][self.node].get('task_message', '')

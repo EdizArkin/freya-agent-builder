@@ -125,8 +125,11 @@ setup ──► contact ──► get_account ──► account_facts ──► 
 | `end` | Hangs up after `close_call` succeeded | none |
 
 Tools are generated from the tool API file: URL, fields, types, enums. Each conversation
-node's prompt is the spec's rule text followed by facts blocks the runtime computed (today,
-calendar, callback slots, account facts, live state).
+node's prompt is the spec's rule text, then what to do when a tool call fails, then facts
+blocks the runtime computed (today, day names, calendar, callback slots, account facts with
+the limits the bank checks, live state). The day names block gives the date of every day a
+person can name in words ("tomorrow", "this Friday", "Monday next week"), so the model
+looks a date up and never counts days.
 
 ## The embedded runtime
 
@@ -145,7 +148,22 @@ and may not contain two consecutive braces. `tests/test_architecture.py` checks 
 and checks that each embedded function equals its source.
 
 State is one JSON string in the workflow variable `rt_state`: identity status, wrong
-answers, products with limits, promises, notes, transfers, callback, closed.
+answers, products with limits, promises, notes, failed attempts, transfers, callback,
+closed, and a mark for the call that is on its way.
+
+## How a refusal or a failure reaches the model
+
+Live calls showed two things the design has to work around. The engine runs a post-hook
+only after a 2xx answer; after any other status the model gets a bare error. And tool calls
+that the model puts into one message are not run in the order written.
+
+| Situation | What the runtime does | How the model learns of it |
+| --- | --- | --- |
+| A promise or note breaks a rule, on a verified call | The pre-hook keeps the customer and replaces the product id with a placeholder, so the bank refuses the request with an ordinary answer and records nothing | The post-hook replaces the result with the reason and what to do next |
+| Any other call breaks a rule (callback outside the window, anything before verification) | The pre-hook detaches the request from the customer; the bank answers with an HTTP error and records nothing | `LAST REJECTED TOOL CALL` in the live state, and the fixed failure rules in the prompt |
+| The service fails (HTTP error) | Every pre-hook leaves a mark in the state; a post-hook removes it. A mark that is still there when `create_promise` is called again is a failed attempt and is counted | The fixed failure rules in the prompt, per tool, with the spec's own guidance; the live state repeats them while the mark is there |
+| More promise attempts than the spec allows | `pre_promise` blocks the call | As in the first row |
+| `close_call` arrives while another call of the same message has no result yet | `pre_close` blocks that close, once | The other call's result says what to do next; the prompt says a failed close is repeated |
 
 ## What is enforced in code, and what is not
 
@@ -160,7 +178,8 @@ Enforced by the runtime or by the graph, whatever the phone model does:
 | One promise per product; known product only; none after a transfer; none without a loaded account | `pre_promise` |
 | One note per product; none for a promised product; none after a transfer when the spec says so | `pre_note` |
 | Callback only inside the computed slots; only one | `pre_callback` |
-| Retry-or-stop after a failed `create_promise`, by attempt count | `post_promise` |
+| Retry-or-stop after a failed `create_promise`, by attempt count; no attempt beyond the limit | `pre_promise`, `post_promise` |
+| `close_call` does not overtake another call sent in the same message | `pre_close` |
 | Close outcome from what was recorded (`close.forced`); no reason on an outcome that takes none | `pre_close` |
 | The call ends only after `close_call` succeeded | graph |
 | Calendar, deadlines, floors, offer dates | computed in `setup` and `account_facts`, given to the model as facts |
@@ -222,13 +241,21 @@ outputs/<build-id>/
 Verified offline: the tests pass; the Brief A and Brief A+B fixture specs compile to
 workflows that pass local validation.
 
-Not verified, because it needs the network:
+Verified in live calls on 2026-10-10, with the code before the changes described under
+"How a refusal or a failure reaches the model": Claude wrote a valid spec for Brief A in
+one request; Freya accepted workflows of about 130 to 145 KB and stored hooks and code
+unchanged; post-hooks run after a 2xx answer and their text reaches the model; variables
+written in hooks persist; a detached call records nothing; a post-hook does not run after
+an HTTP error; calls of one message are not kept in order.
 
-- that Claude writes a valid, complete spec for a brief (no live extraction has run);
-- that Freya accepts the workflow (size about 130 KB) and runs its hooks as documented;
-- that a blocked call's post-hook still runs and its rewritten result reaches the model;
-- that variables written in a post-hook persist to later hooks;
-- how well the phone model follows the rule text.
+Not yet verified live:
+
+- that the bank answers a request with an unknown product id with a refusal the post-hook
+  can explain (the kit's README says it answers `unknown product_id`; the status is assumed);
+- that a pre-hook sees the state written by the pre-hook of another call in the same message;
+- that Freya accepts the larger workflow (about 160 to 175 KB);
+- that the phone model uses the day names block and the failure rules;
+- amount blocks, callback blocks, notes and calls with several products.
 
 Other limits: the tests and `--deploy` need the git-ignored starter kit; persuasion
 counting and other conversational rules are prompt-dependent; the tool names are assumed

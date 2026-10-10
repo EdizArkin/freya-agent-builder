@@ -100,8 +100,8 @@ class Calls(unittest.TestCase):
         sim, bank, case = start('PUB-02')
         self.assertIn('Thu 2026-10-15 (Thursday 15 October): from 10:00', sim.prompt())
         self.assertIn('later than 11:00', sim.prompt())
-        rejected = sim.tool('schedule_callback', date='2026-10-17', time='11:00')
-        self.assertTrue(rejected['rejected_by_policy'])
+        self.assertEqual(sim.tool('schedule_callback', date='2026-10-17', time='11:00'), {})
+        self.assertIn('LAST REJECTED TOOL CALL: NOT BOOKED', sim.vars['rt_live'])
         self.assertEqual(bank.ledger['callbacks'], [])
         sim.tool('schedule_callback', date='2026-10-15', time='11.00')
         sim.tool('close_call', outcome='not_reached', reason='no_callback')
@@ -138,8 +138,8 @@ class Calls(unittest.TestCase):
     def test_promise_service_failure_then_retry(self):
         sim, bank, case = start('PUB-10')
         verify(sim, bank)
-        failed = sim.tool('create_promise', product_id='p1', amount=365, date='2026-10-16')
-        self.assertIn('Call create_promise again', failed['what_to_do_next'])
+        self.assertEqual(sim.tool('create_promise', product_id='p1', amount=365, date='2026-10-16'), {})
+        self.assertIn('Call create_promise again', sim.vars['rt_live'])
         sim.tool('create_promise', product_id='p1', amount=365, date='2026-10-16')
         sim.tool('close_call', outcome='promise')
         self.assertEqual(ledger(bank), case['expected'])
@@ -147,8 +147,8 @@ class Calls(unittest.TestCase):
         bank.faults['create_promise'] = 2
         verify(sim, bank)
         sim.tool('create_promise', product_id='p1', amount=365, date='2026-10-16')
-        final = sim.tool('create_promise', product_id='p1', amount=365, date='2026-10-16')
-        self.assertIn('service_error', final['what_to_do_next'])
+        sim.tool('create_promise', product_id='p1', amount=365, date='2026-10-16')
+        self.assertIn('service_error', sim.vars['rt_live'].split('GAVE AN ERROR', 1)[1])
 
     def test_transfer_wins_the_close(self):
         sim, bank, case = start('PUB-09')

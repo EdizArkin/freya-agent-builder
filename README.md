@@ -88,14 +88,16 @@ briefs, tool API file and practice cases.
 | `test_openapi.py`, `test_validation.py`, `test_safety.py` | Reading the tool API; spec and workflow validation; credential checks |
 | `test_compiler.py` | What a compiled workflow contains |
 | `test_runtime.py`, `test_enforcement.py` | The runtime: whole calls, authorization, blocking, failures, state |
+| `test_platform.py` | Behaviour first seen in live calls: no hook after an HTTP error, calls out of order, day names |
 | `test_extraction.py` | The extraction and repair loop, with replayed model replies |
 | `test_pipeline.py`, `test_config.py`, `test_freya.py` | The command, key loading and tracing, deployment with a fake client |
 | `test_architecture.py` | Import boundaries and the embedding of the runtime |
 
 `tests/fixture_spec.py` is a hand-written spec for the kit's Brief A and B. It is test data,
 never an input of a real build. `tests/freya_sim.py` stands in for the Freya engine and the
-bank; it plays the phone model's tool calls by hand, so a pass there is not evidence that a
-real phone agent behaves.
+bank as they were seen to behave in live calls (no post-hook after an HTTP error, a refusal
+with ok false, calls of one message out of order). It plays the phone model's tool calls by
+hand, so a pass there is not evidence that a real phone agent behaves.
 
 ## What may not go into this repository
 

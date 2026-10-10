@@ -1,4 +1,5 @@
 """builder/runtime: authorization, tool-call blocking, failure handling and state persistence."""
+import copy
 import json
 import unittest
 
@@ -28,6 +29,11 @@ def verified(**kw):
     sim.tool('verify_identity', field='date_of_birth', answer='1988-03-14')
     sim.tool('verify_identity', field='phone_last4', answer='4471')
     return sim, bank
+
+
+def after_error(sim):
+    """What the live state tells the model about a call that came back as a bare error."""
+    return sim.vars['rt_live'].split('IF YOUR LAST TOOL CALL GAVE AN ERROR INSTEAD OF A RESULT: ', 1)[1]
 
 
 def tools_called(bank):
@@ -102,8 +108,8 @@ class Authorization(unittest.TestCase):
         sim, bank = start()
         tool = [t for t in sim.wf['nodes']['negotiate']['tools'] if t['function']['name'] == 'create_promise'][0]
         result = sim._api(tool, {'product_id': 'p1', 'amount': 420, 'date': '2026-10-14'})
-        self.assertTrue(result['data']['rejected_by_policy'])
-        self.assertIn('before identity is verified', result['data']['what_to_do_next'])
+        self.assertEqual(result['status'], 'error')
+        self.assertIn('before identity is verified', sim.vars['rt_live'])
         self.assertEqual(bank.calls, [])
 
     def test_a_third_party_call_touches_no_identity_or_account_tool(self):
@@ -116,14 +122,22 @@ class Authorization(unittest.TestCase):
 
 class Blocking(unittest.TestCase):
     def rejected(self, sim, bank, tool, **args):
-        before = len(bank.calls)
+        """A blocked call records nothing. Its reason is always in the live state, and it is the
+        tool result as well whenever the bank answers the blocked request with a refusal."""
+        before, ledger = len(bank.calls), copy.deepcopy(bank.ledger)
         data = sim.tool(tool, **args)
-        self.assertTrue(data.get('rejected_by_policy'), data)
-        self.assertTrue(data['nothing_was_recorded'])
-        self.assertIs(data['ok'], False)
-        self.assertEqual(len(bank.calls), before, 'a blocked call must not reach this customer at the bank')
-        self.assertIn('LAST REJECTED TOOL CALL', sim.vars['rt_live'])
-        return data['what_to_do_next']
+        self.assertEqual(bank.ledger, ledger, 'a blocked call must record nothing')
+        for call in bank.calls[before:]:
+            self.assertIs(call[2]['ok'], False)
+        reason = sim.vars['rt_live'].split('LAST REJECTED TOOL CALL: ', 1)[1]
+        if tool in ('create_promise', 'add_note'):
+            self.assertTrue(data.get('rejected_by_policy'), data)
+            self.assertTrue(data['nothing_was_recorded'])
+            self.assertIs(data['ok'], False)
+            self.assertEqual(data['what_to_do_next'], reason)
+        else:
+            self.assertEqual((data, len(bank.calls)), ({}, before), 'a detached call must not reach this customer')
+        return reason
 
     def test_promise_restrictions(self):
         sim, bank = verified(products=(CARD, LOAN), brief_b=True)
@@ -190,7 +204,8 @@ class Failures(unittest.TestCase):
     def test_identity_service_failure_is_not_a_wrong_answer(self):
         sim, bank = start(faults={'verify_identity': 1})
         failed = sim.tool('verify_identity', field='date_of_birth', answer='1988-03-14')
-        self.assertIn('did not answer. Nothing was counted', failed['what_to_do_next'])
+        self.assertEqual(failed, {})
+        self.assertIn('did not answer. Nothing was counted', after_error(sim))
         self.assertEqual((bank.wrong_left, json.loads(sim.vars['rt_state'])['wrong']), (3, 0))
         sim.tool('verify_identity', field='date_of_birth', answer='1988-03-14')
         sim.tool('verify_identity', field='phone_last4', answer='4471')
@@ -200,16 +215,17 @@ class Failures(unittest.TestCase):
         sim, bank = verified(faults={'get_account': 1})
         self.assertEqual((sim.node, sim.vars['rt_account']), ('negotiate', 'error'))
         self.assertIn('ACCOUNT LOOKUP FAILED', sim.prompt())
-        self.assertTrue(sim.tool('create_promise', product_id='p1', amount=420, date='2026-10-14')['rejected_by_policy'])
+        self.assertEqual(sim.tool('create_promise', product_id='p1', amount=420, date='2026-10-14'), {})
+        self.assertIn('before identity is verified and the account is loaded', sim.vars['rt_live'])
         self.assertEqual(bank.ledger['promises'], [])
 
     def test_a_failed_promise_is_never_reported_as_recorded(self):
         sim, bank = verified(faults={'create_promise': 2})
         for expected in ('Call create_promise again', 'Do not try again for this product'):
-            data = sim.tool('create_promise', product_id='p1', amount=420, date='2026-10-14')
-            self.assertIn('NOT RECORDED', data['what_to_do_next'])
-            self.assertIn(expected, data['what_to_do_next'])
-            self.assertNotIn('is now recorded', data['what_to_do_next'])
+            self.assertEqual(sim.tool('create_promise', product_id='p1', amount=420, date='2026-10-14'), {})
+            self.assertIn('NOT RECORDED', after_error(sim))
+            self.assertIn(expected, after_error(sim))
+            self.assertNotIn('is now recorded', sim.vars['rt_live'])
         self.assertIn('nothing recorded yet', sim.vars['rt_live'])
         sim.tool('close_call', outcome='no_promise', reason='service_error')
         self.assertEqual((bank.ledger['outcome'], bank.ledger['reason'], bank.ledger['promises']), ('no_promise', 'service_error', []))
@@ -219,8 +235,8 @@ class Failures(unittest.TestCase):
         sim.tool('create_promise', product_id='p1', amount=420, date='2026-10-16')
         bank.faults['create_promise'] = 2
         sim.tool('create_promise', product_id='p2', amount=900, date='2026-10-16')
-        final = sim.tool('create_promise', product_id='p2', amount=900, date='2026-10-16')
-        self.assertIn('add_note with reason service_error', final['what_to_do_next'])
+        sim.tool('create_promise', product_id='p2', amount=900, date='2026-10-16')
+        self.assertIn('add_note with reason service_error', after_error(sim))
         sim.tool('add_note', product_id='p2', reason='service_error')
         sim.tool('close_call', outcome='no_promise', reason='service_error')
         self.assertEqual((bank.ledger['outcome'], len(bank.ledger['promises']), bank.ledger['notes']),
@@ -228,8 +244,10 @@ class Failures(unittest.TestCase):
 
     def test_failed_transfer_note_and_callback_change_nothing(self):
         sim, bank = verified(products=(CARD, LOAN), brief_b=True, faults={'transfer_to_agent': 1, 'add_note': 1})
-        self.assertIn('did NOT work', sim.tool('transfer_to_agent', queue='support')['what_to_do_next'])
-        self.assertIn('NOT saved', sim.tool('add_note', product_id='p1', reason='hardship')['what_to_do_next'])
+        sim.tool('transfer_to_agent', queue='support')
+        self.assertIn('did NOT work', after_error(sim))
+        sim.tool('add_note', product_id='p1', reason='hardship')
+        self.assertIn('NOT saved', after_error(sim))
         state = json.loads(sim.vars['rt_state'])
         self.assertEqual((state['transfers'], state['notes']), ([], {}))
         sim.tool('add_note', product_id='p1', reason='hardship')
@@ -237,14 +255,15 @@ class Failures(unittest.TestCase):
         sim.tool('close_call', outcome='promise')
         self.assertEqual((bank.ledger['outcome'], bank.ledger['reason']), ('no_promise', 'hardship'))
         sim, bank = start(faults={'schedule_callback': 1})
-        self.assertIn('NOT booked', sim.tool('schedule_callback', date='2026-10-15', time='11:00')['what_to_do_next'])
+        sim.tool('schedule_callback', date='2026-10-15', time='11:00')
+        self.assertIn('NOT booked', after_error(sim))
         sim.tool('close_call', outcome='not_reached', reason='no_callback')
         self.assertEqual(bank.ledger['reason'], 'no_callback')
 
     def test_the_call_stays_open_until_close_call_succeeds(self):
         sim, bank = verified(faults={'close_call': 1})
-        failed = sim.tool('close_call', outcome='paid')
-        self.assertIn('did NOT work', failed['what_to_do_next'])
+        sim.tool('close_call', outcome='paid')
+        self.assertIn('did NOT work', after_error(sim))
         self.assertEqual((sim.node, sim.vars['rt_closed'], bank.ledger['outcome']), ('negotiate', 'no', None))
         sim.tool('close_call', outcome='paid')
         self.assertEqual((sim.node, sim.vars['rt_closed'], bank.ledger['outcome']), ('end', 'yes', 'paid'))
