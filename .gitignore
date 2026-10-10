@@ -218,3 +218,62 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Builder configuration and local authentication
+.env.*
+!.env.example
+credentials/
+secrets/
+tokens/
+.aws/
+.ssh/
+.huggingface/
+credentials.*
+*credentials*.json
+token
+token.*
+*_token.*
+tokens.*
+*.pem
+*.key
+*.p12
+*.pfx
+secrets.json
+cookies.json
+session.json
+
+# Third-party reference materials must remain local, even in a private repo
+/local_freya/
+/examples/freya_bank_collections_base.json
+
+# Local caches and model artifacts (no GPU assets belong in this repository)
+cache/
+caches/
+.hf_cache/
+huggingface/
+model_weights/
+weights/
+*.safetensors
+*.gguf
+*.ggml
+*.pt
+*.pth
+*.ckpt
+*.onnx
+pytorch_model*.bin
+.venv*/
+venv*/
+
+# Customer data, simulation recordings, and generated temporary artifacts
+transcripts/
+simulation_results/
+recordings/
+*.transcript.*
+*_transcript.*
+*.wav
+*.mp3
+tmp/
+temp/
+*.tmp
+/outputs/*
+!/outputs/.gitkeep
