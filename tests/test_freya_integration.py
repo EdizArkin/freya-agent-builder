@@ -311,3 +311,162 @@ class IntegrationTests(unittest.TestCase):
         writes = [c for c in self.client.calls if c[0] == 'POST' and c[1] == '/api/v2/workflow']
         self.assertEqual(len(writes), 2)
         self.assertTrue(all(c[2]['workflow'] == WORKFLOW for c in writes))
+
+    def test_save_workspace_preflight_has_specific_sanitized_errors(self):
+        for value, category in (('', 'workspace_missing'), (' ', 'workspace_missing'),
+                                ('private/value', 'workspace_invalid')):
+            with patch.dict('os.environ', {'FREYA_WORKSPACE_ID': value}):
+                with self.assertRaises(IntegrationError) as caught:
+                    self.adapter.save(WORKFLOW)
+            self.assertEqual(caught.exception.diagnostic['category'], category)
+            self.assertIsNone(caught.exception.diagnostic['endpoint'])
+            self.assertNotIn('private/value', str(caught.exception))
+            self.assertEqual(self.client.calls, [])
+
+    def test_dry_run_does_not_require_workspace(self):
+        with patch.dict('os.environ', {'FREYA_WORKSPACE_ID': ''}):
+            FreyaAdapter(self.client, allow_external=True).dry_run(WORKFLOW)
+        self.assertEqual(self.client.calls[-1][3], {'dryRun': 'true'})
+
+    def test_save_permission_error_is_specific(self):
+        with self.assertRaises(IntegrationError) as caught:
+            FreyaAdapter(self.client, allow_external=True).save(WORKFLOW)
+        self.assertEqual(caught.exception.diagnostic['category'], 'operation_permission')
+        self.assertEqual(self.client.calls, [])
+
+    def test_export_post_get_credential_failure_is_specific(self):
+        self.adapter.save(WORKFLOW)
+        self.client.workflow['api_key'] = 'private-marker'
+        with patch('builder.freya.integration.private_write') as writer:
+            with self.assertRaises(IntegrationError) as caught:
+                self.adapter.export('workflow-1', 'outputs/synthetic.json')
+            writer.assert_not_called()
+        self.assertEqual(caught.exception.diagnostic['category'], 'artifact_credentials')
+        self.assertNotIn('private-marker', str(caught.exception))
+        self.assertEqual(self.adapter.events[-1]['status'], 'completed')
+
+    def test_export_bad_readback_identity_is_specific(self):
+        self.client.api = lambda *a, **k: {'workflow': {'id': 'other', 'agentId': 'private', 'workflow': {}}}
+        with self.assertRaises(IntegrationError) as caught:
+            self.adapter.export('workflow-1', 'outputs/synthetic.json')
+        self.assertEqual(caught.exception.diagnostic['category'], 'workflow_response')
+
+    def test_artifact_errors_do_not_overwrite_or_leak(self):
+        from builder.freya.integration import private_write
+        with self.assertRaises(IntegrationError) as caught:
+            private_write('examples/private.json', {})
+        self.assertEqual(caught.exception.diagnostic['category'], 'artifact_path')
+        with patch('pathlib.Path.open', side_effect=FileExistsError('private-marker')):
+            with self.assertRaises(IntegrationError) as caught:
+                private_write('outputs/synthetic.json', {})
+        self.assertEqual(caught.exception.diagnostic['category'], 'artifact_exists')
+        with patch('pathlib.Path.open', side_effect=PermissionError('private-marker')):
+            with self.assertRaises(IntegrationError) as caught:
+                private_write('outputs/synthetic.json', {})
+        self.assertEqual(caught.exception.diagnostic['category'], 'artifact_write')
+        self.assertNotIn('private-marker', str(caught.exception))
+
+    def test_export_removes_only_confirmed_empty_platform_keys(self):
+        self.adapter.save(WORKFLOW)
+        self.client.workflow['agent_config'] = {
+            'llmConfig': {**self.client.AGENT_LLM, 'apiKey': None},
+            'sttConfig': {'apiKey': '', 'provider': 'synthetic'},
+            'ttsConfig': {'apiKey': None, 'voice': 'synthetic'}}
+        original = deepcopy(self.client.workflow)
+        expected = deepcopy(original)
+        for name in ('llmConfig', 'sttConfig', 'ttsConfig'):
+            del expected['agent_config'][name]['apiKey']
+        with patch('builder.freya.integration.private_write') as writer:
+            self.adapter.export('workflow-1', 'outputs/synthetic.json')
+        self.assertEqual(writer.call_args.args[1]['workflow'], expected)
+        self.assertEqual(self.client.workflow, original)
+
+    def test_export_blocks_nonempty_and_unexpected_credentials(self):
+        self.adapter.save(WORKFLOW)
+        for config in (
+                {'llmConfig': {'apiKey': 'private-marker'}},
+                {'sttConfig': {'apiKey': ' '}},
+                {'ttsConfig': {'apiKey': False}},
+                {'llmConfig': {'nested': {'apiKey': ''}}},
+                {'otherConfig': {'apiKey': None}},
+                {'llmConfig': {'apiKey': None, 'token': ''}}):
+            with self.subTest(config=config):
+                self.client.workflow['agent_config'] = config
+                with patch('builder.freya.integration.private_write') as writer:
+                    with self.assertRaises(IntegrationError) as caught:
+                        self.adapter.export('workflow-1', 'outputs/synthetic.json')
+                    writer.assert_not_called()
+                self.assertEqual(caught.exception.diagnostic['category'], 'artifact_credentials')
+
+    def test_empty_platform_keys_remain_blocked_for_save_and_publish(self):
+        workflow = {**deepcopy(WORKFLOW), 'agent_config': {'llmConfig': {**self.client.AGENT_LLM, 'apiKey': None}}}
+        with self.assertRaises(IntegrationError):
+            self.adapter.save(workflow)
+        self.assertEqual(self.client.calls, [])
+        saved = self.adapter.save(WORKFLOW)
+        self.client.workflow['agent_config']['llmConfig']['apiKey'] = ''
+        with self.assertRaises(IntegrationError):
+            self.adapter.publish(saved, approved=True)
+        self.assertFalse(any(call[1].endswith('/publish') for call in self.client.calls))
+
+    def test_read_only_verify_platform_placeholders_and_unknown_state(self):
+        saved = self.adapter.save(WORKFLOW)
+        self.client.workflow['agent_config']['llmConfig']['apiKey'] = None
+        original = deepcopy(self.client.workflow)
+        verifier = FreyaAdapter(self.client, allow_external=True, dry_run_only=False, read_only=True)
+        self.client.versions[0].pop('isPublished')
+        start = len(self.client.calls)
+        result = verifier.verify(saved, WORKFLOW)
+        self.assertTrue(result['verified'])
+        self.assertEqual(result['publication_state'], 'unknown')
+        self.assertTrue(all(c[0] == 'GET' for c in self.client.calls[start:]))
+        self.assertEqual(self.client.workflow, original)
+        with self.assertRaises(IntegrationError):
+            verifier.dry_run(WORKFLOW)
+
+    def test_verify_reports_individual_mismatches(self):
+        saved = self.adapter.save(WORKFLOW)
+        self.client.workflow['agent_config']['llmConfig']['model'] = 'other'
+        self.client.workflow['system_prompt'] = 'synthetic-private'
+        wrong = SavedWorkflow(saved.workflow_id, 'wrong-agent', saved.version_id, 2)
+        result = self.adapter.verify(wrong, WORKFLOW)
+        self.assertEqual(result['checks']['agent_identity'], 'FAIL')
+        self.assertEqual(result['checks']['version_number'], 'FAIL')
+        self.assertEqual(result['checks']['mandated_model'], 'FAIL')
+        self.assertEqual(result['checks']['workflow_consistency'], 'FAIL')
+        self.assertNotIn('synthetic-private', json.dumps(result))
+
+    def test_verify_retrieval_error_sanitized_and_publication_states(self):
+        saved = self.adapter.save(WORKFLOW)
+        for flag, state in ((True, 'published'), (False, 'unpublished'), ('false', 'unknown')):
+            self.client.versions[0]['isPublished'] = flag
+            self.assertEqual(self.adapter.verify(saved, WORKFLOW)['publication_state'], state)
+        self.client.api = lambda *a, **k: (_ for _ in ()).throw(RuntimeError('GET /api/v2/workflow/workflow-1 -> 401: private'))
+        result = self.adapter.verify(saved, WORKFLOW)
+        self.assertFalse(result['verified'])
+        self.assertEqual(result['publication_state'], 'unknown')
+        self.assertEqual(result['diagnostics'][0]['category'], 'authentication')
+        self.assertNotIn('private', json.dumps(result))
+
+    def test_unconfirmed_server_transition_defaults_remain_inconsistent(self):
+        saved = self.adapter.save(WORKFLOW)
+        for field in ('max_turn_transition', 'passthrough_default_transition'):
+            for value in (None, '', 'start'):
+                with self.subTest(field=field, value=value):
+                    self.client.workflow['nodes']['start'] = {**WORKFLOW['nodes']['start'], field: value}
+                    result = self.adapter.verify(saved, WORKFLOW)
+                    self.assertEqual(result['checks']['workflow_consistency'], 'FAIL')
+                    changes = [d for d in result['workflow_diff']['changes'] if d['path'][-1] == field]
+                    self.assertEqual(len(changes), 1)
+                    self.assertEqual(changes[0]['classification'], 'material_or_unconfirmed')
+                    self.assertFalse(result['verified'])
+
+    def test_explicit_transition_targets_must_match(self):
+        local = {**deepcopy(WORKFLOW)}
+        local['nodes']['start']['max_turn_transition'] = 'start'
+        saved = self.adapter.save(local)
+        self.assertEqual(self.adapter.verify(saved, local)['checks']['workflow_consistency'], 'PASS')
+        self.client.workflow['nodes']['start']['max_turn_transition'] = 'different'
+        result = self.adapter.verify(saved, local)
+        self.assertEqual(result['checks']['workflow_consistency'], 'FAIL')
+        self.assertTrue(any(d['category'] == 'value_changed' for d in result['workflow_diff']['changes']))

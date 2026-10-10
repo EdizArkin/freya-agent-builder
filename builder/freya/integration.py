@@ -12,6 +12,15 @@ from urllib.error import HTTPError, URLError
 
 
 HINTS = {
+    'artifact_path': 'Choose a new file below the repository outputs/ directory; private artifacts cannot be written elsewhere.',
+    'artifact_exists': 'Use a new outputs/ filename; existing artifacts are never overwritten.',
+    'artifact_write': 'Check local output-directory permissions and available storage.',
+    'artifact_credentials': 'Export blocked by credential screening; review platform configuration privately without printing or exporting secrets.',
+    'workflow_response': 'Stored workflow response has unexpected shape or identity; check official client compatibility privately.',
+    'workspace_missing': 'Set FREYA_WORKSPACE_ID to the explicitly authorized workspace ID before save, publish or export.',
+    'workspace_invalid': 'Check FREYA_WORKSPACE_ID format locally; use the authorized workspace identifier without surrounding whitespace.',
+    'operation_permission': 'Use explicit external opt-in and write mode for saving; dry-run-only mode cannot save.',
+    'stored_model_mismatch': 'Stored phone-agent configuration differs from the mandated model; inspect the saved workflow privately before any publication.',
     'environment_parsing': 'Check the indicated .env.sh line for simple export syntax; no shell expansion is supported.',
     'environment_file': 'Check project-root .env.sh read permissions and UTF-8 encoding.',
     'client_missing': 'Restore the trusted official freya.py file or select its correct local path.',
@@ -76,6 +85,116 @@ def safe_validation_details(text):
                 visit(child, depth + 1)
     visit(value)
     return details
+
+
+def export_credential_findings(value):
+    """Diagnostic paths only; unknown property names and all indices are masked."""
+    allowed = {'agent_config', 'llmConfig', 'ttsConfig', 'sttConfig', 'apiKey', 'api_key',
+               'accessToken', 'access_token', 'password', 'secret', 'token', 'Authorization',
+               'authorization', 'provider', 'model', 'nodes', 'global_nodes', 'tools', 'config',
+               'function', 'parameters', 'properties', 'headers', 'url', 'default', 'body'}
+    sensitive = {'authorization', 'apikey', 'accesstoken', 'password', 'secret', 'token'}
+    secrets = [s for k, s in os.environ.items() if s and re.search(r'(KEY|TOKEN|PASSWORD|SECRET)$', k, re.I)]
+    findings = []
+    def add(path, classification):
+        if len(findings) < 20:
+            findings.append({'path': path, 'classification': classification})
+    def visit(item, path, depth=0):
+        if depth > 50 or len(findings) >= 20:
+            return
+        if isinstance(item, dict):
+            for key, child in item.items():
+                child_path = path + [key if key in allowed else '*']
+                if re.sub(r'[^a-z]', '', key.lower()) in sensitive:
+                    add(child_path, 'credential_field_empty' if child is None or child == '' else 'credential_field_potentially_sensitive')
+                # Match secrets against key text too, without exposing the key.
+                if any(s in key for s in secrets):
+                    add(path + ['*'], 'known_process_secret')
+                visit(child, child_path, depth + 1)
+        elif isinstance(item, list):
+            for child in item:
+                visit(child, path + ['*'], depth + 1)
+        elif isinstance(item, str):
+            if any(s in item for s in secrets):
+                add(path, 'known_process_secret')
+            elif re.search(r'(?i)fak_[a-z0-9_-]+|bearer\s+[a-z0-9]', item):
+                add(path, 'credential_like_text')
+            if '://' in item:
+                try:
+                    parsed = urlparse(item)
+                    if parsed.username or parsed.password:
+                        add(path, 'url_credentials')
+                except ValueError:
+                    pass
+    visit(value, ['workflow'])
+    return findings
+
+
+def review_copy(workflow):
+    value = deepcopy(workflow)
+    config = value.get('agent_config')
+    if isinstance(config, dict):
+        for name in ('llmConfig', 'sttConfig', 'ttsConfig'):
+            settings = config.get(name)
+            if isinstance(settings, dict) and 'apiKey' in settings and (
+                    settings['apiKey'] is None or settings['apiKey'] == ''):
+                del settings['apiKey']
+    return value
+
+
+def structural_diff(local, remote, *, limit=100):
+    """Bounded path-only diagnostics. Unknown keys are masked, never ignored."""
+    fields = {'initial_node', 'nodes', 'global_nodes', 'tools', 'agent_config', 'llmConfig',
+              'sttConfig', 'ttsConfig', 'apiKey', 'name', 'node_type', 'transitions',
+              'target_node', 'condition', 'operator', 'variable', 'operand', 'logic',
+              'conditions', 'on_enter', 'text', 'type', 'task_message', 'role_message',
+              'system_prompt', 'test_variables', 'function', 'handler', 'parameters',
+              'properties', 'required', 'default', 'config', 'response_mapping',
+              'extraction_schema', 'pre_actions', 'terminal', 'max_turn_transition',
+              'passthrough_default_transition', 'max_node_turns', 'passthrough',
+              'assertions', 'position', 'interruptible', 'timeoutMs', 'maxRetries',
+              'provider', 'model', 'truncation_strategy', 'truncation_window_size',
+              'suppress_tool_results', 'disable_inactivity_monitor',
+              'on_enter_first_entry_only', 'return_to_previous_on_interrupt'}
+    changes, truncated = [], False
+    def add(path, category, classification='material_or_unconfirmed'):
+        nonlocal truncated
+        if len(changes) >= limit:
+            truncated = True
+            return
+        changes.append({'path': path, 'category': category, 'classification': classification})
+    def visit(a, b, path, depth=0):
+        nonlocal truncated
+        if depth > 50 or len(changes) >= limit:
+            truncated = True
+            return
+        if type(a) is not type(b):
+            add(path, 'type_changed')
+        elif isinstance(a, dict):
+            for key in sorted(a.keys() | b.keys()):
+                p = path + [key if key in fields else '*']
+                if key not in a:
+                    known = path == ['workflow'] and key == 'agent_config'
+                    empty_metadata = (len(path) == 3 and path[:2] in (
+                        ['workflow', 'nodes'], ['workflow', 'global_nodes']) and
+                        key in ('assertions', 'response_mapping', 'extraction_schema') and b[key] == [])
+                    classification = ('known_platform_default' if known else
+                                      'empty_optional_metadata' if empty_metadata else 'material_or_unconfirmed')
+                    add(p, 'added', classification)
+                elif key not in b:
+                    add(p, 'removed')
+                else:
+                    visit(a[key], b[key], p, depth + 1)
+        elif isinstance(a, list):
+            for i in range(max(len(a), len(b))):
+                p = path + [i]
+                if i >= len(a): add(p, 'added')
+                elif i >= len(b): add(p, 'removed')
+                else: visit(a[i], b[i], p, depth + 1)
+        elif a != b:
+            add(path, 'value_changed')
+    visit(review_copy(local), review_copy(remote), ['workflow'])
+    return {'changes': changes, 'truncated': truncated}
 
 from builder.compiler.validate import parse_workflow, validate_workflow
 from builder.freya.environment import EnvironmentConfigError, load_project_environment
@@ -187,22 +306,30 @@ def private_write(path, data):
     root = Path('outputs').resolve()
     target = Path(path).resolve()
     if root not in target.parents or target.name == '.gitkeep':
-        raise IntegrationError('Artifacts must be written beneath outputs/.')
-    target.parent.mkdir(parents=True, exist_ok=True)
-    with target.open('x', encoding='utf-8') as stream:
-        json.dump(data, stream, sort_keys=True, indent=2, allow_nan=False)
+        raise IntegrationError(category='artifact_path')
+    try:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with target.open('x', encoding='utf-8') as stream:
+            json.dump(data, stream, sort_keys=True, indent=2, allow_nan=False)
+    except FileExistsError:
+        raise IntegrationError(category='artifact_exists') from None
+    except OSError:
+        raise IntegrationError(category='artifact_write') from None
 
 
 class FreyaAdapter:
-    def __init__(self, client, *, allow_external=False, dry_run_only=True):
+    def __init__(self, client, *, allow_external=False, dry_run_only=True, read_only=False):
         self.client = client
         self.allow_external = allow_external
         self.dry_run_only = dry_run_only
+        self.read_only = read_only
         self.events = []
 
     def _call(self, method, path, body=None, **params):
         if not self.allow_external:
             raise IntegrationError('External operations require explicit opt-in.')
+        if self.read_only and method != 'GET':
+            raise IntegrationError(category='operation_permission')
         if self.dry_run_only and not (method == 'POST' and path == '/api/v2/workflow'
                                      and params == {'dryRun': 'true'}):
             raise IntegrationError('Dry-run-only mode forbids this operation.')
@@ -219,7 +346,13 @@ class FreyaAdapter:
 
     def _workspace(self):
         # Require explicit workspace selection rather than the client's first-workspace fallback.
-        return identifier(os.environ.get('FREYA_WORKSPACE_ID'))
+        value = os.environ.get('FREYA_WORKSPACE_ID')
+        if not value or not value.strip():
+            raise IntegrationError(category='workspace_missing')
+        try:
+            return identifier(value)
+        except IntegrationError:
+            raise IntegrationError(category='workspace_invalid') from None
 
     def _prepared(self, workflow):
         if not validate_workflow(workflow).valid:
@@ -242,13 +375,13 @@ class FreyaAdapter:
         secrets = [v for k, v in os.environ.items()
                    if re.search(r'(KEY|TOKEN|PASSWORD|SECRET)$', k, re.I)]
         if any(s and s in text for s in secrets) or re.search(r'(?i)fak_[a-z0-9_-]+|bearer\s+[a-z0-9]', text):
-            raise IntegrationError('Artifact contains credential-like content.')
+            raise IntegrationError(category='artifact_credentials')
         def check(item):
             if isinstance(item, dict):
                 for key, child in item.items():
                     if re.sub(r'[^a-z]', '', key.lower()) in (
                             'authorization', 'apikey', 'accesstoken', 'password', 'secret', 'token'):
-                        raise IntegrationError('Credential fields must not be embedded in workflows.')
+                        raise IntegrationError(category='artifact_credentials')
                     check(child)
             elif isinstance(item, list):
                 for child in item:
@@ -256,7 +389,7 @@ class FreyaAdapter:
             elif isinstance(item, str) and '://' in item:
                 parsed = urlparse(item)
                 if parsed.username or parsed.password:
-                    raise IntegrationError('URLs must not contain credentials.')
+                    raise IntegrationError(category='artifact_credentials')
         check(value)
 
     def dry_run(self, workflow, name='builder validation', *, omit_injected_agent_config=False):
@@ -269,15 +402,18 @@ class FreyaAdapter:
 
     def _get(self, workflow_id):
         result = self._call('GET', '/api/v2/workflow/' + identifier(workflow_id), workspaceId=self._workspace())
-        value = result.get('workflow', result)
-        if value.get('id') != workflow_id:
-            raise IntegrationError('Workflow response identity mismatch.')
-        identifier(value.get('agentId'))
+        value = result.get('workflow', result) if isinstance(result, dict) else None
+        if not isinstance(value, dict) or value.get('id') != workflow_id or not isinstance(value.get('workflow'), dict):
+            raise IntegrationError(category='workflow_response')
+        try:
+            identifier(value.get('agentId'))
+        except IntegrationError:
+            raise IntegrationError(category='workflow_response') from None
         return value
 
     def _versions(self, workflow_id):
         result = self._call('GET', '/api/v2/versions/workflow/' + identifier(workflow_id), workspaceId=self._workspace())
-        versions = result.get('versions', result)
+        versions = result.get('versions', result) if isinstance(result, dict) else result
         if not isinstance(versions, list) or any(not isinstance(v, dict) for v in versions):
             raise IntegrationError('Unsupported versions response.')
         for v in versions:
@@ -290,7 +426,7 @@ class FreyaAdapter:
 
     def save(self, workflow, *, name='builder workflow', workflow_id=None):
         if self.dry_run_only or not self.allow_external:
-            raise IntegrationError('Saving requires external opt-in and write mode.')
+            raise IntegrationError(category='operation_permission')
         self._workspace()  # Fail before any write if configuration is incomplete.
         value = self._prepared(workflow)
         self.dry_run(value, name)
@@ -302,7 +438,7 @@ class FreyaAdapter:
             workflow_id = identifier(result['workflow']['id'])
         stored = self._get(workflow_id)
         if stored['workflow'].get('agent_config', {}).get('llmConfig', {}).get('model') != self.client.AGENT_LLM['model'] or stored['workflow'].get('agent_config', {}).get('llmConfig', {}).get('provider') != self.client.AGENT_LLM['provider']:
-            raise IntegrationError('Stored phone-agent model mismatch; publication blocked.')
+            raise IntegrationError(category='stored_model_mismatch')
         after = self._versions(workflow_id)
         new = [v for v in after if v['id'] not in {old['id'] for old in before}]
         if len(new) != 1 or new[0]['versionNumber'] != max(v['versionNumber'] for v in after):
@@ -319,7 +455,7 @@ class FreyaAdapter:
         self._prepared(stored['workflow'])  # Reject model conflicts and credentials.
         llm = stored['workflow'].get('agent_config', {}).get('llmConfig', {})
         if any(llm.get(k) != self.client.AGENT_LLM[k] for k in ('provider', 'model')):
-            raise IntegrationError('Stored model is missing or incorrect; publication blocked.')
+            raise IntegrationError(category='stored_model_mismatch')
         versions = self._versions(saved.workflow_id)
         if not versions or max(versions, key=lambda v: v['versionNumber'])['id'] != saved.version_id:
             raise IntegrationError('Saved version is no longer newest; publication blocked.')
@@ -331,10 +467,62 @@ class FreyaAdapter:
 
     def export(self, workflow_id, path):
         stored = self._get(workflow_id)
-        value = deepcopy(stored['workflow'])
+        value = review_copy(stored['workflow'])
         value.pop('test_variables', None)
-        self._no_credentials(value)
+        # Confirmed platform placeholders: review-artifact copy only. All other
+        # credential fields, including nested/unknown paths, retain strict screening.
+        try:
+            self._no_credentials(value)
+        except IntegrationError as exc:
+            if exc.diagnostic['category'] == 'artifact_credentials':
+                findings = export_credential_findings(value)
+                exc.diagnostic['credential_findings'] = findings or [
+                    {'path': ['workflow'], 'classification': 'credential_screen_match_unlocalized'}]
+                exc.args = (json.dumps(exc.diagnostic, sort_keys=True),)
+            raise exc from None
         private_write(path, {'workflow_id': stored['id'], 'agent_id': stored['agentId'], 'workflow': value})
+
+    def verify(self, saved, workflow):
+        checks = dict.fromkeys(('workflow_identity', 'agent_identity', 'version_identity',
+                               'version_number', 'newest_version', 'mandated_model',
+                               'workflow_consistency', 'credential_screen'), False)
+        diagnostics, state = [], 'unknown'
+        differences = {'changes': [], 'truncated': False}
+        try:
+            stored = self._get(saved.workflow_id)
+            checks['workflow_identity'] = stored['id'] == saved.workflow_id
+            checks['agent_identity'] = stored['agentId'] == saved.agent_id
+            remote = review_copy(stored['workflow'])
+            config = remote.get('agent_config', {})
+            llm = config.get('llmConfig', {}) if isinstance(config, dict) else {}
+            checks['mandated_model'] = isinstance(llm, dict) and all(
+                llm.get(k) == self.client.AGENT_LLM[k] for k in ('provider', 'model'))
+            try:
+                self._no_credentials(remote)
+                checks['credential_screen'] = True
+            except IntegrationError as exc:
+                diagnostics.append(exc.diagnostic)
+            expected = review_copy(workflow)
+            differences = structural_diff(workflow, stored['workflow'])
+            if 'agent_config' not in expected:
+                remote.pop('agent_config', None)
+            checks['workflow_consistency'] = remote == expected
+        except IntegrationError as exc:
+            diagnostics.append(exc.diagnostic)
+        try:
+            versions = self._versions(saved.workflow_id)
+            selected = [v for v in versions if v['id'] == saved.version_id]
+            checks['version_identity'] = len(selected) == 1
+            checks['version_number'] = len(selected) == 1 and selected[0]['versionNumber'] == saved.version_number
+            checks['newest_version'] = bool(versions) and len(selected) == 1 and selected[0]['versionNumber'] == max(v['versionNumber'] for v in versions)
+            if selected:
+                flag = selected[0].get('isPublished')
+                state = 'published' if flag is True else 'unpublished' if flag is False else 'unknown'
+        except IntegrationError as exc:
+            diagnostics.append(exc.diagnostic)
+        return {'checks': {k: 'PASS' if v else 'FAIL' for k, v in checks.items()},
+                'publication_state': state, 'diagnostics': diagnostics,
+                'verified': all(checks.values()), 'workflow_diff': differences}
 
     def trace(self, path):
         private_write(path, {'operations': self.events})
@@ -342,7 +530,7 @@ class FreyaAdapter:
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('operation', choices=('local', 'dry-run', 'save', 'publish', 'export'))
+    parser.add_argument('operation', choices=('local', 'dry-run', 'save', 'publish', 'export', 'verify'))
     parser.add_argument('--workflow')
     parser.add_argument('--client', default='local_freya/starter_kit/freya.py')
     parser.add_argument('--allow-external', action='store_true')
@@ -360,7 +548,7 @@ def main(argv=None):
     try:
         if args.omit_injected_agent_config and args.operation != 'dry-run':
             raise IntegrationError('Comparison option is restricted to dry-run.')
-        workflow = load_workflow(args.workflow) if args.operation in ('local', 'dry-run', 'save') else None
+        workflow = load_workflow(args.workflow) if args.operation in ('local', 'dry-run', 'save', 'verify') else None
         if args.operation == 'local':
             print('PASS: local structural validation only.')
             return 0
@@ -368,7 +556,16 @@ def main(argv=None):
             raise IntegrationError('External operations require --allow-external.')
         if args.operation == 'publish' and not args.approve_publish:
             raise IntegrationError('Publication requires --approve-publish after approval.')
-        adapter = FreyaAdapter(official_client(args.client), allow_external=True, dry_run_only=args.operation == 'dry-run')
+        saved = None
+        if args.operation == 'verify':
+            saved = SavedWorkflow(identifier(args.workflow_id), identifier(args.agent_id), identifier(args.version_id), args.version_number)
+            if type(saved.version_number) is not int or saved.version_number < 1:
+                raise IntegrationError(category='configuration')
+        adapter = FreyaAdapter(official_client(args.client), allow_external=True, dry_run_only=args.operation == 'dry-run', read_only=args.operation == 'verify')
+        if args.operation == 'verify':
+            result = adapter.verify(saved, workflow)
+            print(json.dumps(result, sort_keys=True))
+            return 0 if result['verified'] else 1
         if args.operation == 'dry-run':
             adapter.dry_run(workflow, omit_injected_agent_config=args.omit_injected_agent_config)
         elif args.operation == 'save':

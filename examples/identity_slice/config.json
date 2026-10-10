@@ -1,0 +1,12 @@
+{
+  "base_url": "https://synthetic.invalid/v1",
+  "constants": {
+    "field": "synthetic_challenge",
+    "outcome": "synthetic_complete"
+  },
+  "identity_condition": "all_verified",
+  "inputs": [
+    "customer_id",
+    "answer"
+  ]
+}

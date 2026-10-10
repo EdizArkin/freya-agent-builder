@@ -55,6 +55,14 @@ $env:FREYA_WORKSPACE_ID = Read-Host 'Authorized workspace ID'
 
 Only key and HTTPS URL are needed for server dry-run. An explicit workspace ID is
 required for saving, publishing and export; first-workspace selection is avoided.
+Save checks this before any HTTP operation. Missing/blank values report
+`workspace_missing`; invalid values report `workspace_invalid`, without printing
+the identifier. A successful dry-run does not establish workspace configuration.
+Set the authorized ID with `$env:FREYA_WORKSPACE_ID = Read-Host 'Authorized workspace ID'`
+or an allowlisted export in project-root `.env.sh`. The adapter will not discover
+or guess a workspace using a network request. Nonempty process values still take
+precedence over the file. Save permission failures report `operation_permission`;
+stored-model mismatches report `stored_model_mismatch` and block publication.
 The official client captures environment at import, so set it before each command.
 Keep any organizer-supplied `FREYA_AGENT_PROVIDER` / `FREYA_AGENT_MODEL` values;
 leave them unset otherwise. Do not set builder-model values in those variables.
@@ -108,6 +116,50 @@ Remove-Item Env:FREYA_API_KEY
 
 ## Safety, artifacts and remaining limits
 
+Use the reusable GET-only pre-publication verifier instead of a pasted script:
+
+```powershell
+python -B -m builder.freya.integration verify --workflow local_freya/workflows/base-agent-no-optional-nulls.json --workflow-id 1de5cabd-e60f-4d60-a70b-bf4d80f7d422 --agent-id 089b3b53-a7a5-4702-b109-5f7585958e08 --version-id a8f8a3fc-3d23-40ba-9e90-14c7ab8f2252 --version-number 1 --allow-external --trace outputs/freya-prepublish-verify-001.json
+```
+
+This uses normal environment initialization and reports separate PASS/FAIL checks,
+sanitized retrieval diagnostics and publication state. Missing or nonboolean
+publication metadata means unknown. It screens a copy after removing only confirmed
+empty platform credential placeholders; save/publish screening remains strict.
+Workflow consistency compares complete definitions, including test variables, while
+ignoring platform-added agent_config only when absent locally. Model verification
+is separate. An explicitly supplied config is compared after identical placeholder
+cleanup. Other platform normalization causes FAIL and requires private review.
+No version-specific snapshot endpoint is assumed: current readback is compared with
+version metadata. Avoid concurrent edits. A successful verification never publishes
+or proves runtime correctness. The old script used correct environment initialization
+but its `_prepared(remote)` call rejects empty platform API-key fields.
+
+Verification now returns `workflow_diff` with bounded path-only changes (`added`,
+`removed`, `type_changed`, `value_changed`). Unknown property names are masked as
+`*`; array indices preserve structural positions. No values are emitted. Platform
+agent_config additions are labelled `known_platform_default`, still subject to
+separate model and credential checks. Confirmed empty API-key placeholders are
+normalized only in review copies. Added empty node assertions, response mappings
+and extraction schemas are labelled `empty_optional_metadata`, but remain differences
+that require review. All other changes are `material_or_unconfirmed`; none are
+silently accepted. Truncation is explicit. Inspect stdout for the diff; the trace
+retains its minimal operation metadata. Already-published status does not override
+failed consistency checks or imply policy correctness.
+
+Readback investigation found null `max_turn_transition` and
+`passthrough_default_transition` on both nodes in the local exported base workflow.
+The official base example includes those nulls, but **Top-level keys** and the
+format guide's design guidance prohibit null inputs. **Limits** documents
+`max_turn_transition` default as none and notes unconfirmed cap behavior in the
+working builder. **Node fields** gives no explicit passthrough fallback default;
+**Passthrough nodes** recommends a named target and an always fallback. Neither
+the client nor a supplied workflow schema establishes null readback equivalence
+to omission. Therefore these added fields remain material-or-unconfirmed diffs,
+including null and empty-string values. Named target changes also remain blocking.
+Do not change runtime routing merely to make comparison pass. Organizer confirmation
+of readback defaults is needed before adding normalization for these exact fields.
+
 `FreyaAdapter(client)` disables external operations by default. Explicit external
 opt-in still leaves it dry-run-only unless write mode is selected. Dry-run mode
 allows exactly the documented validation POST and forbids all reads/writes/publish.
@@ -124,6 +176,13 @@ Neither traces nor CLI diagnostics contain bodies, names,
 URLs, headers, exceptions, customer values or server responses. Workflow exports
 retain separate workflow and agent IDs but strip `test_variables`. Export is a
 sanitized review artifact, not a byte-identical submission export. Literal credential
+placeholders at exactly `agent_config.llmConfig.apiKey`, `agent_config.sttConfig.apiKey`
+and `agent_config.ttsConfig.apiKey` are removed from the export copy only when null
+or empty string, based on confirmed live sanitized findings. Nonempty values,
+whitespace, nested and unexpected credential fields remain blocked. Stored workflows
+are never modified by export, and save/publish screening is unchanged. All other
+content retains existing export behavior, including removal of `test_variables`.
+Literal credential
 fields, known process secrets, credential URL userinfo and recognizable bearer/key
 strings are rejected before submission/export. This conservative check may reject
 legitimate parameter names. It cannot classify every arbitrary secret embedded in

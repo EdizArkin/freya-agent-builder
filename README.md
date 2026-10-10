@@ -50,6 +50,10 @@ dry-run, save, approved version publication and sanitized export using the local
 official client. External operations are disabled by default; implementation tests
 use synthetic clients only.
 
+The [identity slice compiler](docs/IDENTITY_SLICE_COMPILER.md) generates an offline
+synthetic verification → guarded read → bank close → hang-up workflow. It is a
+restricted compiler profile, not full Brief A/B implementation.
+
 Keep all Freya-provided materials under ignored `local_freya/`: workflow exports,
 briefs, specifications, starter-kit source, private documentation, customer records,
 and simulation payloads. Never commit these materials, even to a private remote.
