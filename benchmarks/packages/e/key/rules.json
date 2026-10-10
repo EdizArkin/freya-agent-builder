@@ -1,0 +1,279 @@
+{
+ "package": "e",
+ "rules": [
+  {
+   "id": "E-01",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 1"
+   },
+   "evidence": "First sentence: \"Hello, I am the digital assistant of Meridian Energy, and this call is recorded.\" Then ask \"Am I speaking with {title} {last_name}?\". Say nothing about any account before identity is verified.",
+   "category": "opening_and_who_is_on_the_line",
+   "critical": true,
+   "anchors": []
+  },
+  {
+   "id": "E-02",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 2"
+   },
+   "evidence": "If someone else answers, ask when the customer can be reached. A callback is possible only on the next business day, from 08:00 to 12:00, both included. Call `schedule_callback` and close as `not_reached` / `callback`. Otherwise close as `not_reached` / `no_callback`. If the number does not belong to the customer, close as `not_reached` / `wrong_number`.",
+   "category": "opening_and_who_is_on_the_line",
+   "critical": true,
+   "anchors": [
+    "not_reached",
+    "callback",
+    "not_reached",
+    "no_callback",
+    "not_reached",
+    "wrong_number"
+   ]
+  },
+  {
+   "id": "E-03",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 3"
+   },
+   "evidence": "Ask the date of birth, then the last four digits of the phone number on file, one at a time, with `verify_identity`. Three wrong answers in total end the check.",
+   "category": "identity",
+   "critical": true,
+   "anchors": []
+  },
+  {
+   "id": "E-04",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 4"
+   },
+   "evidence": "After both questions pass, call `get_account`. It returns one or two products of type `electricity` or `gas`, each with `past_due`, `days_late` and `vulnerable`. Name them \"electricity account\" and \"gas account\" and state the past-due amount and the days late of each.",
+   "category": "the_accounts",
+   "critical": true,
+   "anchors": [
+    "electricity",
+    "gas",
+    "past_due",
+    "days_late",
+    "vulnerable"
+   ]
+  },
+  {
+   "id": "E-05",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 5"
+   },
+   "evidence": "Business days are Sunday to Thursday. The company is closed on Friday and Saturday. Holidays: 2026-10-20, 2026-12-24.",
+   "category": "dates",
+   "critical": true,
+   "anchors": []
+  },
+  {
+   "id": "E-06",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 6"
+   },
+   "evidence": "A promise date is today or later, a business day, and not after the deadline.",
+   "category": "dates",
+   "critical": true,
+   "anchors": []
+  },
+  {
+   "id": "E-07",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 7"
+   },
+   "evidence": "The **deadline** is the last business day of the current month.",
+   "category": "dates",
+   "critical": true,
+   "anchors": []
+  },
+  {
+   "id": "E-08",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 8"
+   },
+   "evidence": "A promise date may never be more than ten calendar days after today; if the tenth day is not a business day, the last business day before it counts. Where rule 7 gives a later date than this, rule 8 wins.",
+   "category": "dates",
+   "critical": true,
+   "anchors": []
+  },
+  {
+   "id": "E-09",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 9"
+   },
+   "evidence": "**Replaces rules 7 and 8** when `days_late` is more than 30: the deadline is the next business day.",
+   "category": "dates",
+   "critical": true,
+   "anchors": [
+    "days_late"
+   ]
+  },
+  {
+   "id": "E-10",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 10"
+   },
+   "evidence": "After 16:00 a promise for today cannot be recorded. The earliest date is then the next business day.",
+   "category": "dates",
+   "critical": true,
+   "anchors": []
+  },
+  {
+   "id": "E-11",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 11"
+   },
+   "evidence": "The **floor** is 35.00 for an electricity account and 20 percent of the past-due amount for a gas account. The most that can be promised is the full past-due amount.",
+   "category": "amounts",
+   "critical": true,
+   "anchors": []
+  },
+  {
+   "id": "E-12",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 12"
+   },
+   "evidence": "**Replaces rule 11** for an account with `vulnerable: true`: the floor is 10.00, whatever the product.",
+   "category": "amounts",
+   "critical": true,
+   "anchors": [
+    "vulnerable: true"
+   ]
+  },
+  {
+   "id": "E-13",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 13"
+   },
+   "evidence": "Always propose the full past-due amount first.",
+   "category": "amounts",
+   "critical": false,
+   "anchors": []
+  },
+  {
+   "id": "E-14",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 14"
+   },
+   "evidence": "**Replaces rule 13** for an account with `vulnerable: true`: never propose the full amount. Start with the floor.",
+   "category": "amounts",
+   "critical": false,
+   "anchors": [
+    "vulnerable: true"
+   ]
+  },
+  {
+   "id": "E-15",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 15"
+   },
+   "evidence": "Read the account, the amount and the date back and call `create_promise` only after a clear yes. If it fails, try once more. If it fails again, say that you could not record it and close as `no_promise` / `service_error`.",
+   "category": "recording",
+   "critical": true,
+   "anchors": [
+    "no_promise",
+    "service_error"
+   ]
+  },
+  {
+   "id": "E-16",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 16"
+   },
+   "evidence": "There are three reasons to hand a call over. If more than one applies, only the highest in this list is acted on, and exactly one transfer is made in a call:",
+   "category": "handing_the_call_over",
+   "critical": true,
+   "anchors": []
+  },
+  {
+   "id": "E-17",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 17"
+   },
+   "evidence": "After a transfer nothing more is recorded.",
+   "category": "handing_the_call_over",
+   "critical": true,
+   "anchors": []
+  },
+  {
+   "id": "E-18",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 18"
+   },
+   "evidence": "**Replaces rule 17** for the `plans` queue only: a promise that was already read back and confirmed before the transfer may still be recorded after it.",
+   "category": "handing_the_call_over",
+   "critical": true,
+   "anchors": [
+    "plans"
+   ]
+  },
+  {
+   "id": "E-19",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 19"
+   },
+   "evidence": "After a transfer close as `transferred` with the reason of the queue: `welfare`, `complaint` or `plan`.",
+   "category": "closing",
+   "critical": true,
+   "anchors": [
+    "transferred",
+    "welfare",
+    "complaint",
+    "plan"
+   ]
+  },
+  {
+   "id": "E-20",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 20"
+   },
+   "evidence": "**Replaces rule 19**: if the identity check failed, close as `not_verified` / `failed`, even when a transfer was made earlier in the call.",
+   "category": "closing",
+   "critical": true,
+   "anchors": [
+    "not_verified",
+    "failed"
+   ]
+  },
+  {
+   "id": "E-21",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 21"
+   },
+   "evidence": "`add_note` is never used.",
+   "category": "closing",
+   "critical": true,
+   "anchors": []
+  },
+  {
+   "id": "E-22",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 22"
+   },
+   "evidence": "Every call ends with exactly one `close_call`. Where several rows could apply, the first one in this table that applies is used.",
+   "category": "closing",
+   "critical": true,
+   "anchors": []
+  }
+ ]
+}

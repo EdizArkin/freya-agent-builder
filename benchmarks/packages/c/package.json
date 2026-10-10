@@ -1,0 +1,15 @@
+{
+ "id": "c",
+ "title": "Northwind Credit Union, arrears on one product",
+ "form": "clean",
+ "tier": "development",
+ "version": 1,
+ "documents": [
+  "brief.md"
+ ],
+ "openapi_from_kit": "C",
+ "origin": "benchmarks/synthetic_briefs/brief-c.md with the introduction replaced and everything from \"Tool API this brief assumes\" on removed (its scenario table and its table of what agent-spec/1 can carry are answers). The tool API is the kit file with brief-c.api.yaml applied.",
+ "changelog": [
+  "v1: first version"
+ ]
+}

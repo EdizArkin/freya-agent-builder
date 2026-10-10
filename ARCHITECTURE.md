@@ -25,6 +25,7 @@ builder/
   validation/spec.py       is the spec executable against this API?
   validation/workflow.py   does the workflow obey the platform's rules?
   validation/safety.py     does an artifact carry a credential?
+  validation/contract.py   does a request, or a compiled tool, agree with the tool API?
   compiler/compiler.py     spec + API -> workflow; embeds the runtime
   runtime/runtime.py       the deterministic runtime, embedded as source
   freya/client.py          loads the starter kit's freya.py
@@ -70,7 +71,7 @@ Arrows read "imports". `pipeline` imports everything and nothing imports `pipeli
 
 | Module | Imports |
 | --- | --- |
-| `runtime/runtime`, `config/settings`, `artifacts/store`, `freya/client`, `evaluation/simulation` | nothing from the builder |
+| `runtime/runtime`, `config/settings`, `artifacts/store`, `freya/client`, `evaluation/simulation`, `validation/contract` | nothing from the builder |
 | `spec/models` | `runtime/runtime` (the list of date expression kinds) |
 | `spec/openapi` | `spec/models` |
 | `validation/spec` | `spec/models`, `runtime/runtime` (to evaluate expressions on sample products) |
@@ -283,6 +284,7 @@ adding a note for each product without a promise before closing.
 | Spec validation | `validation/spec.py`, on every build | The spec names only fields, values and operations the API has, and its expressions compute |
 | Workflow validation | `validation/workflow.py`, on every build | The workflow obeys the documented platform rules |
 | Safety validation | `validation/safety.py`, on spec and workflow | No credential in an artifact |
+| Tool API contract | `validation/contract.py`, on every build as trace lines, never a reason to fail; on every request the benchmarks play | Compiled tools and outgoing requests have the URL, method, fields, types and allowed values of the tool API. A keyword of the document it does not implement is reported as not checked |
 | Platform dry run | `freya/deployment.py`, with `--deploy` | The platform accepts the workflow |
 | Offline tests | `tests/`, with `tests/freya_sim.py` standing in for the engine and the bank | The runtime does the right thing when given a tool call |
 | Real evaluation | `evaluation/simulation.py`, with `--test` | A phone agent on Freya handles the practice customers |

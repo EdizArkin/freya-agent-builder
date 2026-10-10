@@ -1,0 +1,29 @@
+{
+ "about": "Names of package F's tool API, mapped to the names of the offline stand-in bank. Ledgers in checks.json use the stand-in's names: promises (product_id, amount, date), notes (product_id, reason), callbacks (date, time), transfers (queue), outcome, reason.",
+ "call_id_variables": [
+  "case_id"
+ ],
+ "request": {
+  "case_id": "customer_id",
+  "question": "field",
+  "given_answer": "answer",
+  "account_ref": "product_id",
+  "pay_amount": "amount",
+  "pay_date": "date",
+  "note_code": "reason",
+  "callback_date": "date",
+  "callback_time": "time",
+  "team": "queue",
+  "result": "outcome",
+  "reason_code": "reason"
+ },
+ "response": {
+  "ok": "success",
+  "verified": "match",
+  "all_verified": "all_passed",
+  "wrong_answers_left": "tries_left",
+  "products": "accounts",
+  "product_id": "account_ref",
+  "promise_id": "promise_ref"
+ }
+}

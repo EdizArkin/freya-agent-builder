@@ -1,0 +1,732 @@
+{
+ "package": "f",
+ "rules": [
+  {
+   "id": "F-01",
+   "source": {
+    "document": "01-mail.md",
+    "locator": "paragraph 3"
+   },
+   "evidence": "The assistant opens with exactly this: \"Good day, you are speaking with the automated service of Calder Savings Bank. Calls are recorded.\"",
+   "category": "opening",
+   "critical": true,
+   "anchors": []
+  },
+  {
+   "id": "F-02",
+   "source": {
+    "document": "01-mail.md",
+    "locator": "paragraph 3"
+   },
+   "evidence": "Then it asks: \"Is this {given_name} {family_name}?\"",
+   "category": "opening",
+   "critical": false,
+   "anchors": []
+  },
+  {
+   "id": "F-03",
+   "source": {
+    "document": "01-mail.md",
+    "locator": "paragraph 3"
+   },
+   "evidence": "Until the security check is passed it must not mention arrears, money owed or any account, to anybody.",
+   "category": "opening",
+   "critical": true,
+   "anchors": []
+  },
+  {
+   "id": "F-04",
+   "source": {
+    "document": "03-memo.md",
+    "locator": "item 2"
+   },
+   "evidence": "We only call back on the next working day, from 09:30 to 17:30, both times included. Never on the same day.",
+   "category": "callback",
+   "critical": true,
+   "anchors": [
+    "09:30",
+    "17:30"
+   ],
+   "amends": "01-mail.md, paragraph 4: \"one of the next two working days between 09:00 and 18:00\""
+  },
+  {
+   "id": "F-05",
+   "source": {
+    "document": "01-mail.md",
+    "locator": "paragraph 4"
+   },
+   "evidence": "If the person names a time we cannot do, ask once for another one; if that does not work either, leave it.",
+   "category": "callback",
+   "critical": false,
+   "anchors": [
+    "no_slot"
+   ]
+  },
+  {
+   "id": "F-06",
+   "source": {
+    "document": "03-memo.md",
+    "locator": "item 1"
+   },
+   "evidence": "The first question is now the full date of birth, not only the year.",
+   "category": "identity",
+   "critical": true,
+   "anchors": [
+    "birth_date"
+   ],
+   "amends": "02-policy-extract.md 3.1: \"the year of birth\""
+  },
+  {
+   "id": "F-07",
+   "source": {
+    "document": "03-memo.md",
+    "locator": "item 1"
+   },
+   "evidence": "Customers who give it in numbers mean day, month, year.",
+   "category": "identity",
+   "critical": true,
+   "anchors": [
+    "DMY"
+   ]
+  },
+  {
+   "id": "F-08",
+   "source": {
+    "document": "03-memo.md",
+    "locator": "item 1"
+   },
+   "evidence": "Two wrong answers in total now end the check, not three.",
+   "category": "identity",
+   "critical": true,
+   "anchors": [],
+   "amends": "02-policy-extract.md 3.2: \"Three wrong answers in total end the check.\"",
+   "semantics": "The expected limit is 2. The tool API says of verify_identity that three wrong answers end the check: that is the most the service itself tolerates. The memo is the bank's policy and is stricter, so the agent stops at two although the service would accept a third answer."
+  },
+  {
+   "id": "F-09",
+   "source": {
+    "document": "02-policy-extract.md",
+    "locator": "3.3"
+   },
+   "evidence": "A customer who refuses to answer is asked once more. A second refusal ends the call.",
+   "category": "identity",
+   "critical": false,
+   "anchors": [
+    "id_refused"
+   ]
+  },
+  {
+   "id": "F-10",
+   "source": {
+    "document": "01-mail.md",
+    "locator": "paragraph 5"
+   },
+   "evidence": "the assistant names each overdue account (\"overdraft\", \"card ending 5530\", \"loan\")",
+   "category": "accounts",
+   "critical": true,
+   "anchors": [
+    "card ending"
+   ]
+  },
+  {
+   "id": "F-11",
+   "source": {
+    "document": "02-policy-extract.md",
+    "locator": "4.2"
+   },
+   "evidence": "Working days are Monday to Friday. Bank holidays: 2026-10-23, 2026-12-25, 2026-12-28.",
+   "category": "calendar",
+   "critical": true,
+   "anchors": [
+    "2026-10-23"
+   ]
+  },
+  {
+   "id": "F-12",
+   "source": {
+    "document": "03-memo.md",
+    "locator": "item 5"
+   },
+   "evidence": "16 October 2026 is a regional holiday; treat it as a bank holiday.",
+   "category": "calendar",
+   "critical": true,
+   "anchors": [
+    "2026-10-16"
+   ]
+  },
+  {
+   "id": "F-13",
+   "source": {
+    "document": "03-memo.md",
+    "locator": "item 3"
+   },
+   "evidence": "The latest promise date is the sixth working day after today for an account up to 30 days overdue, and the third working day after today for an account more than 30 days overdue.",
+   "category": "dates",
+   "critical": true,
+   "anchors": [
+    "business_days_after"
+   ],
+   "amends": "02-policy-extract.md 5.3: \"at most 10 calendar days after today\""
+  },
+  {
+   "id": "F-14",
+   "source": {
+    "document": "02-policy-extract.md",
+    "locator": "5.3"
+   },
+   "evidence": "A promise date is today or later, a working day, and at most 10 calendar days after today.",
+   "category": "dates",
+   "critical": true,
+   "anchors": [],
+   "semantics": "Today or later and a working day still hold. The 10-day part is replaced by memo item 3 (rule F-13)."
+  },
+  {
+   "id": "F-15",
+   "source": {
+    "document": "02-policy-extract.md",
+    "locator": "5.1"
+   },
+   "evidence": "The most that can be promised on an account is its overdue amount.",
+   "category": "amounts",
+   "critical": true,
+   "anchors": [
+    "overdue_amount"
+   ]
+  },
+  {
+   "id": "F-16",
+   "source": {
+    "document": "02-policy-extract.md",
+    "locator": "5.2"
+   },
+   "evidence": "for a loan, one instalment (`instalment`); an overdraft must be promised in full.",
+   "category": "amounts",
+   "critical": true,
+   "anchors": [
+    "instalment"
+   ]
+  },
+  {
+   "id": "F-17",
+   "source": {
+    "document": "03-memo.md",
+    "locator": "item 4"
+   },
+   "evidence": "The lowest amount for a card is 35 percent of the overdue amount, not half.",
+   "category": "amounts",
+   "critical": true,
+   "anchors": [
+    "35"
+   ],
+   "amends": "02-policy-extract.md 5.2: \"for a card, half of the overdue amount\""
+  },
+  {
+   "id": "F-18",
+   "source": {
+    "document": "02-policy-extract.md",
+    "locator": "5.4"
+   },
+   "evidence": "A promise dated today is accepted only for the full overdue amount. A lower amount needs a later date.",
+   "category": "dates",
+   "critical": true,
+   "anchors": [
+    "dated today",
+    "only for the full",
+    "needs a later date",
+    "today only",
+    "full amount today"
+   ],
+   "known_gap": "unsupported by design: the earliest or latest date of a promise cannot depend on its amount"
+  },
+  {
+   "id": "F-19",
+   "source": {
+    "document": "02-policy-extract.md",
+    "locator": "5.5"
+   },
+   "evidence": "Promise amounts are whole multiples of 10.00. An amount that is not is not recorded; ask the customer for a round figure.",
+   "category": "amounts",
+   "critical": true,
+   "anchors": [
+    "multiple",
+    "round figure"
+   ],
+   "known_gap": "unsupported by design: limits are a range; there is no step"
+  },
+  {
+   "id": "F-20",
+   "source": {
+    "document": "01-mail.md",
+    "locator": "paragraph 5"
+   },
+   "evidence": "If the customer cannot pay it all, it may offer the lowest amount once.",
+   "category": "negotiation",
+   "critical": false,
+   "anchors": []
+  },
+  {
+   "id": "F-21",
+   "source": {
+    "document": "01-mail.md",
+    "locator": "paragraph 6"
+   },
+   "evidence": "Before anything is recorded the assistant reads the account, the amount and the date back and asks: \"Shall I record that?\" It records only after a clear yes.",
+   "category": "recording",
+   "critical": true,
+   "anchors": [],
+   "offline_evidence": "insufficient",
+   "offline_evidence_note": "Whether the customer said yes before create_promise is called can only be seen in a live call. Offline it is shown only that the read-back question is in the spec and in the prompt of the step in which create_promise exists."
+  },
+  {
+   "id": "F-22",
+   "source": {
+    "document": "01-mail.md",
+    "locator": "paragraph 6"
+   },
+   "evidence": "After a recorded promise it says: \"You will get written confirmation by post.\"",
+   "category": "recording",
+   "critical": false,
+   "anchors": []
+  },
+  {
+   "id": "F-23",
+   "source": {
+    "document": "02-policy-extract.md",
+    "locator": "6.1"
+   },
+   "evidence": "One promise per account. A recorded promise is not changed in the same call.",
+   "category": "recording",
+   "critical": true,
+   "anchors": []
+  },
+  {
+   "id": "F-24",
+   "source": {
+    "document": "02-policy-extract.md",
+    "locator": "6.2"
+   },
+   "evidence": "If `create_promise` fails, try again, up to three attempts in all for that account.",
+   "category": "recording",
+   "critical": true,
+   "anchors": []
+  },
+  {
+   "id": "F-25",
+   "source": {
+    "document": "02-policy-extract.md",
+    "locator": "6.3"
+   },
+   "evidence": "Every account that ends without a promise gets `add_note` with a code from the code list.",
+   "category": "notes",
+   "critical": true,
+   "anchors": [
+    "note_code"
+   ],
+   "semantics": "The policy is that the notes are at the bank when the call ends. That a close before them is refused is how this builder enforces it, and is checked separately."
+  },
+  {
+   "id": "F-26",
+   "source": {
+    "document": "02-policy-extract.md",
+    "locator": "6.4"
+   },
+   "evidence": "A customer who says an account is already paid, or who contests it: note it and continue with the other accounts.",
+   "category": "notes",
+   "critical": false,
+   "anchors": [
+    "contested"
+   ]
+  },
+  {
+   "id": "F-27",
+   "source": {
+    "document": "02-policy-extract.md",
+    "locator": "7.1"
+   },
+   "evidence": "After a handover no promise is recorded.",
+   "category": "handover",
+   "critical": true,
+   "anchors": []
+  },
+  {
+   "id": "F-28",
+   "source": {
+    "document": "03-memo.md",
+    "locator": "item 6"
+   },
+   "evidence": "Policy 7.2 is withdrawn: after a handover, add no notes.",
+   "category": "handover",
+   "critical": true,
+   "anchors": [
+    "forbidden_after_transfer"
+   ],
+   "amends": "02-policy-extract.md 7.2: \"After a handover, note every account that has no promise.\""
+  },
+  {
+   "id": "F-29",
+   "source": {
+    "document": "04-codes.md",
+    "locator": "Call results, row agreed"
+   },
+   "evidence": "| `agreed` | none | at least one promise was recorded and no handover followed |",
+   "category": "closing",
+   "critical": true,
+   "anchors": [
+    "agreed"
+   ]
+  },
+  {
+   "id": "F-30",
+   "source": {
+    "document": "04-codes.md",
+    "locator": "Call results, row handed_over"
+   },
+   "evidence": "| `handed_over` | `hardship`, `plan`, `requested` | the call was handed over. A handover wins over a recorded promise |",
+   "category": "closing",
+   "critical": true,
+   "anchors": [
+    "handed_over"
+   ]
+  },
+  {
+   "id": "F-31",
+   "source": {
+    "document": "04-codes.md",
+    "locator": "Call results, row no_agreement"
+   },
+   "evidence": "| `no_agreement` | `declined`, `contested`, `hardship`, `system_fault` | no promise and no handover: the code of the first account, in the order `get_account` gave them, whose note is not `settled` |",
+   "category": "closing",
+   "critical": true,
+   "anchors": [
+    "first_note_not",
+    "no_agreement"
+   ]
+  },
+  {
+   "id": "F-32",
+   "source": {
+    "document": "04-codes.md",
+    "locator": "Teams, row payment_plans"
+   },
+   "evidence": "| `payment_plans` | a request for a payment plan | `plan` |",
+   "category": "handover",
+   "critical": true,
+   "anchors": [
+    "payment_plans"
+   ]
+  },
+  {
+   "id": "F-33",
+   "source": {
+    "document": "01-mail.md",
+    "locator": "paragraph 7"
+   },
+   "evidence": "Customers in hardship (they mention losing their job or a serious illness) get one sentence of sympathy and an offer to be put through to the hardship desk.",
+   "category": "handover",
+   "critical": false,
+   "anchors": [
+    "hardship_desk"
+   ]
+  },
+  {
+   "id": "F-34",
+   "source": {
+    "document": "01-mail.md",
+    "locator": "paragraph 5"
+   },
+   "evidence": "No discounts, no payment holidays, nothing that is not in the policy.",
+   "category": "negotiation",
+   "critical": false,
+   "anchors": []
+  },
+  {
+   "id": "F-35",
+   "source": {
+    "document": "01-mail.md",
+    "locator": "paragraph 2"
+   },
+   "evidence": "Use `now` for every date rule, not the real clock.",
+   "category": "call",
+   "critical": true,
+   "anchors": []
+  },
+  {
+   "id": "F-36",
+   "source": {
+    "document": "04-codes.md",
+    "locator": "Call results, row settled"
+   },
+   "evidence": "| `settled` | none | no promise, and every account is noted `settled` |",
+   "category": "closing",
+   "critical": true,
+   "anchors": [
+    "settled"
+   ]
+  },
+  {
+   "id": "F-37",
+   "source": {
+    "document": "04-codes.md",
+    "locator": "Call results, row unverified"
+   },
+   "evidence": "| `unverified` | `id_failed`, `id_refused` | the security check failed; the customer refused it |",
+   "category": "closing",
+   "critical": true,
+   "anchors": [
+    "unverified",
+    "id_failed"
+   ],
+   "semantics": "id_failed is checked. id_refused depends on what the customer says and is not evaluated offline."
+  },
+  {
+   "id": "F-38",
+   "source": {
+    "document": "04-codes.md",
+    "locator": "Call results, row no_contact"
+   },
+   "evidence": "| `no_contact` | `callback_set`, `no_slot`, `wrong_party` | a callback was booked; no callback time could be agreed; the number is not the customer's |",
+   "category": "closing",
+   "critical": true,
+   "anchors": [
+    "no_contact",
+    "callback_set"
+   ],
+   "semantics": "callback_set is checked. no_slot and wrong_party depend on what the person says and are not evaluated offline."
+  },
+  {
+   "id": "F-39",
+   "source": {
+    "document": "04-codes.md",
+    "locator": "Call results"
+   },
+   "evidence": "Every call ends with exactly one `close_call`.",
+   "category": "closing",
+   "critical": false,
+   "anchors": []
+  },
+  {
+   "id": "F-40",
+   "source": {
+    "document": "04-codes.md",
+    "locator": "Teams, row hardship_desk"
+   },
+   "evidence": "| `hardship_desk` | a customer in hardship who accepts the offer | `hardship` |",
+   "category": "handover",
+   "critical": true,
+   "anchors": [
+    "hardship_desk"
+   ]
+  },
+  {
+   "id": "F-41",
+   "source": {
+    "document": "04-codes.md",
+    "locator": "Teams, row agent"
+   },
+   "evidence": "| `agent` | a customer who insists on a person | `requested` |",
+   "category": "handover",
+   "critical": true,
+   "anchors": [
+    "requested"
+   ]
+  },
+  {
+   "id": "F-42",
+   "source": {
+    "document": "01-mail.md",
+    "locator": "paragraph 4"
+   },
+   "evidence": "If somebody else picks up, the assistant does not say why we are calling. It asks when the customer can be reached.",
+   "category": "third_party",
+   "critical": true,
+   "anchors": []
+  },
+  {
+   "id": "F-43",
+   "source": {
+    "document": "01-mail.md",
+    "locator": "paragraph 4"
+   },
+   "evidence": "If they say the number is not the customer's, end the call.",
+   "category": "third_party",
+   "critical": false,
+   "anchors": [
+    "wrong_party"
+   ]
+  },
+  {
+   "id": "F-44",
+   "source": {
+    "document": "01-mail.md",
+    "locator": "paragraph 7"
+   },
+   "evidence": "People who ask for a payment plan go to the payment plans team; do not describe a plan.",
+   "category": "handover",
+   "critical": true,
+   "anchors": []
+  },
+  {
+   "id": "F-45",
+   "source": {
+    "document": "01-mail.md",
+    "locator": "paragraph 7"
+   },
+   "evidence": "If someone insists on a person, ask once whether you can help, then put them through.",
+   "category": "handover",
+   "critical": false,
+   "anchors": []
+  },
+  {
+   "id": "F-46",
+   "source": {
+    "document": "02-policy-extract.md",
+    "locator": "3.2"
+   },
+   "evidence": "The customer is told to call the branch.",
+   "category": "identity",
+   "critical": false,
+   "anchors": [
+    "branch"
+   ]
+  },
+  {
+   "id": "F-47",
+   "source": {
+    "document": "02-policy-extract.md",
+    "locator": "4.1"
+   },
+   "evidence": "After the check, `get_account` lists one to three overdue accounts of kind `overdraft`, `card` or `loan`.",
+   "category": "accounts",
+   "critical": true,
+   "anchors": []
+  },
+  {
+   "id": "F-48",
+   "source": {
+    "document": "02-policy-extract.md",
+    "locator": "6.2"
+   },
+   "evidence": "After the third failure say that it could not be recorded.",
+   "category": "recording",
+   "critical": true,
+   "anchors": []
+  },
+  {
+   "id": "F-49",
+   "source": {
+    "document": "01-mail.md",
+    "locator": "paragraph 1"
+   },
+   "evidence": "Where they say something different from this mail, they win, and the memo of 6 October wins over all of them.",
+   "category": "documents",
+   "critical": false,
+   "anchors": [],
+   "semantics": "Which document wins. It has no check of its own: its effect is measured by the rules the memo changes (F-04, F-06, F-07, F-08, F-12, F-13, F-17, F-28)."
+  },
+  {
+   "id": "F-50",
+   "source": {
+    "document": "03-memo.md",
+    "locator": "item 7"
+   },
+   "evidence": "Everything else in the policy and in Dana's mail stays as it is.",
+   "category": "documents",
+   "critical": false,
+   "anchors": [],
+   "semantics": "No check of its own: its effect is that every rule the memo does not mention keeps its check."
+  },
+  {
+   "id": "F-51",
+   "source": {
+    "document": "01-mail.md",
+    "locator": "paragraph 2"
+   },
+   "evidence": "Each call starts with these values: `case_id` (send it with every tool call), `given_name`, `family_name`, and `now`, the date and time of the call.",
+   "category": "call",
+   "critical": true,
+   "anchors": [
+    "case_id"
+   ]
+  },
+  {
+   "id": "F-52",
+   "source": {
+    "document": "01-mail.md",
+    "locator": "paragraph 5"
+   },
+   "evidence": "says how much is overdue and for how many days, and asks for the full overdue amount",
+   "category": "negotiation",
+   "critical": false,
+   "anchors": []
+  },
+  {
+   "id": "F-53",
+   "source": {
+    "document": "02-policy-extract.md",
+    "locator": "3.1"
+   },
+   "evidence": "Two questions are asked, one at a time, in this order: the year of birth, then the last three digits of the account number.",
+   "category": "identity",
+   "critical": true,
+   "anchors": [
+    "account_last3"
+   ],
+   "semantics": "The second question stays (memo item 1: \"The second question is unchanged.\"); the first is replaced by rule F-06."
+  },
+  {
+   "id": "F-54",
+   "source": {
+    "document": "04-codes.md",
+    "locator": "Note codes, row declined"
+   },
+   "evidence": "| `declined` | the customer will not promise anything on this account |",
+   "category": "notes",
+   "critical": false,
+   "anchors": []
+  },
+  {
+   "id": "F-55",
+   "source": {
+    "document": "04-codes.md",
+    "locator": "Note codes, row contested"
+   },
+   "evidence": "| `contested` | the customer says the account is not theirs or the amount is wrong |",
+   "category": "notes",
+   "critical": false,
+   "anchors": []
+  },
+  {
+   "id": "F-56",
+   "source": {
+    "document": "04-codes.md",
+    "locator": "Note codes, row settled"
+   },
+   "evidence": "| `settled` | the customer says it is already paid |",
+   "category": "notes",
+   "critical": false,
+   "anchors": []
+  },
+  {
+   "id": "F-57",
+   "source": {
+    "document": "04-codes.md",
+    "locator": "Note codes, row hardship"
+   },
+   "evidence": "| `hardship` | hardship, and the customer did not want the hardship desk |",
+   "category": "notes",
+   "critical": false,
+   "anchors": []
+  },
+  {
+   "id": "F-58",
+   "source": {
+    "document": "04-codes.md",
+    "locator": "Note codes, row system_fault"
+   },
+   "evidence": "| `system_fault` | the promise could not be recorded after three attempts |",
+   "category": "notes",
+   "critical": false,
+   "anchors": []
+  }
+ ]
+}

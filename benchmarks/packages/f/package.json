@@ -1,0 +1,30 @@
+{
+ "id": "f",
+ "title": "Calder Savings Bank, arrears calls from raw bank material",
+ "form": "raw",
+ "tier": "selection",
+ "version": 1,
+ "documents": [
+  "01-mail.md",
+  "02-policy-extract.md",
+  "03-memo.md",
+  "04-codes.md"
+ ],
+ "origin": "Written for this benchmark by the author of the builder: a mail, a policy extract, a memo that amends both, and a code list. The tool API is its own document; every request and response field has another name than in the starter kit.",
+ "changelog": [
+  "v1: first version"
+ ],
+ "review": {
+  "by": "the user (hackathon participant), not the author of the keys",
+  "on": "2026-10-10",
+  "decisions": [
+   "Date calculations, calendars, amount thresholds and override readings approved as presented.",
+   "Checks say whether they assert policy (what the brief prescribes, records after compliant calls) or enforcement (a call no compliant agent makes is stopped or corrected by the generated code). The two are reported separately.",
+   "Spoken account labels are compared without regard to capitals; identifiers, enum values and fields exactly.",
+   "The tool API description no longer says that it belongs to a benchmark; the contract is unchanged.",
+   "The limit of two wrong answers stays, although the tool API says three: the business policy is stricter than the service's own maximum.",
+   "Every row of the result table, every team row, every note code and the policy statements left out before are rules of their own, each with its exact passage. Conversational rules without a check are reported as not evaluated offline.",
+   "F-21 (consent before recording) stays critical. Its offline evidence is marked insufficient for behavioural confirmation."
+  ]
+ }
+}

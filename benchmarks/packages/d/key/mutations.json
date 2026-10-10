@@ -1,0 +1,58 @@
+{
+ "package": "d",
+ "mutations": [
+  {
+   "id": "D.m1",
+   "what": "credit card floor 30 -> 35 percent",
+   "rules": [
+    "D-07"
+   ],
+   "ops": [
+    {
+     "path": "/account/values/2/expr/cases/1/expr/percent",
+     "set": 35
+    }
+   ]
+  },
+  {
+   "id": "D.m2",
+   "what": "mortgage deadline 3 -> 4 business days (the check that a date after the deadline is refused moves with it)",
+   "rules": [
+    "D-09",
+    "D-10"
+   ],
+   "ops": [
+    {
+     "path": "/account/values/3/expr/cases/0/expr/n",
+     "set": 4
+    }
+   ]
+  },
+  {
+   "id": "D.m3",
+   "what": "callback window ends 17:00 -> 18:00",
+   "rules": [
+    "D-02"
+   ],
+   "ops": [
+    {
+     "path": "/callback/end",
+     "set": "18:00"
+    }
+   ]
+  },
+  {
+   "id": "D.m4",
+   "what": "promise attempts 3 -> 2",
+   "rules": [
+    "D-13"
+   ],
+   "ops": [
+    {
+     "path": "/promise/max_attempts",
+     "set": 2
+    }
+   ]
+  }
+ ]
+}

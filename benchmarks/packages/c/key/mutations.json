@@ -1,0 +1,59 @@
+{
+ "package": "c",
+ "mutations": [
+  {
+   "id": "C.m1",
+   "what": "store card floor 40 -> 45 percent",
+   "rules": [
+    "C-12"
+   ],
+   "ops": [
+    {
+     "path": "/account/values/2/expr/cases/0/expr/percent",
+     "set": 45
+    }
+   ]
+  },
+  {
+   "id": "C.m2",
+   "what": "first deadline band 5 -> 6 calendar days",
+   "rules": [
+    "C-10"
+   ],
+   "ops": [
+    {
+     "path": "/account/values/3/expr/cases/0/expr/n",
+     "set": 6
+    }
+   ]
+  },
+  {
+   "id": "C.m3",
+   "what": "wrong answers allowed 2 -> 3",
+   "rules": [
+    "C-05"
+   ],
+   "ops": [
+    {
+     "path": "/identity/max_wrong",
+     "set": 3
+    }
+   ]
+  },
+  {
+   "id": "C.m4",
+   "what": "outcome table loses the reason wrong_number",
+   "rules": [
+    "C-20"
+   ],
+   "ops": [
+    {
+     "path": "/close/outcomes/not_reached",
+     "set": [
+      "no_callback"
+     ]
+    }
+   ]
+  }
+ ]
+}

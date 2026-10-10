@@ -1,0 +1,15 @@
+{
+ "id": "d",
+ "title": "Harbor Lending, households with several accounts",
+ "form": "clean",
+ "tier": "development",
+ "version": 1,
+ "documents": [
+  "brief.md"
+ ],
+ "openapi_from_kit": "D",
+ "origin": "benchmarks/synthetic_briefs/brief-d.md with the introduction replaced and everything from \"Tool API this brief assumes\" on removed (its scenario table and its table of what agent-spec/1 can carry are answers). The tool API is the kit file with brief-d.api.yaml applied.",
+ "changelog": [
+  "v1: first version"
+ ]
+}

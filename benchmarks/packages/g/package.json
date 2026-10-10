@@ -1,0 +1,25 @@
+{
+ "id": "g",
+ "title": "Brightwater Mutual, late-payment calls, up to three products",
+ "form": "clean",
+ "tier": "final",
+ "version": 1,
+ "documents": [
+  "brief.md"
+ ],
+ "origin": "Written for this benchmark by the author of the builder, in the form of the official briefs. The tool API is its own document and keeps the starter kit's field names.",
+ "changelog": [
+  "v1: first version"
+ ],
+ "review": {
+  "by": "the user (hackathon participant), not the author of the keys",
+  "on": "2026-10-10",
+  "decisions": [
+   "Date calculations, calendars, amount thresholds and override readings approved as presented.",
+   "Checks say whether they assert policy (what the brief prescribes, records after compliant calls) or enforcement (a call no compliant agent makes is stopped or corrected by the generated code). The two are reported separately.",
+   "Spoken account labels are compared without regard to capitals; identifiers, enum values and fields exactly.",
+   "The tool API description no longer says that it belongs to a benchmark; the contract is unchanged.",
+   "Applied by the author for consistency with F-21, open to veto: G-18 is marked partial, because only \"one promise per product\" is enforced; consent before recording is not confirmed by behaviour offline."
+  ]
+ }
+}

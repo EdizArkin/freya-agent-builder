@@ -1,0 +1,69 @@
+{
+ "package": "e",
+ "mutations": [
+  {
+   "id": "E.m1",
+   "what": "electricity floor 35.00 -> 40.00",
+   "rules": [
+    "E-11"
+   ],
+   "ops": [
+    {
+     "path": "/account/values/2/expr/cases/1/expr/value",
+     "set": 40
+    }
+   ]
+  },
+  {
+   "id": "E.m2",
+   "what": "the vulnerable floor is dropped",
+   "rules": [
+    "E-12"
+   ],
+   "ops": [
+    {
+     "path": "/account/values/2/expr/cases/0",
+     "remove": true
+    }
+   ]
+  },
+  {
+   "id": "E.m3",
+   "what": "ten calendar days -> twelve (the boundary check of rule 9 expects the date of rule 8)",
+   "rules": [
+    "E-08",
+    "E-09"
+   ],
+   "ops": [
+    {
+     "path": "/account/values/3/expr/cases/1/expr/of/1/n",
+     "set": 12
+    }
+   ]
+  },
+  {
+   "id": "E.m4",
+   "what": "Friday becomes a business day (every date rule counts business days)",
+   "rules": [
+    "E-05",
+    "E-06",
+    "E-07",
+    "E-08",
+    "E-09"
+   ],
+   "ops": [
+    {
+     "path": "/calendar/business_weekdays",
+     "set": [
+      6,
+      0,
+      1,
+      2,
+      3,
+      4
+     ]
+    }
+   ]
+  }
+ ]
+}

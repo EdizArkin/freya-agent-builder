@@ -1,0 +1,166 @@
+{
+ "package": "f",
+ "mutations": [
+  {
+   "id": "F.m1",
+   "what": "memo ignored: card minimum back to half",
+   "rules": [
+    "F-17"
+   ],
+   "ops": [
+    {
+     "path": "/account/values/2/expr/cases/0/expr/percent",
+     "set": 50
+    }
+   ]
+  },
+  {
+   "id": "F.m2",
+   "what": "memo ignored: latest date back to 10 calendar days",
+   "rules": [
+    "F-13"
+   ],
+   "ops": [
+    {
+     "path": "/account/values/3/expr",
+     "set": {
+      "kind": "calendar_days_after",
+      "n": 10,
+      "roll": "previous_business"
+     }
+    }
+   ]
+  },
+  {
+   "id": "F.m3",
+   "what": "memo ignored: three wrong answers (the unverified close is played after two)",
+   "rules": [
+    "F-08",
+    "F-37"
+   ],
+   "ops": [
+    {
+     "path": "/identity/max_wrong",
+     "set": 3
+    }
+   ]
+  },
+  {
+   "id": "F.m4",
+   "what": "memo ignored: 16 October is not a holiday (the dates that count working days move with it)",
+   "rules": [
+    "F-12",
+    "F-13",
+    "F-14"
+   ],
+   "ops": [
+    {
+     "path": "/calendar/holidays",
+     "set": [
+      "2026-10-23",
+      "2026-12-25",
+      "2026-12-28"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "F.m5",
+   "what": "memo ignored: notes after a handover",
+   "rules": [
+    "F-28"
+   ],
+   "ops": [
+    {
+     "path": "/note/forbidden_after_transfer",
+     "set": false
+    }
+   ]
+  },
+  {
+   "id": "F.m6",
+   "what": "memo ignored: the mail's callback window",
+   "rules": [
+    "F-04"
+   ],
+   "ops": [
+    {
+     "path": "/callback/next_business_days",
+     "set": 2
+    },
+    {
+     "path": "/callback/start",
+     "set": "09:00"
+    },
+    {
+     "path": "/callback/end",
+     "set": "18:00"
+    }
+   ]
+  },
+  {
+   "id": "F.m7",
+   "what": "the payment plans team closes with the wrong code",
+   "rules": [
+    "F-32"
+   ],
+   "ops": [
+    {
+     "path": "/close/queue_reasons/payment_plans",
+     "set": "requested"
+    }
+   ]
+  },
+  {
+   "id": "F.m8",
+   "what": "a promise comes before a handover at the close",
+   "rules": [
+    "F-30"
+   ],
+   "ops": [
+    {
+     "path": "/close/forced/0",
+     "set": {
+      "if": "promise_recorded",
+      "outcome": "agreed"
+     }
+    },
+    {
+     "path": "/close/forced/1",
+     "set": {
+      "if": "transferred",
+      "outcome": "handed_over",
+      "reason_from": "last_transfer_queue"
+     }
+    }
+   ]
+  },
+  {
+   "id": "F.m9",
+   "what": "the questions are asked in the old order",
+   "rules": [
+    "F-06",
+    "F-53"
+   ],
+   "ops": [
+    {
+     "path": "/identity/questions/0",
+     "set": {
+      "field": "account_last3",
+      "ask": "the last three digits of your account number",
+      "format": "digits"
+     }
+    },
+    {
+     "path": "/identity/questions/1",
+     "set": {
+      "field": "birth_date",
+      "ask": "your full date of birth",
+      "format": "date",
+      "numeric_order": "DMY"
+     }
+    }
+   ]
+  }
+ ]
+}

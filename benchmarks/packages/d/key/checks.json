@@ -1,0 +1,1641 @@
+{
+ "package": "d",
+ "defaults": {
+  "identity": {
+   "date_of_birth": "1972-02-28",
+   "phone_last4": "9034"
+  },
+  "variables": {
+   "title": "Mr",
+   "first_name": "Erik",
+   "last_name": "Lindqvist"
+  },
+  "verify": [
+   {
+    "call": "verify_identity",
+    "args": {
+     "field": "date_of_birth",
+     "answer": "1972-02-28"
+    },
+    "expect": "ok"
+   },
+   {
+    "call": "verify_identity",
+    "args": {
+     "field": "phone_last4",
+     "answer": "9034"
+    },
+    "expect": "ok"
+   }
+  ]
+ },
+ "checks": [
+  {
+   "id": "D.f1",
+   "rules": [
+    "D-07"
+   ],
+   "kind": "fact",
+   "now": "2026-10-14T11:00",
+   "product": {
+    "type": "mortgage",
+    "past_due": 1500.0,
+    "days_late": 10,
+    "secured": true
+   },
+   "expect": {
+    "min_amount": 1500.0,
+    "max_amount": 1500.0
+   },
+   "because": "a mortgage can only be promised in full"
+  },
+  {
+   "id": "D.f2",
+   "rules": [
+    "D-09"
+   ],
+   "kind": "fact",
+   "now": "2026-10-14T11:00",
+   "product": {
+    "type": "mortgage",
+    "past_due": 1500.0,
+    "days_late": 10,
+    "secured": true
+   },
+   "expect": {
+    "latest_date": "2026-10-19"
+   },
+   "because": "third business day after Wed 14 Oct: Thu 15, Fri 16, Mon 19"
+  },
+  {
+   "id": "D.f3",
+   "rules": [
+    "D-04"
+   ],
+   "kind": "fact",
+   "now": "2026-10-14T11:00",
+   "product": {
+    "type": "mortgage",
+    "past_due": 1500.0,
+    "days_late": 10,
+    "secured": true
+   },
+   "expect": {
+    "label": "mortgage"
+   },
+   "because": "rule 4 prescribes the words"
+  },
+  {
+   "id": "D.f4",
+   "rules": [
+    "D-07"
+   ],
+   "kind": "fact",
+   "now": "2026-10-14T11:00",
+   "product": {
+    "type": "credit_card",
+    "card_last4": "4417",
+    "past_due": 600.0,
+    "days_late": 16,
+    "secured": false
+   },
+   "expect": {
+    "min_amount": 180.0,
+    "max_amount": 600.0
+   },
+   "because": "30 percent of 600.00 = 180.00"
+  },
+  {
+   "id": "D.f5",
+   "rules": [
+    "D-09"
+   ],
+   "kind": "fact",
+   "now": "2026-10-14T11:00",
+   "product": {
+    "type": "credit_card",
+    "card_last4": "4417",
+    "past_due": 600.0,
+    "days_late": 16,
+    "secured": false
+   },
+   "expect": {
+    "latest_date": "2026-10-21"
+   },
+   "because": "16 days late: fifth business day after Wed 14 Oct is Wed 21 Oct"
+  },
+  {
+   "id": "D.f6",
+   "rules": [
+    "D-04"
+   ],
+   "kind": "fact",
+   "now": "2026-10-14T11:00",
+   "product": {
+    "type": "credit_card",
+    "card_last4": "4417",
+    "past_due": 600.0,
+    "days_late": 16,
+    "secured": false
+   },
+   "expect": {
+    "label": "credit card ending 4417"
+   },
+   "because": "rule 4 prescribes the words"
+  },
+  {
+   "id": "D.f7",
+   "rules": [
+    "D-07"
+   ],
+   "kind": "fact",
+   "now": "2026-10-14T11:00",
+   "product": {
+    "type": "overdraft",
+    "past_due": 400.0,
+    "days_late": 5,
+    "secured": false
+   },
+   "expect": {
+    "min_amount": 200.0,
+    "max_amount": 400.0
+   },
+   "because": "50 percent of 400.00 = 200.00"
+  },
+  {
+   "id": "D.f8",
+   "rules": [
+    "D-09"
+   ],
+   "kind": "fact",
+   "now": "2026-10-14T11:00",
+   "product": {
+    "type": "overdraft",
+    "past_due": 400.0,
+    "days_late": 5,
+    "secured": false
+   },
+   "expect": {
+    "latest_date": "2026-10-28"
+   },
+   "because": "5 days late: tenth business day after Wed 14 Oct is Wed 28 Oct"
+  },
+  {
+   "id": "D.f9",
+   "rules": [
+    "D-04"
+   ],
+   "kind": "fact",
+   "now": "2026-10-14T11:00",
+   "product": {
+    "type": "overdraft",
+    "past_due": 400.0,
+    "days_late": 5,
+    "secured": false
+   },
+   "expect": {
+    "label": "overdraft"
+   },
+   "because": "rule 4 prescribes the word"
+  },
+  {
+   "id": "D.f10",
+   "rules": [
+    "D-09"
+   ],
+   "kind": "fact",
+   "now": "2026-10-14T11:00",
+   "product": {
+    "type": "credit_card",
+    "card_last4": "4417",
+    "past_due": 600.0,
+    "days_late": 14,
+    "secured": false
+   },
+   "expect": {
+    "latest_date": "2026-10-28"
+   },
+   "because": "14 days late is still in the first band: tenth business day"
+  },
+  {
+   "id": "D.f11",
+   "rules": [
+    "D-09"
+   ],
+   "kind": "fact",
+   "now": "2026-10-14T11:00",
+   "product": {
+    "type": "credit_card",
+    "card_last4": "4417",
+    "past_due": 600.0,
+    "days_late": 15,
+    "secured": false
+   },
+   "expect": {
+    "latest_date": "2026-10-21"
+   },
+   "because": "15 days late is in the second band: fifth business day"
+  },
+  {
+   "id": "D.s1",
+   "rules": [
+    "D-03"
+   ],
+   "kind": "structure",
+   "path": "identity.questions",
+   "compare": "field_list",
+   "expect": [
+    "date_of_birth",
+    "phone_last4"
+   ],
+   "field": "field"
+  },
+  {
+   "id": "D.s2",
+   "rules": [
+    "D-03"
+   ],
+   "kind": "structure",
+   "path": "identity.max_wrong",
+   "compare": "equal",
+   "expect": 3
+  },
+  {
+   "id": "D.s3",
+   "rules": [
+    "D-08"
+   ],
+   "kind": "structure",
+   "path": "calendar.business_weekdays",
+   "compare": "set",
+   "expect": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ]
+  },
+  {
+   "id": "D.s4",
+   "rules": [
+    "D-08"
+   ],
+   "kind": "structure",
+   "path": "calendar.holidays",
+   "compare": "set",
+   "expect": [
+    "2026-11-05",
+    "2026-12-25",
+    "2027-01-01"
+   ]
+  },
+  {
+   "id": "D.s5",
+   "rules": [
+    "D-02"
+   ],
+   "kind": "structure",
+   "path": null,
+   "compare": "callback_slots",
+   "expect": [
+    [
+     "2026-10-15",
+     "09:00",
+     "17:00",
+     false
+    ],
+    [
+     "2026-10-16",
+     "09:00",
+     "17:00",
+     false
+    ]
+   ],
+   "now": "2026-10-14T11:00"
+  },
+  {
+   "id": "D.s6",
+   "rules": [
+    "D-14"
+   ],
+   "kind": "structure",
+   "path": "note",
+   "compare": "present",
+   "expect": null
+  },
+  {
+   "id": "D.s7",
+   "rules": [
+    "D-15"
+   ],
+   "kind": "structure",
+   "path": "note.forbidden_after_transfer",
+   "compare": "equal",
+   "expect": false
+  },
+  {
+   "id": "D.s8",
+   "rules": [
+    "D-13"
+   ],
+   "kind": "structure",
+   "path": "promise.max_attempts",
+   "compare": "equal",
+   "expect": 3
+  },
+  {
+   "id": "D.s9",
+   "rules": [
+    "D-19"
+   ],
+   "kind": "structure",
+   "path": "close.outcomes",
+   "compare": "set_map",
+   "expect": {
+    "promise": [],
+    "paid": [],
+    "transferred": [
+     "restructuring",
+     "human"
+    ],
+    "no_promise": [
+     "refused",
+     "dispute",
+     "deferred",
+     "service_error"
+    ],
+    "not_verified": [
+     "failed",
+     "declined"
+    ],
+    "not_reached": [
+     "callback",
+     "no_callback",
+     "wrong_number"
+    ]
+   }
+  },
+  {
+   "id": "D.s10",
+   "rules": [
+    "D-16"
+   ],
+   "kind": "structure",
+   "path": "close.queue_reasons",
+   "compare": "equal",
+   "expect": {
+    "restructuring": "restructuring",
+    "general": "human"
+   }
+  },
+  {
+   "id": "D.s11",
+   "rules": [
+    "D-01"
+   ],
+   "kind": "structure",
+   "path": "opening_line",
+   "compare": "contains",
+   "expect": [
+    "Good day, this is the virtual assistant of Harbor Lending, and this call is recorded.",
+    "Am I speaking with {title} {last_name}?"
+   ]
+  },
+  {
+   "id": "SD-01",
+   "rules": [
+    "D-07"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "A mortgage is promised in full or not at all",
+   "customer": {
+    "identity": {
+     "date_of_birth": "1972-02-28",
+     "phone_last4": "9034"
+    },
+    "products": [
+     {
+      "type": "mortgage",
+      "past_due": 1500.0,
+      "days_late": 10,
+      "secured": true
+     }
+    ],
+    "variables": {
+     "title": "Mr",
+     "first_name": "Erik",
+     "last_name": "Lindqvist"
+    }
+   },
+   "steps": [
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "date_of_birth",
+      "answer": "1972-02-28"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "phone_last4",
+      "answer": "9034"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "product_id": "p1",
+      "amount": 750,
+      "date": "2026-10-16"
+     },
+     "expect": "refused",
+     "says": [
+      "below the lowest amount",
+      "1500.00"
+     ]
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "product_id": "p1",
+      "amount": 1500,
+      "date": "2026-10-16"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "close_call",
+     "args": {
+      "outcome": "promise"
+     },
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": "promise",
+     "reason": null,
+     "promises": [
+      {
+       "product_id": "p1",
+       "amount": 1500.0,
+       "date": "2026-10-16"
+      }
+     ],
+     "notes": [],
+     "callbacks": [],
+     "transfers": []
+    },
+    "ended": true
+   }
+  },
+  {
+   "id": "SD-02",
+   "rules": [
+    "D-09",
+    "D-10"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "Three products, three different deadlines",
+   "customer": {
+    "identity": {
+     "date_of_birth": "1972-02-28",
+     "phone_last4": "9034"
+    },
+    "products": [
+     {
+      "type": "mortgage",
+      "past_due": 1500.0,
+      "days_late": 10,
+      "secured": true
+     },
+     {
+      "type": "credit_card",
+      "card_last4": "4417",
+      "past_due": 600.0,
+      "days_late": 16,
+      "secured": false
+     },
+     {
+      "type": "overdraft",
+      "past_due": 200.0,
+      "days_late": 5,
+      "secured": false
+     }
+    ],
+    "variables": {
+     "title": "Mr",
+     "first_name": "Erik",
+     "last_name": "Lindqvist"
+    }
+   },
+   "steps": [
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "date_of_birth",
+      "answer": "1972-02-28"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "phone_last4",
+      "answer": "9034"
+     },
+     "expect": "ok"
+    },
+    {
+     "check": {
+      "prompt_has": [
+       "latest date Mon 2026-10-19",
+       "latest date Wed 2026-10-21",
+       "latest date Wed 2026-10-28"
+      ]
+     }
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "product_id": "p1",
+      "amount": 1500,
+      "date": "2026-10-20"
+     },
+     "expect": "refused",
+     "says": [
+      "Mon 2026-10-19"
+     ]
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "product_id": "p1",
+      "amount": 1500,
+      "date": "2026-10-19"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "product_id": "p2",
+      "amount": 600,
+      "date": "2026-10-21"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "product_id": "p3",
+      "amount": 200,
+      "date": "2026-10-28"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "close_call",
+     "args": {
+      "outcome": "promise"
+     },
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": "promise",
+     "reason": null,
+     "promises": [
+      {
+       "product_id": "p1",
+       "amount": 1500.0,
+       "date": "2026-10-19"
+      },
+      {
+       "product_id": "p2",
+       "amount": 600.0,
+       "date": "2026-10-21"
+      },
+      {
+       "product_id": "p3",
+       "amount": 200.0,
+       "date": "2026-10-28"
+      }
+     ],
+     "notes": [],
+     "callbacks": [],
+     "transfers": []
+    },
+    "ended": true
+   }
+  },
+  {
+   "id": "SD-03",
+   "rules": [
+    "D-15",
+    "D-14"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "Notes are added after a transfer",
+   "customer": {
+    "identity": {
+     "date_of_birth": "1972-02-28",
+     "phone_last4": "9034"
+    },
+    "products": [
+     {
+      "type": "mortgage",
+      "past_due": 1500.0,
+      "days_late": 10,
+      "secured": true
+     },
+     {
+      "type": "credit_card",
+      "card_last4": "4417",
+      "past_due": 600.0,
+      "days_late": 16,
+      "secured": false
+     }
+    ],
+    "variables": {
+     "title": "Mr",
+     "first_name": "Erik",
+     "last_name": "Lindqvist"
+    }
+   },
+   "steps": [
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "date_of_birth",
+      "answer": "1972-02-28"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "phone_last4",
+      "answer": "9034"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "transfer_to_agent",
+     "args": {
+      "queue": "restructuring"
+     },
+     "expect": "ok",
+     "says": [
+      "deferred"
+     ]
+    },
+    {
+     "call": "add_note",
+     "args": {
+      "product_id": "p1",
+      "reason": "deferred"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "add_note",
+     "args": {
+      "product_id": "p2",
+      "reason": "deferred"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "close_call",
+     "args": {
+      "outcome": "transferred",
+      "reason": "restructuring"
+     },
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": "transferred",
+     "reason": "restructuring",
+     "promises": [],
+     "notes": [
+      {
+       "product_id": "p1",
+       "reason": "deferred"
+      },
+      {
+       "product_id": "p2",
+       "reason": "deferred"
+      }
+     ],
+     "callbacks": [],
+     "transfers": [
+      {
+       "queue": "restructuring"
+      }
+     ]
+    },
+    "ended": true
+   }
+  },
+  {
+   "id": "SD-04",
+   "rules": [
+    "D-15"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "No promise after a transfer, but the notes still go in",
+   "customer": {
+    "identity": {
+     "date_of_birth": "1972-02-28",
+     "phone_last4": "9034"
+    },
+    "products": [
+     {
+      "type": "mortgage",
+      "past_due": 1500.0,
+      "days_late": 10,
+      "secured": true
+     },
+     {
+      "type": "credit_card",
+      "card_last4": "4417",
+      "past_due": 600.0,
+      "days_late": 16,
+      "secured": false
+     }
+    ],
+    "variables": {
+     "title": "Mr",
+     "first_name": "Erik",
+     "last_name": "Lindqvist"
+    }
+   },
+   "steps": [
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "date_of_birth",
+      "answer": "1972-02-28"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "phone_last4",
+      "answer": "9034"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "product_id": "p1",
+      "amount": 1500,
+      "date": "2026-10-19"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "transfer_to_agent",
+     "args": {
+      "queue": "restructuring"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "product_id": "p2",
+      "amount": 600,
+      "date": "2026-10-21"
+     },
+     "expect": "refused",
+     "says": [
+      "No promise may be recorded after a transfer"
+     ]
+    },
+    {
+     "call": "add_note",
+     "args": {
+      "product_id": "p2",
+      "reason": "deferred"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "close_call",
+     "args": {
+      "outcome": "promise"
+     },
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": "transferred",
+     "reason": "restructuring",
+     "promises": [
+      {
+       "product_id": "p1",
+       "amount": 1500.0,
+       "date": "2026-10-19"
+      }
+     ],
+     "notes": [
+      {
+       "product_id": "p2",
+       "reason": "deferred"
+      }
+     ],
+     "callbacks": [],
+     "transfers": [
+      {
+       "queue": "restructuring"
+      }
+     ]
+    },
+    "ended": true
+   }
+  },
+  {
+   "id": "SD-05",
+   "rules": [
+    "D-13"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "Two failures and a third attempt that works",
+   "customer": {
+    "identity": {
+     "date_of_birth": "1972-02-28",
+     "phone_last4": "9034"
+    },
+    "products": [
+     {
+      "type": "mortgage",
+      "past_due": 1500.0,
+      "days_late": 10,
+      "secured": true
+     }
+    ],
+    "variables": {
+     "title": "Mr",
+     "first_name": "Erik",
+     "last_name": "Lindqvist"
+    },
+    "faults": {
+     "create_promise": 2
+    }
+   },
+   "steps": [
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "date_of_birth",
+      "answer": "1972-02-28"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "phone_last4",
+      "answer": "9034"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "product_id": "p1",
+      "amount": 1500,
+      "date": "2026-10-19"
+     },
+     "expect": "error",
+     "says": [
+      "Call create_promise again"
+     ]
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "product_id": "p1",
+      "amount": 1500,
+      "date": "2026-10-19"
+     },
+     "expect": "error",
+     "says": [
+      "Call create_promise again"
+     ]
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "product_id": "p1",
+      "amount": 1500,
+      "date": "2026-10-19"
+     },
+     "expect": "ok",
+     "says": [
+      "is now recorded"
+     ]
+    },
+    {
+     "call": "close_call",
+     "args": {
+      "outcome": "promise"
+     },
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": "promise",
+     "reason": null,
+     "promises": [
+      {
+       "product_id": "p1",
+       "amount": 1500.0,
+       "date": "2026-10-19"
+      }
+     ],
+     "notes": [],
+     "callbacks": [],
+     "transfers": []
+    },
+    "ended": true
+   }
+  },
+  {
+   "id": "SD-06",
+   "rules": [
+    "D-13",
+    "D-14"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "Three failures use up the attempts",
+   "customer": {
+    "identity": {
+     "date_of_birth": "1972-02-28",
+     "phone_last4": "9034"
+    },
+    "products": [
+     {
+      "type": "mortgage",
+      "past_due": 1500.0,
+      "days_late": 10,
+      "secured": true
+     }
+    ],
+    "variables": {
+     "title": "Mr",
+     "first_name": "Erik",
+     "last_name": "Lindqvist"
+    },
+    "faults": {
+     "create_promise": 3
+    }
+   },
+   "steps": [
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "date_of_birth",
+      "answer": "1972-02-28"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "phone_last4",
+      "answer": "9034"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "product_id": "p1",
+      "amount": 1500,
+      "date": "2026-10-19"
+     },
+     "expect": "error"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "product_id": "p1",
+      "amount": 1500,
+      "date": "2026-10-19"
+     },
+     "expect": "error"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "product_id": "p1",
+      "amount": 1500,
+      "date": "2026-10-19"
+     },
+     "expect": "error",
+     "says": [
+      "Do not try again for this product"
+     ]
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "product_id": "p1",
+      "amount": 1500,
+      "date": "2026-10-19"
+     },
+     "expect": "refused",
+     "says": [
+      "Do not try again for this product"
+     ]
+    },
+    {
+     "call": "add_note",
+     "args": {
+      "product_id": "p1",
+      "reason": "service_error"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "close_call",
+     "args": {
+      "outcome": "promise"
+     },
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": "no_promise",
+     "reason": "service_error",
+     "promises": [],
+     "notes": [
+      {
+       "product_id": "p1",
+       "reason": "service_error"
+      }
+     ],
+     "callbacks": [],
+     "transfers": []
+    },
+    "ended": true
+   }
+  },
+  {
+   "id": "SD-07",
+   "rules": [
+    "D-06"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "No promise on the card while the mortgage is open",
+   "customer": {
+    "identity": {
+     "date_of_birth": "1972-02-28",
+     "phone_last4": "9034"
+    },
+    "products": [
+     {
+      "type": "mortgage",
+      "past_due": 1500.0,
+      "days_late": 10,
+      "secured": true
+     },
+     {
+      "type": "credit_card",
+      "card_last4": "4417",
+      "past_due": 600.0,
+      "days_late": 16,
+      "secured": false
+     }
+    ],
+    "variables": {
+     "title": "Mr",
+     "first_name": "Erik",
+     "last_name": "Lindqvist"
+    }
+   },
+   "steps": [
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "date_of_birth",
+      "answer": "1972-02-28"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "phone_last4",
+      "answer": "9034"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "product_id": "p2",
+      "amount": 600,
+      "date": "2026-10-16"
+     },
+     "expect": "blocked"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "product_id": "p1",
+      "amount": 1500,
+      "date": "2026-10-19"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "product_id": "p2",
+      "amount": 600,
+      "date": "2026-10-16"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "close_call",
+     "args": {
+      "outcome": "promise"
+     },
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": "promise",
+     "reason": null,
+     "promises": [
+      {
+       "product_id": "p1",
+       "amount": 1500.0,
+       "date": "2026-10-19"
+      },
+      {
+       "product_id": "p2",
+       "amount": 600.0,
+       "date": "2026-10-16"
+      }
+     ],
+     "notes": [],
+     "callbacks": [],
+     "transfers": []
+    },
+    "ended": true
+   }
+  },
+  {
+   "id": "SD-08",
+   "rules": [
+    "D-11"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "Promises below the household minimum are not recorded",
+   "customer": {
+    "identity": {
+     "date_of_birth": "1972-02-28",
+     "phone_last4": "9034"
+    },
+    "products": [
+     {
+      "type": "mortgage",
+      "past_due": 1500.0,
+      "days_late": 10,
+      "secured": true
+     },
+     {
+      "type": "credit_card",
+      "card_last4": "4417",
+      "past_due": 600.0,
+      "days_late": 16,
+      "secured": false
+     }
+    ],
+    "variables": {
+     "title": "Mr",
+     "first_name": "Erik",
+     "last_name": "Lindqvist"
+    }
+   },
+   "steps": [
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "date_of_birth",
+      "answer": "1972-02-28"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "phone_last4",
+      "answer": "9034"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "add_note",
+     "args": {
+      "product_id": "p1",
+      "reason": "refused"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "product_id": "p2",
+      "amount": 180,
+      "date": "2026-10-16"
+     },
+     "expect": "blocked"
+    },
+    {
+     "call": "add_note",
+     "args": {
+      "product_id": "p2",
+      "reason": "refused"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "close_call",
+     "args": {
+      "outcome": "no_promise",
+      "reason": "refused"
+     },
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": "no_promise",
+     "reason": "refused",
+     "promises": [],
+     "notes": [
+      {
+       "product_id": "p1",
+       "reason": "refused"
+      },
+      {
+       "product_id": "p2",
+       "reason": "refused"
+      }
+     ],
+     "callbacks": [],
+     "transfers": []
+    },
+    "ended": true
+   }
+  },
+  {
+   "id": "SD-09",
+   "rules": [
+    "D-17"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "A dispute outranks a promise at the close",
+   "customer": {
+    "identity": {
+     "date_of_birth": "1972-02-28",
+     "phone_last4": "9034"
+    },
+    "products": [
+     {
+      "type": "mortgage",
+      "past_due": 1500.0,
+      "days_late": 10,
+      "secured": true
+     },
+     {
+      "type": "credit_card",
+      "card_last4": "4417",
+      "past_due": 600.0,
+      "days_late": 16,
+      "secured": false
+     }
+    ],
+    "variables": {
+     "title": "Mr",
+     "first_name": "Erik",
+     "last_name": "Lindqvist"
+    }
+   },
+   "steps": [
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "date_of_birth",
+      "answer": "1972-02-28"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "phone_last4",
+      "answer": "9034"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "product_id": "p1",
+      "amount": 1500,
+      "date": "2026-10-19"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "add_note",
+     "args": {
+      "product_id": "p2",
+      "reason": "dispute"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "close_call",
+     "args": {
+      "outcome": "no_promise",
+      "reason": "dispute"
+     },
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": "no_promise",
+     "reason": "dispute",
+     "promises": [
+      {
+       "product_id": "p1",
+       "amount": 1500.0,
+       "date": "2026-10-19"
+      }
+     ],
+     "notes": [
+      {
+       "product_id": "p2",
+       "reason": "dispute"
+      }
+     ],
+     "callbacks": [],
+     "transfers": []
+    },
+    "ended": true
+   }
+  },
+  {
+   "id": "SD-10",
+   "rules": [
+    "D-14",
+    "D-18"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "Paid and deferred: the close takes the reason that is not paid",
+   "customer": {
+    "identity": {
+     "date_of_birth": "1972-02-28",
+     "phone_last4": "9034"
+    },
+    "products": [
+     {
+      "type": "mortgage",
+      "past_due": 1500.0,
+      "days_late": 10,
+      "secured": true
+     },
+     {
+      "type": "credit_card",
+      "card_last4": "4417",
+      "past_due": 600.0,
+      "days_late": 16,
+      "secured": false
+     }
+    ],
+    "variables": {
+     "title": "Mr",
+     "first_name": "Erik",
+     "last_name": "Lindqvist"
+    }
+   },
+   "steps": [
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "date_of_birth",
+      "answer": "1972-02-28"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "phone_last4",
+      "answer": "9034"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "add_note",
+     "args": {
+      "product_id": "p1",
+      "reason": "paid"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "add_note",
+     "args": {
+      "product_id": "p2",
+      "reason": "deferred"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "close_call",
+     "args": {
+      "outcome": "paid"
+     },
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": "no_promise",
+     "reason": "deferred",
+     "promises": [],
+     "notes": [
+      {
+       "product_id": "p1",
+       "reason": "paid"
+      },
+      {
+       "product_id": "p2",
+       "reason": "deferred"
+      }
+     ],
+     "callbacks": [],
+     "transfers": []
+    },
+    "ended": true
+   }
+  },
+  {
+   "id": "SD-11",
+   "rules": [
+    "D-02"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "A callback is never for today",
+   "customer": {
+    "identity": {
+     "date_of_birth": "1972-02-28",
+     "phone_last4": "9034"
+    },
+    "products": [
+     {
+      "type": "mortgage",
+      "past_due": 1500.0,
+      "days_late": 10,
+      "secured": true
+     }
+    ],
+    "variables": {
+     "title": "Mr",
+     "first_name": "Erik",
+     "last_name": "Lindqvist"
+    }
+   },
+   "steps": [
+    {
+     "call": "schedule_callback",
+     "args": {
+      "date": "2026-10-14",
+      "time": "15:00"
+     },
+     "expect": "detached",
+     "says": [
+      "NOT BOOKED"
+     ]
+    },
+    {
+     "call": "schedule_callback",
+     "args": {
+      "date": "2026-10-16",
+      "time": "17:00"
+     },
+     "expect": "ok",
+     "says": [
+      "The callback is booked"
+     ]
+    },
+    {
+     "call": "schedule_callback",
+     "args": {
+      "date": "2026-10-15",
+      "time": "10:00"
+     },
+     "expect": "detached",
+     "says": [
+      "already booked"
+     ]
+    },
+    {
+     "call": "close_call",
+     "args": {
+      "outcome": "not_reached",
+      "reason": "no_callback"
+     },
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": "not_reached",
+     "reason": "callback",
+     "promises": [],
+     "notes": [],
+     "callbacks": [
+      {
+       "date": "2026-10-16",
+       "time": "17:00"
+      }
+     ],
+     "transfers": []
+    },
+    "forbidden_calls": [
+     "verify_identity",
+     "get_account"
+    ],
+    "ended": true
+   }
+  },
+  {
+   "id": "SD-12",
+   "rules": [
+    "D-05",
+    "D-06",
+    "D-12"
+   ],
+   "kind": "live",
+   "title": "Every product is stated, the secured one first",
+   "behavior": "The customer agrees to everything.",
+   "spoken": [
+    "All three products are stated before anything is asked.",
+    "The mortgage is handled first.",
+    "All promises are read back together and confirmed once."
+   ]
+  },
+  {
+   "id": "D-01.t1",
+   "rules": [
+    "D-01"
+   ],
+   "kind": "text",
+   "literal": "Good day, this is the virtual assistant of Harbor Lending, and this call is recorded."
+  },
+  {
+   "id": "D-01.t2",
+   "rules": [
+    "D-01"
+   ],
+   "kind": "text",
+   "literal": "Am I speaking with {title} {last_name}?"
+  }
+ ]
+}

@@ -23,6 +23,7 @@ ALLOWED = {
     'builder.spec.openapi': {'builder.spec.models'},
     'builder.validation.spec': {'builder.runtime.runtime', 'builder.spec.models'},
     'builder.validation.safety': {'builder.config.settings'},
+    'builder.validation.contract': set(),
     'builder.validation.workflow': {'builder.validation.safety'},
     'builder.compiler.compiler': {'builder.runtime.runtime', 'builder.spec.models'},
     'builder.extraction.claude': {'builder.config.settings', 'builder.spec.models'},

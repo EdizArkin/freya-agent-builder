@@ -1,0 +1,284 @@
+{
+ "spec_version": "agent-spec/1",
+ "language": "English",
+ "now_variable": "now",
+ "ok_field": "success",
+ "call_variables": [
+  "case_id",
+  "given_name",
+  "family_name",
+  "now"
+ ],
+ "test_variables": {
+  "given_name": "Rosa",
+  "family_name": "Albrecht",
+  "now": "2026-10-14T11:00"
+ },
+ "opening_line": "Good day, you are speaking with the automated service of Calder Savings Bank. Calls are recorded. Is this {{given_name}} {{family_name}}?",
+ "calendar": {
+  "business_weekdays": [
+   0,
+   1,
+   2,
+   3,
+   4
+  ],
+  "week_start": 0,
+  "holidays": [
+   "2026-10-16",
+   "2026-10-23",
+   "2026-12-25",
+   "2026-12-28"
+  ]
+ },
+ "identity": {
+  "field_param": "question",
+  "answer_param": "given_answer",
+  "max_wrong": 2,
+  "questions": [
+   {
+    "field": "birth_date",
+    "ask": "your full date of birth",
+    "format": "date",
+    "numeric_order": "DMY"
+   },
+   {
+    "field": "account_last3",
+    "ask": "the last three digits of your account number",
+    "format": "digits"
+   }
+  ],
+  "response": {
+   "verified": "match",
+   "all_verified": "all_passed",
+   "wrong_left": "tries_left"
+  },
+  "hints": []
+ },
+ "account": {
+  "products_path": "accounts",
+  "id_field": "account_ref",
+  "limits": {
+   "min_amount": "lowest",
+   "max_amount": "full",
+   "latest_date": "latest"
+  },
+  "values": [
+   {
+    "name": "label",
+    "expr": {
+     "kind": "by",
+     "cases": [
+      {
+       "when": {
+        "kind": "card"
+       },
+       "expr": {
+        "kind": "text",
+        "template": "card ending {card_tail}"
+       }
+      },
+      {
+       "when": {
+        "kind": "loan"
+       },
+       "expr": {
+        "kind": "const",
+        "value": "loan"
+       }
+      },
+      {
+       "when": {},
+       "expr": {
+        "kind": "const",
+        "value": "overdraft"
+       }
+      }
+     ]
+    }
+   },
+   {
+    "name": "full",
+    "label": "FULL overdue amount",
+    "expr": {
+     "kind": "field",
+     "field": "overdue_amount"
+    }
+   },
+   {
+    "name": "lowest",
+    "label": "LOWEST amount that can be recorded",
+    "expr": {
+     "kind": "by",
+     "cases": [
+      {
+       "when": {
+        "kind": "card"
+       },
+       "expr": {
+        "kind": "percent",
+        "of": {
+         "kind": "field",
+         "field": "overdue_amount"
+        },
+        "percent": 35
+       }
+      },
+      {
+       "when": {
+        "kind": "loan"
+       },
+       "expr": {
+        "kind": "field",
+        "field": "instalment"
+       }
+      },
+      {
+       "when": {},
+       "expr": {
+        "kind": "field",
+        "field": "overdue_amount"
+       }
+      }
+     ]
+    }
+   },
+   {
+    "name": "latest",
+    "label": "LATEST DATE that can be recorded",
+    "expr": {
+     "kind": "by",
+     "cases": [
+      {
+       "when": {
+        "days_overdue": {
+         "max": 30
+        }
+       },
+       "expr": {
+        "kind": "business_days_after",
+        "n": 6
+       }
+      },
+      {
+       "when": {},
+       "expr": {
+        "kind": "business_days_after",
+        "n": 3
+       }
+      }
+     ]
+    }
+   }
+  ]
+ },
+ "promise": {
+  "product_param": "account_ref",
+  "amount_param": "pay_amount",
+  "date_param": "pay_date",
+  "max_attempts": 3,
+  "business_day_only": true
+ },
+ "note": {
+  "product_param": "account_ref",
+  "reason_param": "note_code",
+  "forbidden_after_transfer": true
+ },
+ "callback": {
+  "date_param": "callback_date",
+  "time_param": "callback_time",
+  "include_today": false,
+  "next_business_days": 1,
+  "start": "09:30",
+  "end": "17:30",
+  "after_now": true
+ },
+ "transfer": {
+  "queue_param": "team"
+ },
+ "close": {
+  "outcome_param": "result",
+  "reason_param": "reason_code",
+  "outcomes": {
+   "agreed": [],
+   "settled": [],
+   "handed_over": [
+    "hardship",
+    "plan",
+    "requested"
+   ],
+   "no_agreement": [
+    "declined",
+    "contested",
+    "hardship",
+    "system_fault"
+   ],
+   "unverified": [
+    "id_failed",
+    "id_refused"
+   ],
+   "no_contact": [
+    "callback_set",
+    "no_slot",
+    "wrong_party"
+   ]
+  },
+  "queue_reasons": {
+   "hardship_desk": "hardship",
+   "payment_plans": "plan",
+   "agent": "requested"
+  },
+  "forced": [
+   {
+    "if": "transferred",
+    "outcome": "handed_over",
+    "reason_from": "last_transfer_queue"
+   },
+   {
+    "if": "promise_recorded",
+    "outcome": "agreed"
+   },
+   {
+    "if": "identity_failed",
+    "outcome": "unverified",
+    "reason": "id_failed"
+   },
+   {
+    "if": "callback_booked",
+    "outcome": "no_contact",
+    "reason": "callback_set"
+   },
+   {
+    "if": "all_products_noted:settled",
+    "outcome": "settled"
+   },
+   {
+    "if": "any_note",
+    "outcome": "no_agreement",
+    "reason_from": "first_note_not:settled"
+   }
+  ]
+ },
+ "guidance": {
+  "identity.failed": "Tell the customer to call the branch, say goodbye and call close_call with result unverified, reason_code id_failed.",
+  "promise.recorded_all": "Say exactly: \"You will get written confirmation by post.\" Then say goodbye and call close_call with result agreed.",
+  "promise.recorded_more": "Go on with the remaining accounts: create_promise for those in the confirmed read-back, add_note for those that ended without a promise.",
+  "promise.failed_final": "Say that it could not be recorded and call add_note with note_code system_fault for this account.",
+  "callback.booked": "Thank the person, say goodbye and call close_call with result no_contact, reason_code callback_set.",
+  "transfer.done": "Say you are putting them through, add no notes, say goodbye and call close_call with result handed_over and the reason code of that team."
+ },
+ "tool_descriptions": {
+  "verify_identity": "Check one security answer. CALL it every time the customer in person gives a complete answer to a security question.",
+  "schedule_callback": "Book a callback. CALL it when someone else names a time inside the callback slots.",
+  "transfer_to_agent": "Hand the call to a team. CALL it for accepted hardship help, a payment plan request, or an insisted request for a person.",
+  "create_promise": "Record a payment promise. CALL it once per account, only after the customer clearly said yes to the read-back.",
+  "add_note": "Record why an account ended without a promise. CALL it once for each such account, never after a handover.",
+  "close_call": "End the call. CALL it exactly once, as the very last tool call, after saying goodbye."
+ },
+ "rules": {
+  "always": "You are the automated service of Calder Savings Bank on an outbound call.\n- Never offer a discount, a payment holiday or anything that is not in your instructions.\n- A customer who insists on a person: ask once whether you can help; if they insist, call transfer_to_agent with team agent, then close_call handed_over / requested.",
+  "before_verification": "You have said the opening sentence and asked whether you are speaking with the customer. Until the security check is passed never mention arrears, money owed or any account, to anybody.\n- Somebody else answers: do not say why you call. Ask when the customer can be reached. A time inside the callback slots: call schedule_callback, then close_call no_contact / callback_set. A time outside them: ask once for another; if that does not work either, close_call no_contact / no_slot. The number is not the customer's: close_call no_contact / wrong_party.\n- Ask the security questions one at a time. A date of birth given in numbers is day, month, year. Two wrong answers end the check: tell the customer to call the branch and close_call unverified / id_failed.\n- A customer who refuses to answer is asked once more; a second refusal: close_call unverified / id_refused.",
+  "after_verification": "Name each overdue account by its label, say how much is overdue and for how many days, then ask for the FULL overdue amount.\n- If the customer cannot pay it all, offer the LOWEST amount once. Amounts from the LOWEST to the FULL amount are accepted.\n- Promise amounts are whole multiples of 10.00: for any other amount ask for a round figure.\n- A promise date is today or later, a working day, not after the LATEST DATE. A promise dated today is accepted only for the FULL amount; a lower amount needs a later date.\n- Read the account, the amount and the date back and ask: \"Shall I record that?\" Call create_promise only after a clear yes. One promise per account; a recorded promise is not changed.\n- If create_promise fails, try again, up to three attempts in all for that account.\n- \"Already paid\": add_note settled. Contests the account: add_note contested. Will not promise: add_note declined. Then continue with the other accounts. Every account without a promise gets a note.\n- Hardship (job loss, serious illness): one sentence of sympathy, offer the hardship desk. Accepts: transfer_to_agent team hardship_desk, close_call handed_over / hardship. Declines: add_note hardship.\n- A request for a payment plan: describe no plan, transfer_to_agent team payment_plans, close_call handed_over / plan.\n- After a handover record no promise and add no notes.\n- Closing: a handover wins over a promise. With a promise and no handover: agreed. No promise: settled if every account is noted settled, otherwise no_agreement with the code of the first account whose note is not settled."
+ },
+ "unsupported": []
+}

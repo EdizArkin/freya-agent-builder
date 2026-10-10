@@ -1,0 +1,1808 @@
+{
+ "package": "g",
+ "defaults": {
+  "identity": {
+   "phone_last4": "6621",
+   "date_of_birth": "1985-03-04"
+  },
+  "variables": {
+   "first_name": "Maren",
+   "last_name": "Oduya"
+  },
+  "verify": [
+   {
+    "call": "verify_identity",
+    "args": {
+     "field": "phone_last4",
+     "answer": "6621"
+    },
+    "expect": "ok"
+   },
+   {
+    "call": "verify_identity",
+    "args": {
+     "field": "date_of_birth",
+     "answer": "1985-03-04"
+    },
+    "expect": "ok"
+   }
+  ]
+ },
+ "checks": [
+  {
+   "id": "G.s1",
+   "rules": [
+    "G-01"
+   ],
+   "kind": "structure",
+   "path": "opening_line",
+   "compare": "contains",
+   "expect": [
+    "Hello, this is Brightwater Mutual's automated assistant. This call is recorded for training.",
+    "Am I speaking with {first_name} {last_name}?"
+   ]
+  },
+  {
+   "id": "G.s2",
+   "rules": [
+    "G-02"
+   ],
+   "kind": "structure",
+   "path": null,
+   "compare": "callback_slots",
+   "expect": [
+    [
+     "2026-10-14",
+     "11:00",
+     "20:00",
+     true
+    ],
+    [
+     "2026-10-15",
+     "08:00",
+     "20:00",
+     false
+    ],
+    [
+     "2026-10-16",
+     "08:00",
+     "20:00",
+     false
+    ],
+    [
+     "2026-10-19",
+     "08:00",
+     "20:00",
+     false
+    ]
+   ],
+   "now": "2026-10-14T11:00"
+  },
+  {
+   "id": "G.s3",
+   "rules": [
+    "G-05"
+   ],
+   "kind": "structure",
+   "path": "identity.questions",
+   "compare": "field_list",
+   "expect": [
+    "phone_last4",
+    "date_of_birth"
+   ],
+   "field": "field"
+  },
+  {
+   "id": "G.s4",
+   "rules": [
+    "G-07"
+   ],
+   "kind": "structure",
+   "path": "identity.max_wrong",
+   "compare": "equal",
+   "expect": 3
+  },
+  {
+   "id": "G.s5",
+   "rules": [
+    "G-10"
+   ],
+   "kind": "structure",
+   "path": "calendar.business_weekdays",
+   "compare": "set",
+   "expect": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ]
+  },
+  {
+   "id": "G.s6",
+   "rules": [
+    "G-10"
+   ],
+   "kind": "structure",
+   "path": "calendar.holidays",
+   "compare": "set",
+   "expect": [
+    "2026-10-17",
+    "2026-11-02",
+    "2026-12-25",
+    "2026-12-26"
+   ]
+  },
+  {
+   "id": "G.s7",
+   "rules": [
+    "G-19"
+   ],
+   "kind": "structure",
+   "path": "promise.max_attempts",
+   "compare": "equal",
+   "expect": 2
+  },
+  {
+   "id": "G.s8",
+   "rules": [
+    "G-21"
+   ],
+   "kind": "structure",
+   "path": "note",
+   "compare": "present",
+   "expect": null
+  },
+  {
+   "id": "G.s9",
+   "rules": [
+    "G-23"
+   ],
+   "kind": "structure",
+   "path": "note.forbidden_after_transfer",
+   "compare": "equal",
+   "expect": false
+  },
+  {
+   "id": "G.s10",
+   "rules": [
+    "G-24"
+   ],
+   "kind": "structure",
+   "path": "close.outcomes",
+   "compare": "set_map",
+   "expect": {
+    "not_verified": [
+     "failed",
+     "declined"
+    ],
+    "transferred": [
+     "specialist",
+     "human"
+    ],
+    "promise": [],
+    "paid": [],
+    "no_promise": [
+     "refused",
+     "dispute",
+     "vulnerable",
+     "service_error"
+    ],
+    "not_reached": [
+     "callback",
+     "unavailable",
+     "wrong_number"
+    ]
+   }
+  },
+  {
+   "id": "G.s11",
+   "rules": [
+    "G-24"
+   ],
+   "kind": "structure",
+   "path": "close.queue_reasons",
+   "compare": "equal",
+   "expect": {
+    "specialist": "specialist",
+    "general": "human"
+   }
+  },
+  {
+   "id": "G.f1",
+   "rules": [
+    "G-16"
+   ],
+   "kind": "fact",
+   "now": "2026-10-14T11:00",
+   "product": {
+    "type": "home_loan",
+    "past_due": 900.0,
+    "days_late": 10,
+    "monthly_payment": 450.0
+   },
+   "expect": {
+    "min_amount": 450.0
+   },
+   "because": "one monthly payment"
+  },
+  {
+   "id": "G.f2",
+   "rules": [
+    "G-15"
+   ],
+   "kind": "fact",
+   "now": "2026-10-14T11:00",
+   "product": {
+    "type": "home_loan",
+    "past_due": 900.0,
+    "days_late": 10,
+    "monthly_payment": 450.0
+   },
+   "expect": {
+    "max_amount": 900.0
+   },
+   "because": "the full past-due amount"
+  },
+  {
+   "id": "G.f3",
+   "rules": [
+    "G-16"
+   ],
+   "kind": "fact",
+   "now": "2026-10-14T11:00",
+   "product": {
+    "type": "credit_card",
+    "card_last4": "7702",
+    "past_due": 300.0,
+    "days_late": 10
+   },
+   "expect": {
+    "min_amount": 25.0
+   },
+   "because": "5 percent of 300.00 = 15.00, less than 25.00: the floor is 25.00"
+  },
+  {
+   "id": "G.f4",
+   "rules": [
+    "G-16"
+   ],
+   "kind": "fact",
+   "now": "2026-10-14T11:00",
+   "product": {
+    "type": "credit_card",
+    "card_last4": "7702",
+    "past_due": 500.0,
+    "days_late": 10
+   },
+   "expect": {
+    "min_amount": 25.0
+   },
+   "because": "5 percent of 500.00 = 25.00: both give 25.00"
+  },
+  {
+   "id": "G.f5",
+   "rules": [
+    "G-16"
+   ],
+   "kind": "fact",
+   "now": "2026-10-14T11:00",
+   "product": {
+    "type": "credit_card",
+    "card_last4": "7702",
+    "past_due": 800.0,
+    "days_late": 10
+   },
+   "expect": {
+    "min_amount": 40.0
+   },
+   "because": "5 percent of 800.00 = 40.00, more than 25.00"
+  },
+  {
+   "id": "G.f6",
+   "rules": [
+    "G-16"
+   ],
+   "kind": "fact",
+   "now": "2026-10-14T11:00",
+   "product": {
+    "type": "overdraft",
+    "past_due": 220.0,
+    "days_late": 10
+   },
+   "expect": {
+    "min_amount": 220.0
+   },
+   "because": "an overdraft must be promised in full"
+  },
+  {
+   "id": "G.f7",
+   "rules": [
+    "G-11"
+   ],
+   "kind": "fact",
+   "now": "2026-10-14T11:00",
+   "product": {
+    "type": "home_loan",
+    "past_due": 900.0,
+    "days_late": 10,
+    "monthly_payment": 450.0
+   },
+   "expect": {
+    "latest_date": "2026-10-16"
+   },
+   "because": "the week of Wed 14 Oct runs Mon 12 to Sun 18; Sat 17 is a holiday, so its last business day is Fri 16 Oct"
+  },
+  {
+   "id": "G.f8",
+   "rules": [
+    "G-11"
+   ],
+   "kind": "fact",
+   "now": "2026-10-16T10:00",
+   "product": {
+    "type": "home_loan",
+    "past_due": 900.0,
+    "days_late": 10,
+    "monthly_payment": 450.0
+   },
+   "expect": {
+    "latest_date": "2026-10-24"
+   },
+   "because": "today, Fri 16 Oct, is the last business day of its week: the last business day of the following week is Sat 24 Oct"
+  },
+  {
+   "id": "G.f9",
+   "rules": [
+    "G-12"
+   ],
+   "kind": "fact",
+   "now": "2026-10-14T11:00",
+   "product": {
+    "type": "home_loan",
+    "past_due": 900.0,
+    "days_late": 30,
+    "monthly_payment": 450.0
+   },
+   "expect": {
+    "latest_date": "2026-10-15"
+   },
+   "because": "more than 21 days late: the next business day after Wed 14 Oct"
+  },
+  {
+   "id": "G.f10",
+   "rules": [
+    "G-11"
+   ],
+   "kind": "fact",
+   "now": "2026-10-14T11:00",
+   "product": {
+    "type": "home_loan",
+    "past_due": 900.0,
+    "days_late": 21,
+    "monthly_payment": 450.0
+   },
+   "expect": {
+    "latest_date": "2026-10-16"
+   },
+   "because": "21 days late is still \"1 to 21\""
+  },
+  {
+   "id": "G.f11",
+   "rules": [
+    "G-12"
+   ],
+   "kind": "fact",
+   "now": "2026-10-14T11:00",
+   "product": {
+    "type": "home_loan",
+    "past_due": 900.0,
+    "days_late": 22,
+    "monthly_payment": 450.0
+   },
+   "expect": {
+    "latest_date": "2026-10-15"
+   },
+   "because": "22 days late is \"more than 21\""
+  },
+  {
+   "id": "G.f12",
+   "rules": [
+    "G-09"
+   ],
+   "kind": "fact",
+   "now": "2026-10-14T11:00",
+   "product": {
+    "type": "home_loan",
+    "past_due": 900.0,
+    "days_late": 10,
+    "monthly_payment": 450.0
+   },
+   "expect": {
+    "label": "home loan"
+   },
+   "because": "rule 9 prescribes the words"
+  },
+  {
+   "id": "G.f13",
+   "rules": [
+    "G-09"
+   ],
+   "kind": "fact",
+   "now": "2026-10-14T11:00",
+   "product": {
+    "type": "credit_card",
+    "card_last4": "7702",
+    "past_due": 800.0,
+    "days_late": 10
+   },
+   "expect": {
+    "label": "credit card ending 7702"
+   },
+   "because": "rule 9 prescribes the words"
+  },
+  {
+   "id": "G.f14",
+   "rules": [
+    "G-09"
+   ],
+   "kind": "fact",
+   "now": "2026-10-14T11:00",
+   "product": {
+    "type": "overdraft",
+    "past_due": 220.0,
+    "days_late": 10
+   },
+   "expect": {
+    "label": "overdraft"
+   },
+   "because": "rule 9 prescribes the word"
+  },
+  {
+   "id": "G.c1",
+   "rules": [
+    "G-02"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "A callback outside today and the next three business days, or outside 08:00 to 20:00, is not booked",
+   "customer": {
+    "products": [
+     {
+      "type": "credit_card",
+      "card_last4": "7702",
+      "past_due": 800.0,
+      "days_late": 10
+     }
+    ]
+   },
+   "steps": [
+    {
+     "call": "schedule_callback",
+     "args": {
+      "date": "2026-10-14",
+      "time": "10:30"
+     },
+     "expect": "blocked"
+    },
+    {
+     "call": "schedule_callback",
+     "args": {
+      "date": "2026-10-17",
+      "time": "10:00"
+     },
+     "expect": "blocked"
+    },
+    {
+     "call": "schedule_callback",
+     "args": {
+      "date": "2026-10-20",
+      "time": "10:00"
+     },
+     "expect": "blocked"
+    },
+    {
+     "call": "schedule_callback",
+     "args": {
+      "date": "2026-10-19",
+      "time": "20:01"
+     },
+     "expect": "blocked"
+    },
+    {
+     "call": "schedule_callback",
+     "args": {
+      "date": "2026-10-19",
+      "time": "20:00"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "close_call",
+     "args": {
+      "outcome": "not_reached",
+      "reason": "callback"
+     },
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": "not_reached",
+     "reason": "callback",
+     "promises": [],
+     "notes": [],
+     "callbacks": [
+      {
+       "date": "2026-10-19",
+       "time": "20:00"
+      }
+     ],
+     "transfers": []
+    },
+    "ended": true
+   }
+  },
+  {
+   "id": "G.c2",
+   "rules": [
+    "G-06"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "A date of birth passed on in numbers is read as month, day, year",
+   "customer": {
+    "products": [
+     {
+      "type": "credit_card",
+      "card_last4": "7702",
+      "past_due": 800.0,
+      "days_late": 10
+     }
+    ]
+   },
+   "steps": [
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "phone_last4",
+      "answer": "6621"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "date_of_birth",
+      "answer": "03/04/1985"
+     },
+     "expect": "ok",
+     "says": [
+      "Identity is fully verified"
+     ]
+    },
+    {
+     "check": {
+      "node": "negotiate",
+      "state": {
+       "wrong": 0
+      }
+     }
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": null,
+     "reason": null,
+     "promises": [],
+     "notes": [],
+     "callbacks": [],
+     "transfers": []
+    },
+    "ended": false
+   }
+  },
+  {
+   "id": "G.c3",
+   "rules": [
+    "G-07"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "A swapped day and month is not counted; the third wrong answer ends the check",
+   "customer": {
+    "products": [
+     {
+      "type": "credit_card",
+      "card_last4": "7702",
+      "past_due": 800.0,
+      "days_late": 10
+     }
+    ]
+   },
+   "steps": [
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "date_of_birth",
+      "answer": "1985-04-03"
+     },
+     "expect": "ok",
+     "says": [
+      "does NOT count"
+     ]
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "phone_last4",
+      "answer": "0000"
+     },
+     "expect": "ok",
+     "says": [
+      "WRONG"
+     ]
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "phone_last4",
+      "answer": "0001"
+     },
+     "expect": "ok",
+     "says": [
+      "WRONG"
+     ]
+    },
+    {
+     "check": {
+      "node": "contact",
+      "state": {
+       "wrong": 2,
+       "identity": "pending"
+      }
+     }
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "phone_last4",
+      "answer": "0002"
+     },
+     "expect": "ok",
+     "says": [
+      "IDENTITY CHECK FAILED"
+     ]
+    },
+    {
+     "call": "close_call",
+     "args": {
+      "outcome": "promise"
+     },
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": "not_verified",
+     "reason": "failed",
+     "promises": [],
+     "notes": [],
+     "callbacks": [],
+     "transfers": []
+    },
+    "ended": true,
+    "forbidden_calls": [
+     "get_account"
+    ]
+   }
+  },
+  {
+   "id": "G.c4",
+   "rules": [
+    "G-13"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "A promise on a holiday, on a Sunday or after the deadline is not recorded; a Saturday is",
+   "customer": {
+    "products": [
+     {
+      "type": "home_loan",
+      "past_due": 900.0,
+      "days_late": 10,
+      "monthly_payment": 450.0
+     }
+    ],
+    "variables": {
+     "now": "2026-10-16T10:00"
+    }
+   },
+   "steps": [
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "phone_last4",
+      "answer": "6621"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "date_of_birth",
+      "answer": "1985-03-04"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "product_id": "p1",
+      "amount": 900,
+      "date": "2026-10-17"
+     },
+     "expect": "refused",
+     "says": [
+      "is not a business day"
+     ]
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "product_id": "p1",
+      "amount": 900,
+      "date": "2026-10-18"
+     },
+     "expect": "refused",
+     "says": [
+      "is not a business day"
+     ]
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "product_id": "p1",
+      "amount": 900,
+      "date": "2026-10-26"
+     },
+     "expect": "refused",
+     "says": [
+      "is after the latest date"
+     ]
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "product_id": "p1",
+      "amount": 900,
+      "date": "2026-10-24"
+     },
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": null,
+     "reason": null,
+     "promises": [
+      {
+       "product_id": "p1",
+       "amount": 900,
+       "date": "2026-10-24"
+      }
+     ],
+     "notes": [],
+     "callbacks": [],
+     "transfers": []
+    },
+    "ended": false
+   }
+  },
+  {
+   "id": "G.c5",
+   "rules": [
+    "G-16"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "A card promise below 5 percent is not recorded when 5 percent is more than 25.00",
+   "customer": {
+    "products": [
+     {
+      "type": "credit_card",
+      "card_last4": "7702",
+      "past_due": 800.0,
+      "days_late": 10
+     }
+    ]
+   },
+   "steps": [
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "phone_last4",
+      "answer": "6621"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "date_of_birth",
+      "answer": "1985-03-04"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "product_id": "p1",
+      "amount": 39.99,
+      "date": "2026-10-15"
+     },
+     "expect": "refused",
+     "says": [
+      "is below the lowest amount"
+     ]
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "product_id": "p1",
+      "amount": 40,
+      "date": "2026-10-15"
+     },
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": null,
+     "reason": null,
+     "promises": [
+      {
+       "product_id": "p1",
+       "amount": 40,
+       "date": "2026-10-15"
+      }
+     ],
+     "notes": [],
+     "callbacks": [],
+     "transfers": []
+    },
+    "ended": false
+   }
+  },
+  {
+   "id": "G.c6",
+   "rules": [
+    "G-14"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "A second promise with another date is not recorded",
+   "customer": {
+    "products": [
+     {
+      "type": "home_loan",
+      "past_due": 900.0,
+      "days_late": 10,
+      "monthly_payment": 450.0
+     },
+     {
+      "type": "credit_card",
+      "card_last4": "7702",
+      "past_due": 800.0,
+      "days_late": 10
+     }
+    ]
+   },
+   "steps": [
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "phone_last4",
+      "answer": "6621"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "date_of_birth",
+      "answer": "1985-03-04"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "product_id": "p1",
+      "amount": 900,
+      "date": "2026-10-15"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "product_id": "p2",
+      "amount": 800,
+      "date": "2026-10-16"
+     },
+     "expect": "blocked"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "product_id": "p2",
+      "amount": 800,
+      "date": "2026-10-15"
+     },
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": null,
+     "reason": null,
+     "promises": [
+      {
+       "product_id": "p1",
+       "amount": 900,
+       "date": "2026-10-15"
+      },
+      {
+       "product_id": "p2",
+       "amount": 800,
+       "date": "2026-10-15"
+      }
+     ],
+     "notes": [],
+     "callbacks": [],
+     "transfers": []
+    },
+    "ended": false
+   }
+  },
+  {
+   "id": "G.c7",
+   "rules": [
+    "G-03"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "A callback over lunch is not booked",
+   "customer": {
+    "products": [
+     {
+      "type": "credit_card",
+      "card_last4": "7702",
+      "past_due": 800.0,
+      "days_late": 10
+     }
+    ]
+   },
+   "steps": [
+    {
+     "call": "schedule_callback",
+     "args": {
+      "date": "2026-10-15",
+      "time": "12:45"
+     },
+     "expect": "blocked"
+    },
+    {
+     "call": "schedule_callback",
+     "args": {
+      "date": "2026-10-15",
+      "time": "13:30"
+     },
+     "expect": "blocked"
+    },
+    {
+     "call": "schedule_callback",
+     "args": {
+      "date": "2026-10-15",
+      "time": "13:31"
+     },
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": null,
+     "reason": null,
+     "promises": [],
+     "notes": [],
+     "callbacks": [
+      {
+       "date": "2026-10-15",
+       "time": "13:31"
+      }
+     ],
+     "transfers": []
+    },
+    "ended": false
+   }
+  },
+  {
+   "id": "G.c8",
+   "rules": [
+    "G-18"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "A second promise for the same product is not recorded",
+   "customer": {
+    "products": [
+     {
+      "type": "credit_card",
+      "card_last4": "7702",
+      "past_due": 800.0,
+      "days_late": 10
+     }
+    ]
+   },
+   "steps": [
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "phone_last4",
+      "answer": "6621"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "date_of_birth",
+      "answer": "1985-03-04"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "product_id": "p1",
+      "amount": 800,
+      "date": "2026-10-15"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "product_id": "p1",
+      "amount": 40,
+      "date": "2026-10-16"
+     },
+     "expect": "refused",
+     "says": [
+      "already recorded"
+     ]
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": null,
+     "reason": null,
+     "promises": [
+      {
+       "product_id": "p1",
+       "amount": 800,
+       "date": "2026-10-15"
+      }
+     ],
+     "notes": [],
+     "callbacks": [],
+     "transfers": []
+    },
+    "ended": false
+   }
+  },
+  {
+   "id": "G.c9",
+   "rules": [
+    "G-19"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "After the retry has failed a third attempt is not sent; the note is saved",
+   "customer": {
+    "products": [
+     {
+      "type": "credit_card",
+      "card_last4": "7702",
+      "past_due": 800.0,
+      "days_late": 10
+     }
+    ],
+    "faults": {
+     "create_promise": 2
+    }
+   },
+   "steps": [
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "phone_last4",
+      "answer": "6621"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "date_of_birth",
+      "answer": "1985-03-04"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "product_id": "p1",
+      "amount": 800,
+      "date": "2026-10-15"
+     },
+     "expect": "error"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "product_id": "p1",
+      "amount": 800,
+      "date": "2026-10-15"
+     },
+     "expect": "error"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "product_id": "p1",
+      "amount": 800,
+      "date": "2026-10-15"
+     },
+     "expect": "refused",
+     "says": [
+      "Do not try again"
+     ]
+    },
+    {
+     "call": "add_note",
+     "args": {
+      "product_id": "p1",
+      "reason": "service_error"
+     },
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": null,
+     "reason": null,
+     "promises": [],
+     "notes": [
+      {
+       "product_id": "p1",
+       "reason": "service_error"
+      }
+     ],
+     "callbacks": [],
+     "transfers": []
+    },
+    "ended": false
+   }
+  },
+  {
+   "id": "G.c10",
+   "rules": [
+    "G-23"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "A promise after a transfer is not recorded; the note is still saved",
+   "customer": {
+    "products": [
+     {
+      "type": "credit_card",
+      "card_last4": "7702",
+      "past_due": 800.0,
+      "days_late": 10
+     }
+    ]
+   },
+   "steps": [
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "phone_last4",
+      "answer": "6621"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "date_of_birth",
+      "answer": "1985-03-04"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "transfer_to_agent",
+     "args": {
+      "queue": "specialist"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "product_id": "p1",
+      "amount": 800,
+      "date": "2026-10-15"
+     },
+     "expect": "refused",
+     "says": [
+      "transferred"
+     ]
+    },
+    {
+     "call": "add_note",
+     "args": {
+      "product_id": "p1",
+      "reason": "vulnerable"
+     },
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": null,
+     "reason": null,
+     "promises": [],
+     "notes": [
+      {
+       "product_id": "p1",
+       "reason": "vulnerable"
+      }
+     ],
+     "callbacks": [],
+     "transfers": [
+      {
+       "queue": "specialist"
+      }
+     ]
+    },
+    "ended": false
+   }
+  },
+  {
+   "id": "G.c11",
+   "rules": [
+    "G-24"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "A close sent as promise after a transfer is recorded as transferred",
+   "customer": {
+    "products": [
+     {
+      "type": "credit_card",
+      "card_last4": "7702",
+      "past_due": 800.0,
+      "days_late": 10
+     }
+    ]
+   },
+   "steps": [
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "phone_last4",
+      "answer": "6621"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "date_of_birth",
+      "answer": "1985-03-04"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "product_id": "p1",
+      "amount": 800,
+      "date": "2026-10-15"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "transfer_to_agent",
+     "args": {
+      "queue": "general"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "close_call",
+     "args": {
+      "outcome": "promise"
+     },
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": "transferred",
+     "reason": "human",
+     "promises": [
+      {
+       "product_id": "p1",
+       "amount": 800,
+       "date": "2026-10-15"
+      }
+     ],
+     "notes": [],
+     "callbacks": [],
+     "transfers": [
+      {
+       "queue": "general"
+      }
+     ]
+    },
+    "ended": true
+   }
+  },
+  {
+   "id": "G.c12",
+   "rules": [
+    "G-24"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "A close sent as no promise is recorded as paid when every product is noted paid",
+   "customer": {
+    "products": [
+     {
+      "type": "home_loan",
+      "past_due": 900.0,
+      "days_late": 10,
+      "monthly_payment": 450.0
+     },
+     {
+      "type": "credit_card",
+      "card_last4": "7702",
+      "past_due": 800.0,
+      "days_late": 10
+     }
+    ]
+   },
+   "steps": [
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "phone_last4",
+      "answer": "6621"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "date_of_birth",
+      "answer": "1985-03-04"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "add_note",
+     "args": {
+      "product_id": "p1",
+      "reason": "paid"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "add_note",
+     "args": {
+      "product_id": "p2",
+      "reason": "paid"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "close_call",
+     "args": {
+      "outcome": "no_promise",
+      "reason": "refused"
+     },
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": "paid",
+     "reason": null,
+     "promises": [],
+     "notes": [
+      {
+       "product_id": "p1",
+       "reason": "paid"
+      },
+      {
+       "product_id": "p2",
+       "reason": "paid"
+      }
+     ],
+     "callbacks": [],
+     "transfers": []
+    },
+    "ended": true
+   }
+  },
+  {
+   "id": "G.c13",
+   "rules": [
+    "G-24"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "A close sent as paid takes the reason of the first product whose note is not paid",
+   "customer": {
+    "products": [
+     {
+      "type": "home_loan",
+      "past_due": 900.0,
+      "days_late": 10,
+      "monthly_payment": 450.0
+     },
+     {
+      "type": "credit_card",
+      "card_last4": "7702",
+      "past_due": 800.0,
+      "days_late": 10
+     }
+    ]
+   },
+   "steps": [
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "phone_last4",
+      "answer": "6621"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "date_of_birth",
+      "answer": "1985-03-04"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "add_note",
+     "args": {
+      "product_id": "p1",
+      "reason": "paid"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "add_note",
+     "args": {
+      "product_id": "p2",
+      "reason": "dispute"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "close_call",
+     "args": {
+      "outcome": "paid"
+     },
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": "no_promise",
+     "reason": "dispute",
+     "promises": [],
+     "notes": [
+      {
+       "product_id": "p1",
+       "reason": "paid"
+      },
+      {
+       "product_id": "p2",
+       "reason": "dispute"
+      }
+     ],
+     "callbacks": [],
+     "transfers": []
+    },
+    "ended": true
+   }
+  },
+  {
+   "id": "G.c14",
+   "rules": [
+    "G-21"
+   ],
+   "kind": "calls",
+   "asserts": "policy",
+   "title": "An agent that notes the product without a promise leaves that note at the bank",
+   "customer": {
+    "products": [
+     {
+      "type": "home_loan",
+      "past_due": 900.0,
+      "days_late": 10,
+      "monthly_payment": 450.0
+     },
+     {
+      "type": "credit_card",
+      "card_last4": "7702",
+      "past_due": 800.0,
+      "days_late": 10
+     }
+    ]
+   },
+   "steps": [
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "phone_last4",
+      "answer": "6621"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "date_of_birth",
+      "answer": "1985-03-04"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "product_id": "p1",
+      "amount": 900,
+      "date": "2026-10-15"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "add_note",
+     "args": {
+      "product_id": "p2",
+      "reason": "refused"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "close_call",
+     "args": {
+      "outcome": "promise"
+     },
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": "promise",
+     "reason": null,
+     "promises": [
+      {
+       "product_id": "p1",
+       "amount": 900,
+       "date": "2026-10-15"
+      }
+     ],
+     "notes": [
+      {
+       "product_id": "p2",
+       "reason": "refused"
+      }
+     ],
+     "callbacks": [],
+     "transfers": []
+    },
+    "ended": true
+   }
+  },
+  {
+   "id": "G.c15",
+   "rules": [
+    "G-21"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "A close while a product has neither a promise nor a note is refused once",
+   "customer": {
+    "products": [
+     {
+      "type": "home_loan",
+      "past_due": 900.0,
+      "days_late": 10,
+      "monthly_payment": 450.0
+     },
+     {
+      "type": "credit_card",
+      "card_last4": "7702",
+      "past_due": 800.0,
+      "days_late": 10
+     }
+    ]
+   },
+   "steps": [
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "phone_last4",
+      "answer": "6621"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "date_of_birth",
+      "answer": "1985-03-04"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "product_id": "p1",
+      "amount": 900,
+      "date": "2026-10-15"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "close_call",
+     "args": {
+      "outcome": "promise"
+     },
+     "expect": "blocked"
+    },
+    {
+     "call": "add_note",
+     "args": {
+      "product_id": "p2",
+      "reason": "refused"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "close_call",
+     "args": {
+      "outcome": "promise"
+     },
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": "promise",
+     "reason": null,
+     "promises": [
+      {
+       "product_id": "p1",
+       "amount": 900,
+       "date": "2026-10-15"
+      }
+     ],
+     "notes": [
+      {
+       "product_id": "p2",
+       "reason": "refused"
+      }
+     ],
+     "callbacks": [],
+     "transfers": []
+    },
+    "ended": true
+   }
+  },
+  {
+   "id": "G.p1",
+   "rules": [
+    "G-18"
+   ],
+   "kind": "prompt",
+   "title": "The read-back question is in the prompt of the step in which create_promise exists",
+   "customer": {
+    "products": [
+     {
+      "type": "credit_card",
+      "card_last4": "7702",
+      "past_due": 800.0,
+      "days_late": 10
+     }
+    ]
+   },
+   "steps": [
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "phone_last4",
+      "answer": "6621"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "field": "date_of_birth",
+      "answer": "1985-03-04"
+     },
+     "expect": "ok"
+    },
+    {
+     "check": {
+      "node": "negotiate",
+      "prompt_has": [
+       "Do I have that right?"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "G-01.t1",
+   "rules": [
+    "G-01"
+   ],
+   "kind": "text",
+   "literal": "Hello, this is Brightwater Mutual's automated assistant. This call is recorded for training."
+  },
+  {
+   "id": "G-01.t2",
+   "rules": [
+    "G-01"
+   ],
+   "kind": "text",
+   "literal": "Am I speaking with {first_name} {last_name}?"
+  },
+  {
+   "id": "G-18.t1",
+   "rules": [
+    "G-18"
+   ],
+   "kind": "text",
+   "literal": "Do I have that right?"
+  },
+  {
+   "id": "G-20.t1",
+   "rules": [
+    "G-20"
+   ],
+   "kind": "text",
+   "literal": "A confirmation will be sent to your registered address."
+  },
+  {
+   "id": "G-22.t1",
+   "rules": [
+    "G-22"
+   ],
+   "kind": "text",
+   "literal": "I am sorry to hear that."
+  }
+ ]
+}

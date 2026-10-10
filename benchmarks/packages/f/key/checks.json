@@ -1,0 +1,2398 @@
+{
+ "package": "f",
+ "defaults": {
+  "identity": {
+   "birth_date": "1985-03-04",
+   "account_last3": "417"
+  },
+  "variables": {
+   "given_name": "Rosa",
+   "family_name": "Albrecht"
+  },
+  "verify": [
+   {
+    "call": "verify_identity",
+    "args": {
+     "question": "birth_date",
+     "given_answer": "1985-03-04"
+    },
+    "expect": "ok"
+   },
+   {
+    "call": "verify_identity",
+    "args": {
+     "question": "account_last3",
+     "given_answer": "417"
+    },
+    "expect": "ok"
+   }
+  ]
+ },
+ "checks": [
+  {
+   "id": "F.s1",
+   "rules": [
+    "F-01"
+   ],
+   "kind": "structure",
+   "path": "opening_line",
+   "compare": "contains",
+   "expect": [
+    "Good day, you are speaking with the automated service of Calder Savings Bank. Calls are recorded."
+   ]
+  },
+  {
+   "id": "F.s2",
+   "rules": [
+    "F-02"
+   ],
+   "kind": "structure",
+   "path": "opening_line",
+   "compare": "contains",
+   "expect": [
+    "Is this {given_name} {family_name}?"
+   ]
+  },
+  {
+   "id": "F.s3",
+   "rules": [
+    "F-04"
+   ],
+   "kind": "structure",
+   "path": null,
+   "compare": "callback_slots",
+   "expect": [
+    [
+     "2026-10-15",
+     "09:30",
+     "17:30",
+     false
+    ]
+   ],
+   "now": "2026-10-14T11:00"
+  },
+  {
+   "id": "F.s4",
+   "rules": [
+    "F-06"
+   ],
+   "kind": "structure",
+   "path": "identity.questions.0.field",
+   "compare": "equal",
+   "expect": "birth_date"
+  },
+  {
+   "id": "F.s5",
+   "rules": [
+    "F-08"
+   ],
+   "kind": "structure",
+   "path": "identity.max_wrong",
+   "compare": "equal",
+   "expect": 2
+  },
+  {
+   "id": "F.s6",
+   "rules": [
+    "F-11"
+   ],
+   "kind": "structure",
+   "path": "calendar.business_weekdays",
+   "compare": "set",
+   "expect": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ]
+  },
+  {
+   "id": "F.s7",
+   "rules": [
+    "F-11"
+   ],
+   "kind": "structure",
+   "path": "calendar.holidays",
+   "compare": "includes",
+   "expect": [
+    "2026-10-23",
+    "2026-12-25",
+    "2026-12-28"
+   ]
+  },
+  {
+   "id": "F.s8",
+   "rules": [
+    "F-12"
+   ],
+   "kind": "structure",
+   "path": "calendar.holidays",
+   "compare": "includes",
+   "expect": [
+    "2026-10-16"
+   ]
+  },
+  {
+   "id": "F.s9",
+   "rules": [
+    "F-24"
+   ],
+   "kind": "structure",
+   "path": "promise.max_attempts",
+   "compare": "equal",
+   "expect": 3
+  },
+  {
+   "id": "F.s10",
+   "rules": [
+    "F-25"
+   ],
+   "kind": "structure",
+   "path": "note",
+   "compare": "present",
+   "expect": null
+  },
+  {
+   "id": "F.s11",
+   "rules": [
+    "F-28"
+   ],
+   "kind": "structure",
+   "path": "note.forbidden_after_transfer",
+   "compare": "equal",
+   "expect": true
+  },
+  {
+   "id": "F.s12",
+   "rules": [
+    "F-29"
+   ],
+   "kind": "structure",
+   "path": "close.outcomes.agreed",
+   "compare": "set",
+   "expect": []
+  },
+  {
+   "id": "F.s13",
+   "rules": [
+    "F-32"
+   ],
+   "kind": "structure",
+   "path": "close.queue_reasons.payment_plans",
+   "compare": "equal",
+   "expect": "plan"
+  },
+  {
+   "id": "F.s14",
+   "rules": [
+    "F-35"
+   ],
+   "kind": "structure",
+   "path": "now_variable",
+   "compare": "equal",
+   "expect": "now"
+  },
+  {
+   "id": "F.s15",
+   "rules": [
+    "F-51"
+   ],
+   "kind": "structure",
+   "path": "call_variables",
+   "compare": "set",
+   "expect": [
+    "case_id",
+    "given_name",
+    "family_name",
+    "now"
+   ]
+  },
+  {
+   "id": "F.s16",
+   "rules": [
+    "F-36"
+   ],
+   "kind": "structure",
+   "path": "close.outcomes.settled",
+   "compare": "set",
+   "expect": []
+  },
+  {
+   "id": "F.s17",
+   "rules": [
+    "F-30"
+   ],
+   "kind": "structure",
+   "path": "close.outcomes.handed_over",
+   "compare": "set",
+   "expect": [
+    "hardship",
+    "plan",
+    "requested"
+   ]
+  },
+  {
+   "id": "F.s18",
+   "rules": [
+    "F-31"
+   ],
+   "kind": "structure",
+   "path": "close.outcomes.no_agreement",
+   "compare": "set",
+   "expect": [
+    "declined",
+    "contested",
+    "hardship",
+    "system_fault"
+   ]
+  },
+  {
+   "id": "F.s19",
+   "rules": [
+    "F-37"
+   ],
+   "kind": "structure",
+   "path": "close.outcomes.unverified",
+   "compare": "set",
+   "expect": [
+    "id_failed",
+    "id_refused"
+   ]
+  },
+  {
+   "id": "F.s20",
+   "rules": [
+    "F-38"
+   ],
+   "kind": "structure",
+   "path": "close.outcomes.no_contact",
+   "compare": "set",
+   "expect": [
+    "callback_set",
+    "no_slot",
+    "wrong_party"
+   ]
+  },
+  {
+   "id": "F.s21",
+   "rules": [
+    "F-40"
+   ],
+   "kind": "structure",
+   "path": "close.queue_reasons.hardship_desk",
+   "compare": "equal",
+   "expect": "hardship"
+  },
+  {
+   "id": "F.s22",
+   "rules": [
+    "F-41"
+   ],
+   "kind": "structure",
+   "path": "close.queue_reasons.agent",
+   "compare": "equal",
+   "expect": "requested"
+  },
+  {
+   "id": "F.s23",
+   "rules": [
+    "F-53"
+   ],
+   "kind": "structure",
+   "path": "identity.questions.1.field",
+   "compare": "equal",
+   "expect": "account_last3"
+  },
+  {
+   "id": "F.f1",
+   "rules": [
+    "F-13"
+   ],
+   "kind": "fact",
+   "now": "2026-10-14T11:00",
+   "product": {
+    "kind": "card",
+    "card_tail": "5530",
+    "overdue_amount": 400.0,
+    "days_overdue": 12
+   },
+   "expect": {
+    "latest_date": "2026-10-26"
+   },
+   "because": "sixth working day after Wed 14 Oct: Thu 15, (Fri 16 holiday), Mon 19, Tue 20, Wed 21, Thu 22, (Fri 23 holiday), Mon 26. The withdrawn 10-day limit would give Thu 22"
+  },
+  {
+   "id": "F.f2",
+   "rules": [
+    "F-13"
+   ],
+   "kind": "fact",
+   "now": "2026-10-14T11:00",
+   "product": {
+    "kind": "loan",
+    "overdue_amount": 630.0,
+    "days_overdue": 45,
+    "instalment": 210.0
+   },
+   "expect": {
+    "latest_date": "2026-10-20"
+   },
+   "because": "45 days overdue: third working day after Wed 14 Oct: Thu 15, Mon 19, Tue 20"
+  },
+  {
+   "id": "F.f3",
+   "rules": [
+    "F-13"
+   ],
+   "kind": "fact",
+   "now": "2026-10-14T11:00",
+   "product": {
+    "kind": "card",
+    "card_tail": "5530",
+    "overdue_amount": 400.0,
+    "days_overdue": 30
+   },
+   "expect": {
+    "latest_date": "2026-10-26"
+   },
+   "because": "30 days is \"up to 30\": sixth working day"
+  },
+  {
+   "id": "F.f4",
+   "rules": [
+    "F-13"
+   ],
+   "kind": "fact",
+   "now": "2026-10-14T11:00",
+   "product": {
+    "kind": "card",
+    "card_tail": "5530",
+    "overdue_amount": 400.0,
+    "days_overdue": 31
+   },
+   "expect": {
+    "latest_date": "2026-10-20"
+   },
+   "because": "31 days is \"more than 30\": third working day"
+  },
+  {
+   "id": "F.f5",
+   "rules": [
+    "F-17"
+   ],
+   "kind": "fact",
+   "now": "2026-10-14T11:00",
+   "product": {
+    "kind": "card",
+    "card_tail": "5530",
+    "overdue_amount": 400.0,
+    "days_overdue": 12
+   },
+   "expect": {
+    "min_amount": 140.0
+   },
+   "because": "35 percent of 400.00 = 140.00 (half would be 200.00)"
+  },
+  {
+   "id": "F.f6",
+   "rules": [
+    "F-15"
+   ],
+   "kind": "fact",
+   "now": "2026-10-14T11:00",
+   "product": {
+    "kind": "card",
+    "card_tail": "5530",
+    "overdue_amount": 400.0,
+    "days_overdue": 12
+   },
+   "expect": {
+    "max_amount": 400.0
+   },
+   "because": "the overdue amount"
+  },
+  {
+   "id": "F.f7",
+   "rules": [
+    "F-16"
+   ],
+   "kind": "fact",
+   "now": "2026-10-14T11:00",
+   "product": {
+    "kind": "loan",
+    "overdue_amount": 630.0,
+    "days_overdue": 45,
+    "instalment": 210.0
+   },
+   "expect": {
+    "min_amount": 210.0
+   },
+   "because": "one instalment"
+  },
+  {
+   "id": "F.f8",
+   "rules": [
+    "F-16"
+   ],
+   "kind": "fact",
+   "now": "2026-10-14T11:00",
+   "product": {
+    "kind": "overdraft",
+    "overdue_amount": 180.0,
+    "days_overdue": 12
+   },
+   "expect": {
+    "min_amount": 180.0
+   },
+   "because": "an overdraft must be promised in full"
+  },
+  {
+   "id": "F.f9",
+   "rules": [
+    "F-15"
+   ],
+   "kind": "fact",
+   "now": "2026-10-14T11:00",
+   "product": {
+    "kind": "overdraft",
+    "overdue_amount": 180.0,
+    "days_overdue": 12
+   },
+   "expect": {
+    "max_amount": 180.0
+   },
+   "because": "the overdue amount"
+  },
+  {
+   "id": "F.f10",
+   "rules": [
+    "F-10"
+   ],
+   "kind": "fact",
+   "now": "2026-10-14T11:00",
+   "product": {
+    "kind": "card",
+    "card_tail": "5530",
+    "overdue_amount": 400.0,
+    "days_overdue": 12
+   },
+   "expect": {
+    "label": "card ending 5530"
+   },
+   "because": "the mail prescribes the words"
+  },
+  {
+   "id": "F.f11",
+   "rules": [
+    "F-10"
+   ],
+   "kind": "fact",
+   "now": "2026-10-14T11:00",
+   "product": {
+    "kind": "loan",
+    "overdue_amount": 630.0,
+    "days_overdue": 45,
+    "instalment": 210.0
+   },
+   "expect": {
+    "label": "loan"
+   },
+   "because": "the mail prescribes the word"
+  },
+  {
+   "id": "F.f12",
+   "rules": [
+    "F-10"
+   ],
+   "kind": "fact",
+   "now": "2026-10-14T11:00",
+   "product": {
+    "kind": "overdraft",
+    "overdue_amount": 180.0,
+    "days_overdue": 12
+   },
+   "expect": {
+    "label": "overdraft"
+   },
+   "because": "the mail prescribes the word"
+  },
+  {
+   "id": "F.c1",
+   "rules": [
+    "F-04"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "A callback outside the next working day or outside 09:30 to 17:30 is not booked",
+   "customer": {
+    "products": [
+     {
+      "kind": "card",
+      "card_tail": "5530",
+      "overdue_amount": 400.0,
+      "days_overdue": 12
+     }
+    ]
+   },
+   "steps": [
+    {
+     "call": "schedule_callback",
+     "args": {
+      "callback_date": "2026-10-14",
+      "callback_time": "15:00"
+     },
+     "expect": "blocked"
+    },
+    {
+     "call": "schedule_callback",
+     "args": {
+      "callback_date": "2026-10-15",
+      "callback_time": "17:31"
+     },
+     "expect": "blocked"
+    },
+    {
+     "call": "schedule_callback",
+     "args": {
+      "callback_date": "2026-10-15",
+      "callback_time": "09:29"
+     },
+     "expect": "blocked"
+    },
+    {
+     "call": "schedule_callback",
+     "args": {
+      "callback_date": "2026-10-19",
+      "callback_time": "10:00"
+     },
+     "expect": "blocked"
+    },
+    {
+     "call": "schedule_callback",
+     "args": {
+      "callback_date": "2026-10-15",
+      "callback_time": "17:30"
+     },
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": null,
+     "reason": null,
+     "promises": [],
+     "notes": [],
+     "callbacks": [
+      {
+       "date": "2026-10-15",
+       "time": "17:30"
+      }
+     ],
+     "transfers": []
+    },
+    "ended": false
+   }
+  },
+  {
+   "id": "F.c2",
+   "rules": [
+    "F-07"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "A date of birth passed on in numbers is read as day, month, year",
+   "customer": {
+    "products": [
+     {
+      "kind": "card",
+      "card_tail": "5530",
+      "overdue_amount": 400.0,
+      "days_overdue": 12
+     }
+    ]
+   },
+   "steps": [
+    {
+     "call": "verify_identity",
+     "args": {
+      "question": "birth_date",
+      "given_answer": "04/03/1985"
+     },
+     "expect": "ok",
+     "says": [
+      "That answer is correct"
+     ]
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "question": "account_last3",
+      "given_answer": "417"
+     },
+     "expect": "ok"
+    },
+    {
+     "check": {
+      "node": "negotiate",
+      "state": {
+       "wrong": 0
+      }
+     }
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": null,
+     "reason": null,
+     "promises": [],
+     "notes": [],
+     "callbacks": [],
+     "transfers": []
+    },
+    "ended": false
+   }
+  },
+  {
+   "id": "F.c3",
+   "rules": [
+    "F-08"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "Two wrong answers end the check, although the service would take a third",
+   "customer": {
+    "products": [
+     {
+      "kind": "card",
+      "card_tail": "5530",
+      "overdue_amount": 400.0,
+      "days_overdue": 12
+     }
+    ]
+   },
+   "steps": [
+    {
+     "call": "verify_identity",
+     "args": {
+      "question": "birth_date",
+      "given_answer": "1985-03-05"
+     },
+     "expect": "ok",
+     "says": [
+      "WRONG"
+     ]
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "question": "birth_date",
+      "given_answer": "1985-03-06"
+     },
+     "expect": "ok",
+     "says": [
+      "IDENTITY CHECK FAILED"
+     ]
+    },
+    {
+     "check": {
+      "node": "contact",
+      "state": {
+       "identity": "failed"
+      }
+     }
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": null,
+     "reason": null,
+     "promises": [],
+     "notes": [],
+     "callbacks": [],
+     "transfers": []
+    },
+    "ended": false,
+    "forbidden_calls": [
+     "get_account"
+    ]
+   }
+  },
+  {
+   "id": "F.c4",
+   "rules": [
+    "F-14"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "A promise in the past or on a day that is not a working day is not recorded",
+   "customer": {
+    "products": [
+     {
+      "kind": "card",
+      "card_tail": "5530",
+      "overdue_amount": 400.0,
+      "days_overdue": 12
+     }
+    ]
+   },
+   "steps": [
+    {
+     "call": "verify_identity",
+     "args": {
+      "question": "birth_date",
+      "given_answer": "1985-03-04"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "question": "account_last3",
+      "given_answer": "417"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "account_ref": "p1",
+      "pay_amount": 400,
+      "pay_date": "2026-10-16"
+     },
+     "expect": "refused",
+     "says": [
+      "is not a business day"
+     ]
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "account_ref": "p1",
+      "pay_amount": 400,
+      "pay_date": "2026-10-13"
+     },
+     "expect": "refused",
+     "says": [
+      "is in the past"
+     ]
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "account_ref": "p1",
+      "pay_amount": 400,
+      "pay_date": "2026-10-18"
+     },
+     "expect": "refused",
+     "says": [
+      "is not a business day"
+     ]
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "account_ref": "p1",
+      "pay_amount": 400,
+      "pay_date": "2026-10-15"
+     },
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": null,
+     "reason": null,
+     "promises": [
+      {
+       "product_id": "p1",
+       "amount": 400,
+       "date": "2026-10-15"
+      }
+     ],
+     "notes": [],
+     "callbacks": [],
+     "transfers": []
+    },
+    "ended": false
+   }
+  },
+  {
+   "id": "F.c5",
+   "rules": [
+    "F-13"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "A promise after the sixth working day is not recorded",
+   "customer": {
+    "products": [
+     {
+      "kind": "card",
+      "card_tail": "5530",
+      "overdue_amount": 400.0,
+      "days_overdue": 12
+     }
+    ]
+   },
+   "steps": [
+    {
+     "call": "verify_identity",
+     "args": {
+      "question": "birth_date",
+      "given_answer": "1985-03-04"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "question": "account_last3",
+      "given_answer": "417"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "account_ref": "p1",
+      "pay_amount": 400,
+      "pay_date": "2026-10-27"
+     },
+     "expect": "refused",
+     "says": [
+      "is after the latest date"
+     ]
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "account_ref": "p1",
+      "pay_amount": 400,
+      "pay_date": "2026-10-26"
+     },
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": null,
+     "reason": null,
+     "promises": [
+      {
+       "product_id": "p1",
+       "amount": 400,
+       "date": "2026-10-26"
+      }
+     ],
+     "notes": [],
+     "callbacks": [],
+     "transfers": []
+    },
+    "ended": false
+   }
+  },
+  {
+   "id": "F.c6",
+   "rules": [
+    "F-17"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "A card promise below 35 percent is not recorded",
+   "customer": {
+    "products": [
+     {
+      "kind": "card",
+      "card_tail": "5530",
+      "overdue_amount": 400.0,
+      "days_overdue": 12
+     }
+    ]
+   },
+   "steps": [
+    {
+     "call": "verify_identity",
+     "args": {
+      "question": "birth_date",
+      "given_answer": "1985-03-04"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "question": "account_last3",
+      "given_answer": "417"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "account_ref": "p1",
+      "pay_amount": 130,
+      "pay_date": "2026-10-15"
+     },
+     "expect": "refused",
+     "says": [
+      "is below the lowest amount"
+     ]
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "account_ref": "p1",
+      "pay_amount": 140,
+      "pay_date": "2026-10-15"
+     },
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": null,
+     "reason": null,
+     "promises": [
+      {
+       "product_id": "p1",
+       "amount": 140,
+       "date": "2026-10-15"
+      }
+     ],
+     "notes": [],
+     "callbacks": [],
+     "transfers": []
+    },
+    "ended": false
+   }
+  },
+  {
+   "id": "F.c7",
+   "rules": [
+    "F-18"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "A promise dated today below the full overdue amount is not recorded",
+   "customer": {
+    "products": [
+     {
+      "kind": "card",
+      "card_tail": "5530",
+      "overdue_amount": 400.0,
+      "days_overdue": 12
+     }
+    ]
+   },
+   "steps": [
+    {
+     "call": "verify_identity",
+     "args": {
+      "question": "birth_date",
+      "given_answer": "1985-03-04"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "question": "account_last3",
+      "given_answer": "417"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "account_ref": "p1",
+      "pay_amount": 200,
+      "pay_date": "2026-10-14"
+     },
+     "expect": "blocked"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "account_ref": "p1",
+      "pay_amount": 400,
+      "pay_date": "2026-10-14"
+     },
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": null,
+     "reason": null,
+     "promises": [
+      {
+       "product_id": "p1",
+       "amount": 400,
+       "date": "2026-10-14"
+      }
+     ],
+     "notes": [],
+     "callbacks": [],
+     "transfers": []
+    },
+    "ended": false
+   }
+  },
+  {
+   "id": "F.c8",
+   "rules": [
+    "F-19"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "An amount that is not a multiple of 10.00 is not recorded",
+   "customer": {
+    "products": [
+     {
+      "kind": "loan",
+      "overdue_amount": 630.0,
+      "days_overdue": 12,
+      "instalment": 210.0
+     }
+    ]
+   },
+   "steps": [
+    {
+     "call": "verify_identity",
+     "args": {
+      "question": "birth_date",
+      "given_answer": "1985-03-04"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "question": "account_last3",
+      "given_answer": "417"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "account_ref": "p1",
+      "pay_amount": 215,
+      "pay_date": "2026-10-15"
+     },
+     "expect": "blocked"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "account_ref": "p1",
+      "pay_amount": 220,
+      "pay_date": "2026-10-15"
+     },
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": null,
+     "reason": null,
+     "promises": [
+      {
+       "product_id": "p1",
+       "amount": 220,
+       "date": "2026-10-15"
+      }
+     ],
+     "notes": [],
+     "callbacks": [],
+     "transfers": []
+    },
+    "ended": false
+   }
+  },
+  {
+   "id": "F.c9",
+   "rules": [
+    "F-23"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "A second promise for the same account is not recorded",
+   "customer": {
+    "products": [
+     {
+      "kind": "card",
+      "card_tail": "5530",
+      "overdue_amount": 400.0,
+      "days_overdue": 12
+     }
+    ]
+   },
+   "steps": [
+    {
+     "call": "verify_identity",
+     "args": {
+      "question": "birth_date",
+      "given_answer": "1985-03-04"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "question": "account_last3",
+      "given_answer": "417"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "account_ref": "p1",
+      "pay_amount": 400,
+      "pay_date": "2026-10-15"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "account_ref": "p1",
+      "pay_amount": 140,
+      "pay_date": "2026-10-19"
+     },
+     "expect": "refused",
+     "says": [
+      "already recorded"
+     ]
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": null,
+     "reason": null,
+     "promises": [
+      {
+       "product_id": "p1",
+       "amount": 400,
+       "date": "2026-10-15"
+      }
+     ],
+     "notes": [],
+     "callbacks": [],
+     "transfers": []
+    },
+    "ended": false
+   }
+  },
+  {
+   "id": "F.c10",
+   "rules": [
+    "F-24"
+   ],
+   "kind": "calls",
+   "asserts": "policy",
+   "title": "After two failures the third attempt records the promise",
+   "customer": {
+    "products": [
+     {
+      "kind": "card",
+      "card_tail": "5530",
+      "overdue_amount": 400.0,
+      "days_overdue": 12
+     }
+    ],
+    "faults": {
+     "create_promise": 2
+    }
+   },
+   "steps": [
+    {
+     "call": "verify_identity",
+     "args": {
+      "question": "birth_date",
+      "given_answer": "1985-03-04"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "question": "account_last3",
+      "given_answer": "417"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "account_ref": "p1",
+      "pay_amount": 400,
+      "pay_date": "2026-10-15"
+     },
+     "expect": "error"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "account_ref": "p1",
+      "pay_amount": 400,
+      "pay_date": "2026-10-15"
+     },
+     "expect": "error"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "account_ref": "p1",
+      "pay_amount": 400,
+      "pay_date": "2026-10-15"
+     },
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": null,
+     "reason": null,
+     "promises": [
+      {
+       "product_id": "p1",
+       "amount": 400,
+       "date": "2026-10-15"
+      }
+     ],
+     "notes": [],
+     "callbacks": [],
+     "transfers": []
+    },
+    "ended": false
+   }
+  },
+  {
+   "id": "F.c11",
+   "rules": [
+    "F-24"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "A fourth attempt is not sent",
+   "customer": {
+    "products": [
+     {
+      "kind": "card",
+      "card_tail": "5530",
+      "overdue_amount": 400.0,
+      "days_overdue": 12
+     }
+    ],
+    "faults": {
+     "create_promise": 3
+    }
+   },
+   "steps": [
+    {
+     "call": "verify_identity",
+     "args": {
+      "question": "birth_date",
+      "given_answer": "1985-03-04"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "question": "account_last3",
+      "given_answer": "417"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "account_ref": "p1",
+      "pay_amount": 400,
+      "pay_date": "2026-10-15"
+     },
+     "expect": "error"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "account_ref": "p1",
+      "pay_amount": 400,
+      "pay_date": "2026-10-15"
+     },
+     "expect": "error"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "account_ref": "p1",
+      "pay_amount": 400,
+      "pay_date": "2026-10-15"
+     },
+     "expect": "error"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "account_ref": "p1",
+      "pay_amount": 400,
+      "pay_date": "2026-10-15"
+     },
+     "expect": "refused",
+     "says": [
+      "Do not try again"
+     ]
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": null,
+     "reason": null,
+     "promises": [],
+     "notes": [],
+     "callbacks": [],
+     "transfers": []
+    },
+    "ended": false
+   }
+  },
+  {
+   "id": "F.c12",
+   "rules": [
+    "F-25"
+   ],
+   "kind": "calls",
+   "asserts": "policy",
+   "title": "An agent that notes the account without a promise leaves that note at the bank",
+   "customer": {
+    "products": [
+     {
+      "kind": "card",
+      "card_tail": "5530",
+      "overdue_amount": 400.0,
+      "days_overdue": 12
+     },
+     {
+      "kind": "overdraft",
+      "overdue_amount": 180.0,
+      "days_overdue": 12
+     }
+    ]
+   },
+   "steps": [
+    {
+     "call": "verify_identity",
+     "args": {
+      "question": "birth_date",
+      "given_answer": "1985-03-04"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "question": "account_last3",
+      "given_answer": "417"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "account_ref": "p1",
+      "pay_amount": 400,
+      "pay_date": "2026-10-15"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "add_note",
+     "args": {
+      "account_ref": "p2",
+      "note_code": "declined"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "close_call",
+     "args": {
+      "result": "agreed"
+     },
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": "agreed",
+     "reason": null,
+     "promises": [
+      {
+       "product_id": "p1",
+       "amount": 400,
+       "date": "2026-10-15"
+      }
+     ],
+     "notes": [
+      {
+       "product_id": "p2",
+       "reason": "declined"
+      }
+     ],
+     "callbacks": [],
+     "transfers": []
+    },
+    "ended": true
+   }
+  },
+  {
+   "id": "F.c13",
+   "rules": [
+    "F-27"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "A promise after a handover is not recorded",
+   "customer": {
+    "products": [
+     {
+      "kind": "card",
+      "card_tail": "5530",
+      "overdue_amount": 400.0,
+      "days_overdue": 12
+     }
+    ]
+   },
+   "steps": [
+    {
+     "call": "verify_identity",
+     "args": {
+      "question": "birth_date",
+      "given_answer": "1985-03-04"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "question": "account_last3",
+      "given_answer": "417"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "transfer_to_agent",
+     "args": {
+      "team": "payment_plans"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "account_ref": "p1",
+      "pay_amount": 400,
+      "pay_date": "2026-10-15"
+     },
+     "expect": "refused",
+     "says": [
+      "transferred"
+     ]
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": null,
+     "reason": null,
+     "promises": [],
+     "notes": [],
+     "callbacks": [],
+     "transfers": [
+      {
+       "queue": "payment_plans"
+      }
+     ]
+    },
+    "ended": false
+   }
+  },
+  {
+   "id": "F.c14",
+   "rules": [
+    "F-28"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "A note after a handover is not saved",
+   "customer": {
+    "products": [
+     {
+      "kind": "card",
+      "card_tail": "5530",
+      "overdue_amount": 400.0,
+      "days_overdue": 12
+     }
+    ]
+   },
+   "steps": [
+    {
+     "call": "verify_identity",
+     "args": {
+      "question": "birth_date",
+      "given_answer": "1985-03-04"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "question": "account_last3",
+      "given_answer": "417"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "transfer_to_agent",
+     "args": {
+      "team": "agent"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "add_note",
+     "args": {
+      "account_ref": "p1",
+      "note_code": "declined"
+     },
+     "expect": "refused",
+     "says": [
+      "transferred"
+     ]
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": null,
+     "reason": null,
+     "promises": [],
+     "notes": [],
+     "callbacks": [],
+     "transfers": [
+      {
+       "queue": "agent"
+      }
+     ]
+    },
+    "ended": false
+   }
+  },
+  {
+   "id": "F.c15",
+   "rules": [
+    "F-30"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "A close sent as agreed after a handover is recorded as handed over",
+   "customer": {
+    "products": [
+     {
+      "kind": "card",
+      "card_tail": "5530",
+      "overdue_amount": 400.0,
+      "days_overdue": 12
+     }
+    ]
+   },
+   "steps": [
+    {
+     "call": "verify_identity",
+     "args": {
+      "question": "birth_date",
+      "given_answer": "1985-03-04"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "question": "account_last3",
+      "given_answer": "417"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "account_ref": "p1",
+      "pay_amount": 400,
+      "pay_date": "2026-10-15"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "transfer_to_agent",
+     "args": {
+      "team": "hardship_desk"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "close_call",
+     "args": {
+      "result": "agreed"
+     },
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": "handed_over",
+     "reason": "hardship",
+     "promises": [
+      {
+       "product_id": "p1",
+       "amount": 400,
+       "date": "2026-10-15"
+      }
+     ],
+     "notes": [],
+     "callbacks": [],
+     "transfers": [
+      {
+       "queue": "hardship_desk"
+      }
+     ]
+    },
+    "ended": true
+   }
+  },
+  {
+   "id": "F.c16",
+   "rules": [
+    "F-31"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "A close sent as settled takes the code of the first account whose note is not settled",
+   "customer": {
+    "products": [
+     {
+      "kind": "card",
+      "card_tail": "5530",
+      "overdue_amount": 400.0,
+      "days_overdue": 12
+     },
+     {
+      "kind": "overdraft",
+      "overdue_amount": 180.0,
+      "days_overdue": 12
+     }
+    ]
+   },
+   "steps": [
+    {
+     "call": "verify_identity",
+     "args": {
+      "question": "birth_date",
+      "given_answer": "1985-03-04"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "question": "account_last3",
+      "given_answer": "417"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "add_note",
+     "args": {
+      "account_ref": "p1",
+      "note_code": "settled"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "add_note",
+     "args": {
+      "account_ref": "p2",
+      "note_code": "contested"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "close_call",
+     "args": {
+      "result": "settled"
+     },
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": "no_agreement",
+     "reason": "contested",
+     "promises": [],
+     "notes": [
+      {
+       "product_id": "p1",
+       "reason": "settled"
+      },
+      {
+       "product_id": "p2",
+       "reason": "contested"
+      }
+     ],
+     "callbacks": [],
+     "transfers": []
+    },
+    "ended": true
+   }
+  },
+  {
+   "id": "F.c17",
+   "rules": [
+    "F-36"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "A close sent as no agreement is recorded as settled when every account is noted settled",
+   "customer": {
+    "products": [
+     {
+      "kind": "card",
+      "card_tail": "5530",
+      "overdue_amount": 400.0,
+      "days_overdue": 12
+     },
+     {
+      "kind": "overdraft",
+      "overdue_amount": 180.0,
+      "days_overdue": 12
+     }
+    ]
+   },
+   "steps": [
+    {
+     "call": "verify_identity",
+     "args": {
+      "question": "birth_date",
+      "given_answer": "1985-03-04"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "question": "account_last3",
+      "given_answer": "417"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "add_note",
+     "args": {
+      "account_ref": "p1",
+      "note_code": "settled"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "add_note",
+     "args": {
+      "account_ref": "p2",
+      "note_code": "settled"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "close_call",
+     "args": {
+      "result": "no_agreement",
+      "reason_code": "declined"
+     },
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": "settled",
+     "reason": null,
+     "promises": [],
+     "notes": [
+      {
+       "product_id": "p1",
+       "reason": "settled"
+      },
+      {
+       "product_id": "p2",
+       "reason": "settled"
+      }
+     ],
+     "callbacks": [],
+     "transfers": []
+    },
+    "ended": true
+   }
+  },
+  {
+   "id": "F.c18",
+   "rules": [
+    "F-29"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "A close sent as no agreement after a recorded promise is recorded as agreed",
+   "customer": {
+    "products": [
+     {
+      "kind": "card",
+      "card_tail": "5530",
+      "overdue_amount": 400.0,
+      "days_overdue": 12
+     }
+    ]
+   },
+   "steps": [
+    {
+     "call": "verify_identity",
+     "args": {
+      "question": "birth_date",
+      "given_answer": "1985-03-04"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "question": "account_last3",
+      "given_answer": "417"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "account_ref": "p1",
+      "pay_amount": 400,
+      "pay_date": "2026-10-15"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "close_call",
+     "args": {
+      "result": "no_agreement",
+      "reason_code": "declined"
+     },
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": "agreed",
+     "reason": null,
+     "promises": [
+      {
+       "product_id": "p1",
+       "amount": 400,
+       "date": "2026-10-15"
+      }
+     ],
+     "notes": [],
+     "callbacks": [],
+     "transfers": []
+    },
+    "ended": true
+   }
+  },
+  {
+   "id": "F.c19",
+   "rules": [
+    "F-37"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "A close sent as agreed after a failed security check is recorded as unverified",
+   "customer": {
+    "products": [
+     {
+      "kind": "card",
+      "card_tail": "5530",
+      "overdue_amount": 400.0,
+      "days_overdue": 12
+     }
+    ]
+   },
+   "steps": [
+    {
+     "call": "verify_identity",
+     "args": {
+      "question": "birth_date",
+      "given_answer": "1985-03-05"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "question": "birth_date",
+      "given_answer": "1985-03-06"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "close_call",
+     "args": {
+      "result": "agreed"
+     },
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": "unverified",
+     "reason": "id_failed",
+     "promises": [],
+     "notes": [],
+     "callbacks": [],
+     "transfers": []
+    },
+    "ended": true
+   }
+  },
+  {
+   "id": "F.c20",
+   "rules": [
+    "F-38"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "A close sent as agreed after a booked callback is recorded as no contact",
+   "customer": {
+    "products": [
+     {
+      "kind": "card",
+      "card_tail": "5530",
+      "overdue_amount": 400.0,
+      "days_overdue": 12
+     }
+    ]
+   },
+   "steps": [
+    {
+     "call": "schedule_callback",
+     "args": {
+      "callback_date": "2026-10-15",
+      "callback_time": "10:00"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "close_call",
+     "args": {
+      "result": "agreed"
+     },
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": "no_contact",
+     "reason": "callback_set",
+     "promises": [],
+     "notes": [],
+     "callbacks": [
+      {
+       "date": "2026-10-15",
+       "time": "10:00"
+      }
+     ],
+     "transfers": []
+    },
+    "ended": true
+   }
+  },
+  {
+   "id": "F.c21",
+   "rules": [
+    "F-32"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "A handover to the payment plans team closes with the code plan",
+   "customer": {
+    "products": [
+     {
+      "kind": "card",
+      "card_tail": "5530",
+      "overdue_amount": 400.0,
+      "days_overdue": 12
+     }
+    ]
+   },
+   "steps": [
+    {
+     "call": "transfer_to_agent",
+     "args": {
+      "team": "payment_plans"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "close_call",
+     "args": {
+      "result": "agreed"
+     },
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": "handed_over",
+     "reason": "plan",
+     "promises": [],
+     "notes": [],
+     "callbacks": [],
+     "transfers": [
+      {
+       "queue": "payment_plans"
+      }
+     ]
+    },
+    "ended": true
+   }
+  },
+  {
+   "id": "F.c22",
+   "rules": [
+    "F-40"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "A handover to the hardship desk closes with the code hardship",
+   "customer": {
+    "products": [
+     {
+      "kind": "card",
+      "card_tail": "5530",
+      "overdue_amount": 400.0,
+      "days_overdue": 12
+     }
+    ]
+   },
+   "steps": [
+    {
+     "call": "transfer_to_agent",
+     "args": {
+      "team": "hardship_desk"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "close_call",
+     "args": {
+      "result": "agreed"
+     },
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": "handed_over",
+     "reason": "hardship",
+     "promises": [],
+     "notes": [],
+     "callbacks": [],
+     "transfers": [
+      {
+       "queue": "hardship_desk"
+      }
+     ]
+    },
+    "ended": true
+   }
+  },
+  {
+   "id": "F.c23",
+   "rules": [
+    "F-41"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "A handover to a person closes with the code requested",
+   "customer": {
+    "products": [
+     {
+      "kind": "card",
+      "card_tail": "5530",
+      "overdue_amount": 400.0,
+      "days_overdue": 12
+     }
+    ]
+   },
+   "steps": [
+    {
+     "call": "transfer_to_agent",
+     "args": {
+      "team": "agent"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "close_call",
+     "args": {
+      "result": "agreed"
+     },
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": "handed_over",
+     "reason": "requested",
+     "promises": [],
+     "notes": [],
+     "callbacks": [],
+     "transfers": [
+      {
+       "queue": "agent"
+      }
+     ]
+    },
+    "ended": true
+   }
+  },
+  {
+   "id": "F.c24",
+   "rules": [
+    "F-47"
+   ],
+   "kind": "calls",
+   "asserts": "policy",
+   "title": "After both questions the three overdue accounts are in front of the agent",
+   "customer": {
+    "products": [
+     {
+      "kind": "card",
+      "card_tail": "5530",
+      "overdue_amount": 400.0,
+      "days_overdue": 12
+     },
+     {
+      "kind": "loan",
+      "overdue_amount": 630.0,
+      "days_overdue": 45,
+      "instalment": 210.0
+     },
+     {
+      "kind": "overdraft",
+      "overdue_amount": 180.0,
+      "days_overdue": 12
+     }
+    ]
+   },
+   "steps": [
+    {
+     "call": "verify_identity",
+     "args": {
+      "question": "birth_date",
+      "given_answer": "1985-03-04"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "question": "account_last3",
+      "given_answer": "417"
+     },
+     "expect": "ok"
+    },
+    {
+     "check": {
+      "node": "negotiate",
+      "prompt_has": [
+       "3 late product(s)",
+       "\"card ending 5530\"",
+       "\"loan\"",
+       "\"overdraft\""
+      ]
+     }
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": null,
+     "reason": null,
+     "promises": [],
+     "notes": [],
+     "callbacks": [],
+     "transfers": []
+    },
+    "ended": false
+   }
+  },
+  {
+   "id": "F.c25",
+   "rules": [
+    "F-25"
+   ],
+   "kind": "calls",
+   "asserts": "enforcement",
+   "title": "A close while an account has neither a promise nor a note is refused once",
+   "customer": {
+    "products": [
+     {
+      "kind": "card",
+      "card_tail": "5530",
+      "overdue_amount": 400.0,
+      "days_overdue": 12
+     },
+     {
+      "kind": "overdraft",
+      "overdue_amount": 180.0,
+      "days_overdue": 12
+     }
+    ]
+   },
+   "steps": [
+    {
+     "call": "verify_identity",
+     "args": {
+      "question": "birth_date",
+      "given_answer": "1985-03-04"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "question": "account_last3",
+      "given_answer": "417"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "create_promise",
+     "args": {
+      "account_ref": "p1",
+      "pay_amount": 400,
+      "pay_date": "2026-10-15"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "close_call",
+     "args": {
+      "result": "agreed"
+     },
+     "expect": "blocked"
+    },
+    {
+     "call": "add_note",
+     "args": {
+      "account_ref": "p2",
+      "note_code": "declined"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "close_call",
+     "args": {
+      "result": "agreed"
+     },
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "ledger": {
+     "outcome": "agreed",
+     "reason": null,
+     "promises": [
+      {
+       "product_id": "p1",
+       "amount": 400,
+       "date": "2026-10-15"
+      }
+     ],
+     "notes": [
+      {
+       "product_id": "p2",
+       "reason": "declined"
+      }
+     ],
+     "callbacks": [],
+     "transfers": []
+    },
+    "ended": true
+   }
+  },
+  {
+   "id": "F.p1",
+   "rules": [
+    "F-21"
+   ],
+   "kind": "prompt",
+   "title": "The read-back question is in the prompt of the step in which create_promise exists",
+   "customer": {
+    "products": [
+     {
+      "kind": "card",
+      "card_tail": "5530",
+      "overdue_amount": 400.0,
+      "days_overdue": 12
+     }
+    ]
+   },
+   "steps": [
+    {
+     "call": "verify_identity",
+     "args": {
+      "question": "birth_date",
+      "given_answer": "1985-03-04"
+     },
+     "expect": "ok"
+    },
+    {
+     "call": "verify_identity",
+     "args": {
+      "question": "account_last3",
+      "given_answer": "417"
+     },
+     "expect": "ok"
+    },
+    {
+     "check": {
+      "node": "negotiate",
+      "prompt_has": [
+       "Shall I record that?"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "F.t1",
+   "rules": [
+    "F-21"
+   ],
+   "kind": "text",
+   "literal": "Shall I record that?"
+  },
+  {
+   "id": "F.t2",
+   "rules": [
+    "F-22"
+   ],
+   "kind": "text",
+   "literal": "You will get written confirmation by post."
+  }
+ ]
+}

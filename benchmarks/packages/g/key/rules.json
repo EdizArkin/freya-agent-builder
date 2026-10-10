@@ -1,0 +1,326 @@
+{
+ "package": "g",
+ "rules": [
+  {
+   "id": "G-01",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 1"
+   },
+   "evidence": "First sentence: \"Hello, this is Brightwater Mutual's automated assistant. This call is recorded for training.\" Then ask \"Am I speaking with {first_name} {last_name}?\". Say nothing about any product or any money before identity is verified.",
+   "category": "opening_and_who_is_on_the_line",
+   "critical": true,
+   "anchors": []
+  },
+  {
+   "id": "G-02",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 2"
+   },
+   "evidence": "If someone else answers, do not say why you are calling. Ask when the member can be reached. A callback can be booked for today or for one of the next three business days, from 08:00 to 20:00, both included, and later than `now`. Call `schedule_callback`, then close as `not_reached` / `callback`.",
+   "category": "opening_and_who_is_on_the_line",
+   "critical": true,
+   "anchors": [
+    "not_reached",
+    "callback"
+   ]
+  },
+  {
+   "id": "G-03",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 3"
+   },
+   "evidence": "A callback time from 12:30 up to and including 13:30 cannot be booked: the callback team is closed over lunch. Ask for another time.",
+   "category": "opening_and_who_is_on_the_line",
+   "critical": true,
+   "anchors": [
+    "12:30",
+    "13:30",
+    "lunch"
+   ],
+   "known_gap": "unsupported by design: a callback window is one interval; it cannot have a gap"
+  },
+  {
+   "id": "G-04",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 4"
+   },
+   "evidence": "If no time inside these limits can be agreed, close as `not_reached` / `unavailable`. If the number does not belong to the member, close as `not_reached` / `wrong_number`.",
+   "category": "opening_and_who_is_on_the_line",
+   "critical": false,
+   "anchors": [
+    "not_reached",
+    "unavailable",
+    "not_reached",
+    "wrong_number"
+   ]
+  },
+  {
+   "id": "G-05",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 5"
+   },
+   "evidence": "Ask two security questions, one at a time and in this order: the last four digits of the phone number on file, then the date of birth. Call `verify_identity` with field `phone_last4` or `date_of_birth`.",
+   "category": "identity",
+   "critical": true,
+   "anchors": [
+    "phone_last4",
+    "date_of_birth"
+   ]
+  },
+  {
+   "id": "G-06",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 6"
+   },
+   "evidence": "Send a date of birth as `YYYY-MM-DD`. Members of Brightwater Mutual give dates in numbers as month, then day, then year: \"03/04/1985\" is the fourth of March 1985.",
+   "category": "identity",
+   "critical": true,
+   "anchors": [
+    "YYYY-MM-DD"
+   ]
+  },
+  {
+   "id": "G-07",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 7"
+   },
+   "evidence": "Three wrong answers in total end the check. Close as `not_verified` / `failed`. A date with day and month the other way round comes back with `hint: \"day_month_swapped\"`; ask for the month as a word. That does not count as a wrong answer.",
+   "category": "identity",
+   "critical": true,
+   "anchors": [
+    "not_verified",
+    "failed",
+    "hint: \"day_month_swapped\""
+   ]
+  },
+  {
+   "id": "G-08",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 8"
+   },
+   "evidence": "A member who declines to answer is asked once more; a second refusal is closed as `not_verified` / `declined`.",
+   "category": "identity",
+   "critical": false,
+   "anchors": [
+    "not_verified",
+    "declined"
+   ]
+  },
+  {
+   "id": "G-09",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 9"
+   },
+   "evidence": "After both questions pass, call `get_account`. It returns one to three products of type `home_loan`, `credit_card` or `overdraft`. Name them \"home loan\", \"credit card ending 7702\" and \"overdraft\". State every product with its past-due amount and days late before asking for anything.",
+   "category": "the_products",
+   "critical": true,
+   "anchors": [
+    "home_loan",
+    "credit_card",
+    "overdraft"
+   ]
+  },
+  {
+   "id": "G-10",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 10"
+   },
+   "evidence": "Business days are Monday to Saturday. Holidays: 2026-10-17, 2026-11-02, 2026-12-25, 2026-12-26.",
+   "category": "dates",
+   "critical": true,
+   "anchors": []
+  },
+  {
+   "id": "G-11",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 11"
+   },
+   "evidence": "The **deadline** for a product that is 1 to 21 days late is the last business day of the current week (weeks run Monday to Sunday). If today is that day, it is the last business day of the following week.",
+   "category": "dates",
+   "critical": true,
+   "anchors": []
+  },
+  {
+   "id": "G-12",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 12"
+   },
+   "evidence": "For a product that is more than 21 days late the deadline is the next business day.",
+   "category": "dates",
+   "critical": true,
+   "anchors": []
+  },
+  {
+   "id": "G-13",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 13"
+   },
+   "evidence": "A promise date is today or later, a business day, and not after that product's deadline.",
+   "category": "dates",
+   "critical": true,
+   "anchors": []
+  },
+  {
+   "id": "G-14",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 14"
+   },
+   "evidence": "All promises of one call carry the same date. If the member wants different dates, explain that one date applies to all and agree one.",
+   "category": "dates",
+   "critical": true,
+   "anchors": [
+    "same date",
+    "one date"
+   ],
+   "known_gap": "unsupported by design: nothing ties the date of one promise to the date of another"
+  },
+  {
+   "id": "G-15",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 15"
+   },
+   "evidence": "The most that can be promised is the full past-due amount.",
+   "category": "amounts",
+   "critical": true,
+   "anchors": []
+  },
+  {
+   "id": "G-16",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 16"
+   },
+   "evidence": "The **floor**: for a home loan, one monthly payment (`monthly_payment`); for a credit card, 5 percent of the past-due amount or 25.00, whichever is greater; an overdraft must be promised in full.",
+   "category": "amounts",
+   "critical": true,
+   "anchors": [
+    "monthly_payment"
+   ]
+  },
+  {
+   "id": "G-17",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 17"
+   },
+   "evidence": "Ask for the full amount by the deadline first. If the member refuses, offer the floor once. If that is refused too, the product ends without a promise.",
+   "category": "amounts",
+   "critical": false,
+   "anchors": []
+  },
+  {
+   "id": "G-18",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 18"
+   },
+   "evidence": "Read all promises back together and ask \"Do I have that right?\". Call `create_promise` once per product, only after a clear yes. One promise per product.",
+   "category": "recording",
+   "critical": true,
+   "anchors": [],
+   "offline_evidence": "insufficient",
+   "offline_evidence_note": "Whether the customer said yes before create_promise is called can only be seen in a live call. Offline it is shown only that the read-back question is in the spec and in the prompt of the step in which create_promise exists. That a second promise for a product is not recorded is enforced and checked."
+  },
+  {
+   "id": "G-19",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 19"
+   },
+   "evidence": "If `create_promise` fails, try once more. If it fails again, say that it could not be recorded, call `add_note` with reason `service_error` for that product and go on.",
+   "category": "recording",
+   "critical": true,
+   "anchors": [
+    "service_error"
+   ]
+  },
+  {
+   "id": "G-20",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 20"
+   },
+   "evidence": "After the last recorded promise say: \"A confirmation will be sent to your registered address.\"",
+   "category": "recording",
+   "critical": false,
+   "anchors": []
+  },
+  {
+   "id": "G-21",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 21"
+   },
+   "evidence": "Every product that ends without a promise gets `add_note` with one of these reasons: `refused`, `dispute`, `paid`, `vulnerable`, `service_error`. \"I already paid\" is noted `paid`, \"this is not mine\" is noted `dispute`; neither ends the call.",
+   "category": "notes",
+   "critical": true,
+   "anchors": [
+    "refused",
+    "dispute",
+    "paid",
+    "vulnerable",
+    "service_error",
+    "paid",
+    "dispute"
+   ],
+   "semantics": "The policy is that the notes are at the bank when the call ends. That a close before them is refused is how this builder enforces it, and is checked separately."
+  },
+  {
+   "id": "G-22",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 22"
+   },
+   "evidence": "A member who mentions a bereavement or a serious illness: say \"I am sorry to hear that.\", make no further offer and call `transfer_to_agent` with queue `specialist`. A member who insists on a person after you offered once to help: queue `general`.",
+   "category": "handing_the_call_over",
+   "critical": false,
+   "anchors": [
+    "specialist",
+    "general"
+   ]
+  },
+  {
+   "id": "G-23",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 23"
+   },
+   "evidence": "After a transfer no promise is recorded. The notes of rule 21 are still added, with reason `vulnerable` after a transfer to `specialist` and `refused` after a transfer to `general`.",
+   "category": "handing_the_call_over",
+   "critical": true,
+   "anchors": [
+    "vulnerable",
+    "specialist",
+    "refused",
+    "general"
+   ],
+   "semantics": "Checked: no promise after a transfer, and a note is still accepted. Which reason goes with which queue is the agent's choice and is not enforced."
+  },
+  {
+   "id": "G-24",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 24"
+   },
+   "evidence": "Every call ends with exactly one `close_call`. The first row of this table that applies is used.",
+   "category": "closing",
+   "critical": true,
+   "anchors": []
+  }
+ ]
+}

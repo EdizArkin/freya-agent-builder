@@ -1,0 +1,7444 @@
+{
+ "reports": [
+  {
+   "package": "c",
+   "tier": "development",
+   "version": 1,
+   "reference_problems": [],
+   "spec_problems": null,
+   "api_notes": [],
+   "static_contract": [],
+   "rules": [
+    {
+     "id": "C-01",
+     "category": "opening_and_who_is_on_the_line",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "C.s10",
+      "SC-12",
+      "C-01.t1",
+      "C-01.t2"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "encoded, enforcement not played",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "none",
+     "weak_evidence": "2/2",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "C-02",
+     "category": "opening_and_who_is_on_the_line",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "C.s5",
+      "SC-01"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "1/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "C-03",
+     "category": "identity",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "C.s1",
+      "SC-02"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "1/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "C-04",
+     "category": "identity",
+     "critical": true,
+     "fit": "partial",
+     "checks": [
+      "SC-04"
+     ],
+     "layer": "schema",
+     "reference": "carries none of what the checks ask",
+     "extraction": null,
+     "end_to_end": "partial",
+     "policy_evidence": "none",
+     "enforcement_evidence": "0/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "C-05",
+     "category": "identity",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "C.s2",
+      "SC-03"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "1/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "C-06",
+     "category": "identity",
+     "critical": false,
+     "fit": "text",
+     "checks": [
+      "SC-12"
+     ],
+     "layer": "conversational",
+     "reference": "not evaluated",
+     "extraction": "not evaluated",
+     "end_to_end": "not evaluated offline",
+     "policy_evidence": "none",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "C-07",
+     "category": "the_account",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "C.f3",
+      "C.f6",
+      "SC-02"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "2/2",
+     "enforcement_evidence": "1/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "C-08",
+     "category": "the_account",
+     "critical": true,
+     "fit": "unsupported",
+     "checks": [
+      "SC-08"
+     ],
+     "layer": "schema",
+     "reference": "cannot carry the rule",
+     "extraction": null,
+     "end_to_end": "unsupported",
+     "policy_evidence": "none",
+     "enforcement_evidence": "0/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "C-09",
+     "category": "dates",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "C.s3",
+      "C.s4",
+      "SC-06"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "2/2",
+     "enforcement_evidence": "1/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "C-10",
+     "category": "dates",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "C.f2",
+      "C.f5",
+      "C.f7",
+      "C.f8",
+      "SC-06",
+      "SC-10"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "4/4",
+     "enforcement_evidence": "2/2",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "C-11",
+     "category": "dates",
+     "critical": true,
+     "fit": "unsupported",
+     "checks": [
+      "SC-07"
+     ],
+     "layer": "schema",
+     "reference": "cannot carry the rule",
+     "extraction": null,
+     "end_to_end": "unsupported",
+     "policy_evidence": "none",
+     "enforcement_evidence": "0/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "C-12",
+     "category": "amounts",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "C.f1",
+      "C.f4",
+      "SC-05",
+      "SC-10"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "2/2",
+     "enforcement_evidence": "2/2",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "C-13",
+     "category": "amounts",
+     "critical": false,
+     "fit": "text",
+     "checks": [],
+     "layer": "conversational",
+     "reference": "not evaluated",
+     "extraction": "not evaluated",
+     "end_to_end": "not evaluated offline",
+     "policy_evidence": "none",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "C-14",
+     "category": "recording",
+     "critical": false,
+     "fit": "text",
+     "checks": [
+      "C-14.t1"
+     ],
+     "layer": null,
+     "reference": "passes (text only, weak evidence)",
+     "extraction": null,
+     "end_to_end": "text only",
+     "policy_evidence": "none",
+     "enforcement_evidence": "none",
+     "weak_evidence": "1/1",
+     "weak_only": true,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "C-15",
+     "category": "recording",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "C.s8",
+      "SC-09"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "1/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "C-16",
+     "category": "recording",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "C-16.t1"
+     ],
+     "layer": null,
+     "reference": "passes (text only, weak evidence)",
+     "extraction": null,
+     "end_to_end": "text only",
+     "policy_evidence": "none",
+     "enforcement_evidence": "none",
+     "weak_evidence": "1/1",
+     "weak_only": true,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "C-17",
+     "category": "other_things_members_say",
+     "critical": false,
+     "fit": "text",
+     "checks": [],
+     "layer": "conversational",
+     "reference": "not evaluated",
+     "extraction": "not evaluated",
+     "end_to_end": "not evaluated offline",
+     "policy_evidence": "none",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "C-18",
+     "category": "other_things_members_say",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "C.s9",
+      "SC-11"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "encoded, enforcement not played",
+     "policy_evidence": "2/2",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "C-19",
+     "category": "other_things_members_say",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "C.s6"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "encoded, enforcement not played",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "C-20",
+     "category": "closing",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "C.s7"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "encoded, enforcement not played",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    }
+   ],
+   "checks": [
+    {
+     "id": "C.f1",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "C-12"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "C.f2",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "C-10"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "C.f3",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "C-07"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "C.f4",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "C-12"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "C.f5",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "C-10"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "C.f6",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "C-07"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "C.f7",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "C-10"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "C.f8",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "C-10"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "C.s1",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "C-03"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "C.s2",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "C-05"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "C.s3",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "C-09"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "C.s4",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "C-09"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "C.s5",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "C-02"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "C.s6",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "C-19"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "C.s7",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "C-20"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "C.s8",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "C-15"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "C.s9",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "C-18"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "C.s10",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "C-01"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "SC-01",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "C-02"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 1,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "SC-02",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "C-03",
+      "C-07"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 4,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "SC-03",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "C-05"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "SC-04",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "C-04"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "fail",
+      "detail": [
+       "compiled level: step 1 (verify_identity): tool result lacks 'That answer is correct' (it says: That answer is WRONG. Wrong answers left before the check ends: 1. Do not move to another question. Ask the same question again: \"the postcode of your registered address\" (field postcode).)",
+       "compiled level: step 3 (check): the call is in contact, expected negotiate",
+       "compiled level: step 3 (check): state wrong is 1, expected 0"
+      ],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "SC-05",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "C-12"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 6,
+      "blocked": 1,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "SC-06",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "C-09",
+      "C-10"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 6,
+      "blocked": 1,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "SC-07",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "C-11"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "fail",
+      "detail": [
+       "compiled level: step 3 (create_promise): expected refused, got ok",
+       "compiled level: step 4 (create_promise): expected ok, got refused",
+       "compiled level: ledger promises is [('p1', 300.0, '2026-10-14')], expected [('p1', 300.0, '2026-10-15')]"
+      ],
+      "requests": 6,
+      "blocked": 1,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "SC-08",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "C-08"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "fail",
+      "detail": [
+       "compiled level: step 3 (create_promise): expected blocked, got ok",
+       "compiled level: ledger promises is [('p1', 500.0, '2026-10-16')], expected []"
+      ],
+      "requests": 6,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "SC-09",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "C-15"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 6,
+      "blocked": 1,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "SC-10",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "C-10",
+      "C-12"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 7,
+      "blocked": 2,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "SC-11",
+     "kind": "calls",
+     "asserts": "policy",
+     "rules": [
+      "C-18"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 2,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "SC-12",
+     "kind": "live",
+     "asserts": "policy",
+     "rules": [
+      "C-01",
+      "C-06"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "C-01.t1",
+     "kind": "text",
+     "asserts": "policy",
+     "rules": [
+      "C-01"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "C-01.t2",
+     "kind": "text",
+     "asserts": "policy",
+     "rules": [
+      "C-01"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "C-14.t1",
+     "kind": "text",
+     "asserts": "policy",
+     "rules": [
+      "C-14"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "C-16.t1",
+     "kind": "text",
+     "asserts": "policy",
+     "rules": [
+      "C-16"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    }
+   ],
+   "summary": {
+    "rules": 20,
+    "by_layer": {
+     "none": 14,
+     "schema": 3,
+     "conversational": 3
+    },
+    "by_end_to_end": {
+     "encoded, enforcement not played": 4,
+     "enforced": 8,
+     "partial": 1,
+     "not evaluated offline": 3,
+     "unsupported": 2,
+     "text only": 2
+    },
+    "by_category": {
+     "opening_and_who_is_on_the_line": {
+      "encoded, enforcement not played": 1,
+      "enforced": 1
+     },
+     "identity": {
+      "enforced": 2,
+      "partial": 1,
+      "not evaluated offline": 1
+     },
+     "the_account": {
+      "enforced": 1,
+      "unsupported": 1
+     },
+     "dates": {
+      "enforced": 2,
+      "unsupported": 1
+     },
+     "amounts": {
+      "enforced": 1,
+      "not evaluated offline": 1
+     },
+     "recording": {
+      "text only": 2,
+      "enforced": 1
+     },
+     "other_things_members_say": {
+      "not evaluated offline": 1,
+      "encoded, enforcement not played": 2
+     },
+     "closing": {
+      "encoded, enforcement not played": 1
+     }
+    },
+    "behaviour": {
+     "passed": 16,
+     "run": 19,
+     "policy": {
+      "passed": 9,
+      "run": 9
+     },
+     "enforcement": {
+      "passed": 7,
+      "run": 10
+     }
+    },
+    "critical": {
+     "rules": 16,
+     "not_evaluated": [],
+     "weak_evidence_only": [
+      "C-16"
+     ],
+     "not_confirmed_by_behaviour": []
+    },
+    "contract": {
+     "requests": 74,
+     "blocked_by_policy": 6,
+     "problems": []
+    }
+   }
+  },
+  {
+   "package": "d",
+   "tier": "development",
+   "version": 1,
+   "reference_problems": [],
+   "spec_problems": null,
+   "api_notes": [],
+   "static_contract": [],
+   "rules": [
+    {
+     "id": "D-01",
+     "category": "opening_and_who_is_on_the_line",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "D.s11",
+      "D-01.t1",
+      "D-01.t2"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "encoded, enforcement not played",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "none",
+     "weak_evidence": "2/2",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "D-02",
+     "category": "opening_and_who_is_on_the_line",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "D.s5",
+      "SD-11"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "1/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "D-03",
+     "category": "identity",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "D.s1",
+      "D.s2"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "encoded, enforcement not played",
+     "policy_evidence": "2/2",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "D-04",
+     "category": "the_products",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "D.f3",
+      "D.f6",
+      "D.f9"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "encoded, enforcement not played",
+     "policy_evidence": "3/3",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "D-05",
+     "category": "the_products",
+     "critical": false,
+     "fit": "text",
+     "checks": [
+      "SD-12"
+     ],
+     "layer": "conversational",
+     "reference": "not evaluated",
+     "extraction": "not evaluated",
+     "end_to_end": "not evaluated offline",
+     "policy_evidence": "none",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "D-06",
+     "category": "the_products",
+     "critical": true,
+     "fit": "unsupported",
+     "checks": [
+      "SD-07",
+      "SD-12"
+     ],
+     "layer": "schema",
+     "reference": "cannot carry the rule",
+     "extraction": null,
+     "end_to_end": "unsupported",
+     "policy_evidence": "none",
+     "enforcement_evidence": "0/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "D-07",
+     "category": "amounts_and_dates",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "D.f1",
+      "D.f4",
+      "D.f7",
+      "SD-01"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "3/3",
+     "enforcement_evidence": "1/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "D-08",
+     "category": "amounts_and_dates",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "D.s3",
+      "D.s4"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "encoded, enforcement not played",
+     "policy_evidence": "2/2",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "D-09",
+     "category": "amounts_and_dates",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "D.f2",
+      "D.f5",
+      "D.f8",
+      "D.f10",
+      "D.f11",
+      "SD-02"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "5/5",
+     "enforcement_evidence": "1/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "D-10",
+     "category": "amounts_and_dates",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "SD-02"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "none",
+     "enforcement_evidence": "1/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "D-11",
+     "category": "amounts_and_dates",
+     "critical": true,
+     "fit": "unsupported",
+     "checks": [
+      "SD-08"
+     ],
+     "layer": "schema",
+     "reference": "cannot carry the rule",
+     "extraction": null,
+     "end_to_end": "unsupported",
+     "policy_evidence": "none",
+     "enforcement_evidence": "0/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "D-12",
+     "category": "recording",
+     "critical": false,
+     "fit": "text",
+     "checks": [
+      "SD-12"
+     ],
+     "layer": "conversational",
+     "reference": "not evaluated",
+     "extraction": "not evaluated",
+     "end_to_end": "not evaluated offline",
+     "policy_evidence": "none",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "D-13",
+     "category": "recording",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "D.s8",
+      "SD-05",
+      "SD-06"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "2/2",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "D-14",
+     "category": "notes",
+     "critical": true,
+     "fit": "partial",
+     "checks": [
+      "D.s6",
+      "SD-03",
+      "SD-06",
+      "SD-10"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "partial",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "3/3",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "D-15",
+     "category": "notes",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "D.s7",
+      "SD-03",
+      "SD-04"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "2/2",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "D-16",
+     "category": "notes",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "D.s10"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "encoded, enforcement not played",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "D-17",
+     "category": "closing",
+     "critical": true,
+     "fit": "unsupported",
+     "checks": [
+      "SD-09"
+     ],
+     "layer": "schema",
+     "reference": "cannot carry the rule",
+     "extraction": null,
+     "end_to_end": "unsupported",
+     "policy_evidence": "none",
+     "enforcement_evidence": "0/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "D-18",
+     "category": "closing",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "SD-10"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "none",
+     "enforcement_evidence": "1/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "D-19",
+     "category": "closing",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "D.s9"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "encoded, enforcement not played",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    }
+   ],
+   "checks": [
+    {
+     "id": "D.f1",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "D-07"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "D.f2",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "D-09"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "D.f3",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "D-04"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "D.f4",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "D-07"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "D.f5",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "D-09"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "D.f6",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "D-04"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "D.f7",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "D-07"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "D.f8",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "D-09"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "D.f9",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "D-04"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "D.f10",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "D-09"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "D.f11",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "D-09"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "D.s1",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "D-03"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "D.s2",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "D-03"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "D.s3",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "D-08"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "D.s4",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "D-08"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "D.s5",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "D-02"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "D.s6",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "D-14"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "D.s7",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "D-15"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "D.s8",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "D-13"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "D.s9",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "D-19"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "D.s10",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "D-16"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "D.s11",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "D-01"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "SD-01",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "D-07"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 6,
+      "blocked": 1,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "SD-02",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "D-09",
+      "D-10"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 8,
+      "blocked": 1,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "SD-03",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "D-15",
+      "D-14"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 7,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "SD-04",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "D-15"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 8,
+      "blocked": 1,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "SD-05",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "D-13"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 7,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "SD-06",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "D-13",
+      "D-14"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 9,
+      "blocked": 1,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "SD-07",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "D-06"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "fail",
+      "detail": [
+       "compiled level: step 3 (create_promise): expected blocked, got ok",
+       "compiled level: step 5 (create_promise): expected ok, got refused"
+      ],
+      "requests": 7,
+      "blocked": 1,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "SD-08",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "D-11"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "fail",
+      "detail": [
+       "compiled level: step 4 (create_promise): expected blocked, got ok",
+       "compiled level: step 5 (add_note): expected ok, got refused",
+       "compiled level: ledger outcome is 'promise', expected 'no_promise'",
+       "compiled level: ledger reason is None, expected 'refused'",
+       "compiled level: ledger promises is [('p2', 180.0, '2026-10-16')], expected []",
+       "compiled level: ledger notes is [('p1', 'refused')], expected [('p1', 'refused'), ('p2', 'refused')]"
+      ],
+      "requests": 7,
+      "blocked": 1,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "SD-09",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "D-17"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "fail",
+      "detail": [
+       "compiled level: ledger outcome is 'promise', expected 'no_promise'",
+       "compiled level: ledger reason is None, expected 'dispute'"
+      ],
+      "requests": 6,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "SD-10",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "D-14",
+      "D-18"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 6,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "SD-11",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "D-02"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 4,
+      "blocked": 2,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "SD-12",
+     "kind": "live",
+     "asserts": "policy",
+     "rules": [
+      "D-05",
+      "D-06",
+      "D-12"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "D-01.t1",
+     "kind": "text",
+     "asserts": "policy",
+     "rules": [
+      "D-01"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "D-01.t2",
+     "kind": "text",
+     "asserts": "policy",
+     "rules": [
+      "D-01"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    }
+   ],
+   "summary": {
+    "rules": 19,
+    "by_layer": {
+     "none": 14,
+     "conversational": 2,
+     "schema": 3
+    },
+    "by_end_to_end": {
+     "encoded, enforcement not played": 6,
+     "enforced": 7,
+     "not evaluated offline": 2,
+     "unsupported": 3,
+     "partial": 1
+    },
+    "by_category": {
+     "opening_and_who_is_on_the_line": {
+      "encoded, enforcement not played": 1,
+      "enforced": 1
+     },
+     "identity": {
+      "encoded, enforcement not played": 1
+     },
+     "the_products": {
+      "encoded, enforcement not played": 1,
+      "not evaluated offline": 1,
+      "unsupported": 1
+     },
+     "amounts_and_dates": {
+      "enforced": 3,
+      "encoded, enforcement not played": 1,
+      "unsupported": 1
+     },
+     "recording": {
+      "not evaluated offline": 1,
+      "enforced": 1
+     },
+     "notes": {
+      "partial": 1,
+      "enforced": 1,
+      "encoded, enforcement not played": 1
+     },
+     "closing": {
+      "unsupported": 1,
+      "enforced": 1,
+      "encoded, enforcement not played": 1
+     }
+    },
+    "behaviour": {
+     "passed": 19,
+     "run": 22,
+     "policy": {
+      "passed": 11,
+      "run": 11
+     },
+     "enforcement": {
+      "passed": 8,
+      "run": 11
+     }
+    },
+    "critical": {
+     "rules": 17,
+     "not_evaluated": [],
+     "weak_evidence_only": [],
+     "not_confirmed_by_behaviour": []
+    },
+    "contract": {
+     "requests": 108,
+     "blocked_by_policy": 8,
+     "problems": []
+    }
+   }
+  },
+  {
+   "package": "e",
+   "tier": "development",
+   "version": 1,
+   "reference_problems": [],
+   "spec_problems": null,
+   "api_notes": [],
+   "static_contract": [],
+   "rules": [
+    {
+     "id": "E-01",
+     "category": "opening_and_who_is_on_the_line",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "E.s10",
+      "E-01.t1",
+      "E-01.t2"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "encoded, enforcement not played",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "none",
+     "weak_evidence": "2/2",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "E-02",
+     "category": "opening_and_who_is_on_the_line",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "E.s5",
+      "SE-11"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "1/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "E-03",
+     "category": "identity",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "E.s1",
+      "E.s2"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "encoded, enforcement not played",
+     "policy_evidence": "2/2",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "E-04",
+     "category": "the_accounts",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "E.f3",
+      "E.f5"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "encoded, enforcement not played",
+     "policy_evidence": "2/2",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "E-05",
+     "category": "dates",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "E.s3",
+      "E.s4",
+      "SE-01"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "2/2",
+     "enforcement_evidence": "1/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "E-06",
+     "category": "dates",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "SE-01"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "none",
+     "enforcement_evidence": "1/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "E-07",
+     "category": "dates",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "E.f11",
+      "SE-02",
+      "SE-03"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "2/2",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "E-08",
+     "category": "dates",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "E.f2",
+      "SE-02",
+      "SE-03"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "2/2",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "E-09",
+     "category": "dates",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "E.f8",
+      "E.f9",
+      "E.f10",
+      "SE-04"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "3/3",
+     "enforcement_evidence": "1/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "E-10",
+     "category": "dates",
+     "critical": true,
+     "fit": "unsupported",
+     "checks": [
+      "SE-10"
+     ],
+     "layer": "schema",
+     "reference": "cannot carry the rule",
+     "extraction": null,
+     "end_to_end": "unsupported",
+     "policy_evidence": "none",
+     "enforcement_evidence": "0/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "E-11",
+     "category": "amounts",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "E.f1",
+      "E.f4",
+      "SE-05",
+      "SE-12"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "2/2",
+     "enforcement_evidence": "2/2",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "E-12",
+     "category": "amounts",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "E.f6",
+      "E.f7",
+      "SE-05"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "2/2",
+     "enforcement_evidence": "1/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "E-13",
+     "category": "amounts",
+     "critical": false,
+     "fit": "text",
+     "checks": [
+      "SE-13"
+     ],
+     "layer": "conversational",
+     "reference": "not evaluated",
+     "extraction": "not evaluated",
+     "end_to_end": "not evaluated offline",
+     "policy_evidence": "none",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "E-14",
+     "category": "amounts",
+     "critical": false,
+     "fit": "text",
+     "checks": [
+      "SE-13"
+     ],
+     "layer": "conversational",
+     "reference": "not evaluated",
+     "extraction": "not evaluated",
+     "end_to_end": "not evaluated offline",
+     "policy_evidence": "none",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "E-15",
+     "category": "recording",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "E.s7"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "encoded, enforcement not played",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "E-16",
+     "category": "handing_the_call_over",
+     "critical": true,
+     "fit": "partial",
+     "checks": [
+      "SE-06",
+      "SE-13"
+     ],
+     "layer": "schema",
+     "reference": "carries none of what the checks ask",
+     "extraction": null,
+     "end_to_end": "partial",
+     "policy_evidence": "none",
+     "enforcement_evidence": "0/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "E-17",
+     "category": "handing_the_call_over",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "SE-08"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "none",
+     "enforcement_evidence": "1/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "E-18",
+     "category": "handing_the_call_over",
+     "critical": true,
+     "fit": "unsupported",
+     "checks": [
+      "SE-07"
+     ],
+     "layer": "schema",
+     "reference": "cannot carry the rule",
+     "extraction": null,
+     "end_to_end": "unsupported",
+     "policy_evidence": "none",
+     "enforcement_evidence": "0/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "E-19",
+     "category": "closing",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "E.s9",
+      "SE-08",
+      "SE-09"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "2/2",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "E-20",
+     "category": "closing",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "SE-09"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "none",
+     "enforcement_evidence": "1/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "E-21",
+     "category": "closing",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "E.s6"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "encoded, enforcement not played",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "E-22",
+     "category": "closing",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "E.s8"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "encoded, enforcement not played",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    }
+   ],
+   "checks": [
+    {
+     "id": "E.f1",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "E-11"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "E.f2",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "E-08"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "E.f3",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "E-04"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "E.f4",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "E-11"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "E.f5",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "E-04"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "E.f6",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "E-12"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "E.f7",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "E-12"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "E.f8",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "E-09"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "E.f9",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "E-09"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "E.f10",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "E-09"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "E.f11",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "E-07"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "E.s1",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "E-03"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "E.s2",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "E-03"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "E.s3",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "E-05"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "E.s4",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "E-05"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "E.s5",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "E-02"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "E.s6",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "E-21"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "E.s7",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "E-15"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "E.s8",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "E-22"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "E.s9",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "E-19"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "E.s10",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "E-01"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "SE-01",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "E-05",
+      "E-06"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 6,
+      "blocked": 1,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "SE-02",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "E-07",
+      "E-08"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 6,
+      "blocked": 1,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "SE-03",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "E-07",
+      "E-08"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 6,
+      "blocked": 1,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "SE-04",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "E-09"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 6,
+      "blocked": 1,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "SE-05",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "E-11",
+      "E-12"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 7,
+      "blocked": 1,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "SE-06",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "E-16"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "fail",
+      "detail": [
+       "compiled level: step 4 (transfer_to_agent): expected blocked, got ok",
+       "compiled level: ledger reason is 'complaint', expected 'plan'",
+       "compiled level: ledger transfers is ['plans', 'complaints'], expected ['plans']"
+      ],
+      "requests": 6,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "SE-07",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "E-18"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "fail",
+      "detail": [
+       "compiled level: step 4 (create_promise): expected ok, got refused",
+       "compiled level: ledger promises is [], expected [('p1', 180.0, '2026-10-15')]"
+      ],
+      "requests": 6,
+      "blocked": 1,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "SE-08",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "E-17",
+      "E-19"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 6,
+      "blocked": 1,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "SE-09",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "E-20",
+      "E-19"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 5,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "SE-10",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "E-10"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "fail",
+      "detail": [
+       "compiled level: step 3 (create_promise): expected refused, got ok",
+       "compiled level: step 4 (create_promise): expected ok, got refused",
+       "compiled level: ledger promises is [('p1', 180.0, '2026-10-14')], expected [('p1', 180.0, '2026-10-15')]"
+      ],
+      "requests": 6,
+      "blocked": 1,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "SE-11",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "E-02"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 4,
+      "blocked": 2,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "SE-12",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "E-11"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 6,
+      "blocked": 1,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "SE-13",
+     "kind": "live",
+     "asserts": "policy",
+     "rules": [
+      "E-13",
+      "E-14",
+      "E-16"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "E-01.t1",
+     "kind": "text",
+     "asserts": "policy",
+     "rules": [
+      "E-01"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "E-01.t2",
+     "kind": "text",
+     "asserts": "policy",
+     "rules": [
+      "E-01"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    }
+   ],
+   "summary": {
+    "rules": 22,
+    "by_layer": {
+     "none": 17,
+     "schema": 3,
+     "conversational": 2
+    },
+    "by_end_to_end": {
+     "encoded, enforcement not played": 6,
+     "enforced": 11,
+     "unsupported": 2,
+     "not evaluated offline": 2,
+     "partial": 1
+    },
+    "by_category": {
+     "opening_and_who_is_on_the_line": {
+      "encoded, enforcement not played": 1,
+      "enforced": 1
+     },
+     "identity": {
+      "encoded, enforcement not played": 1
+     },
+     "the_accounts": {
+      "encoded, enforcement not played": 1
+     },
+     "dates": {
+      "enforced": 5,
+      "unsupported": 1
+     },
+     "amounts": {
+      "enforced": 2,
+      "not evaluated offline": 2
+     },
+     "recording": {
+      "encoded, enforcement not played": 1
+     },
+     "handing_the_call_over": {
+      "partial": 1,
+      "enforced": 1,
+      "unsupported": 1
+     },
+     "closing": {
+      "enforced": 2,
+      "encoded, enforcement not played": 2
+     }
+    },
+    "behaviour": {
+     "passed": 20,
+     "run": 23,
+     "policy": {
+      "passed": 11,
+      "run": 11
+     },
+     "enforcement": {
+      "passed": 9,
+      "run": 12
+     }
+    },
+    "critical": {
+     "rules": 20,
+     "not_evaluated": [],
+     "weak_evidence_only": [],
+     "not_confirmed_by_behaviour": []
+    },
+    "contract": {
+     "requests": 103,
+     "blocked_by_policy": 11,
+     "problems": []
+    }
+   }
+  },
+  {
+   "package": "f",
+   "tier": "selection",
+   "version": 1,
+   "reference_problems": [],
+   "spec_problems": null,
+   "api_notes": [],
+   "static_contract": [],
+   "rules": [
+    {
+     "id": "F-01",
+     "category": "opening",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "F.s1"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "encoded, enforcement not played",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-02",
+     "category": "opening",
+     "critical": false,
+     "fit": "structured",
+     "checks": [
+      "F.s2"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "encoded, enforcement not played",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-03",
+     "category": "opening",
+     "critical": true,
+     "fit": "text",
+     "checks": [],
+     "layer": "conversational",
+     "reference": "not evaluated",
+     "extraction": "not evaluated",
+     "end_to_end": "not evaluated offline",
+     "policy_evidence": "none",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-04",
+     "category": "callback",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "F.s3",
+      "F.c1"
+     ],
+     "layer": "compiler/runtime",
+     "reference": "encodes the rule, the compiled workflow does not behave so",
+     "extraction": null,
+     "end_to_end": "failed",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "0/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-05",
+     "category": "callback",
+     "critical": false,
+     "fit": "text",
+     "checks": [],
+     "layer": "conversational",
+     "reference": "not evaluated",
+     "extraction": "not evaluated",
+     "end_to_end": "not evaluated offline",
+     "policy_evidence": "none",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-06",
+     "category": "identity",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "F.s4"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "encoded, enforcement not played",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-07",
+     "category": "identity",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "F.c2"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "none",
+     "enforcement_evidence": "1/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-08",
+     "category": "identity",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "F.s5",
+      "F.c3"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "1/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-09",
+     "category": "identity",
+     "critical": false,
+     "fit": "text",
+     "checks": [],
+     "layer": "conversational",
+     "reference": "not evaluated",
+     "extraction": "not evaluated",
+     "end_to_end": "not evaluated offline",
+     "policy_evidence": "none",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-10",
+     "category": "accounts",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "F.f10",
+      "F.f11",
+      "F.f12"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "encoded, enforcement not played",
+     "policy_evidence": "3/3",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-11",
+     "category": "calendar",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "F.s6",
+      "F.s7"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "encoded, enforcement not played",
+     "policy_evidence": "2/2",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-12",
+     "category": "calendar",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "F.s8"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "encoded, enforcement not played",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-13",
+     "category": "dates",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "F.f1",
+      "F.f2",
+      "F.f3",
+      "F.f4",
+      "F.c5"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "4/4",
+     "enforcement_evidence": "1/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-14",
+     "category": "dates",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "F.c4"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "none",
+     "enforcement_evidence": "1/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-15",
+     "category": "amounts",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "F.f6",
+      "F.f9"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "encoded, enforcement not played",
+     "policy_evidence": "2/2",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-16",
+     "category": "amounts",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "F.f7",
+      "F.f8"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "encoded, enforcement not played",
+     "policy_evidence": "2/2",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-17",
+     "category": "amounts",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "F.f5",
+      "F.c6"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "1/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-18",
+     "category": "dates",
+     "critical": true,
+     "fit": "unsupported",
+     "checks": [
+      "F.c7"
+     ],
+     "layer": "schema",
+     "reference": "cannot carry the rule",
+     "extraction": null,
+     "end_to_end": "unsupported",
+     "policy_evidence": "none",
+     "enforcement_evidence": "0/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-19",
+     "category": "amounts",
+     "critical": true,
+     "fit": "unsupported",
+     "checks": [
+      "F.c8"
+     ],
+     "layer": "schema",
+     "reference": "cannot carry the rule",
+     "extraction": null,
+     "end_to_end": "unsupported",
+     "policy_evidence": "none",
+     "enforcement_evidence": "0/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-20",
+     "category": "negotiation",
+     "critical": false,
+     "fit": "text",
+     "checks": [],
+     "layer": "conversational",
+     "reference": "not evaluated",
+     "extraction": "not evaluated",
+     "end_to_end": "not evaluated offline",
+     "policy_evidence": "none",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-21",
+     "category": "recording",
+     "critical": true,
+     "fit": "text",
+     "checks": [
+      "F.p1",
+      "F.t1"
+     ],
+     "layer": null,
+     "reference": "passes (text only, weak evidence)",
+     "extraction": null,
+     "end_to_end": "text only",
+     "policy_evidence": "none",
+     "enforcement_evidence": "none",
+     "weak_evidence": "2/2",
+     "weak_only": true,
+     "unconfirmed": true,
+     "note": "not confirmed by behaviour offline: Whether the customer said yes before create_promise is called can only be seen in a live call. Offline it is shown only that the read-back question is in the spec and in the prompt of the step in which create_promise exists."
+    },
+    {
+     "id": "F-22",
+     "category": "recording",
+     "critical": false,
+     "fit": "text",
+     "checks": [
+      "F.t2"
+     ],
+     "layer": null,
+     "reference": "passes (text only, weak evidence)",
+     "extraction": null,
+     "end_to_end": "text only",
+     "policy_evidence": "none",
+     "enforcement_evidence": "none",
+     "weak_evidence": "1/1",
+     "weak_only": true,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-23",
+     "category": "recording",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "F.c9"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "none",
+     "enforcement_evidence": "1/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-24",
+     "category": "recording",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "F.s9",
+      "F.c10",
+      "F.c11"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "2/2",
+     "enforcement_evidence": "1/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-25",
+     "category": "notes",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "F.s10",
+      "F.c12",
+      "F.c25"
+     ],
+     "layer": "compiler/runtime",
+     "reference": "encodes the rule, the compiled workflow does not behave so",
+     "extraction": null,
+     "end_to_end": "failed",
+     "policy_evidence": "2/2",
+     "enforcement_evidence": "0/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-26",
+     "category": "notes",
+     "critical": false,
+     "fit": "text",
+     "checks": [],
+     "layer": "conversational",
+     "reference": "not evaluated",
+     "extraction": "not evaluated",
+     "end_to_end": "not evaluated offline",
+     "policy_evidence": "none",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-27",
+     "category": "handover",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "F.c13"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "none",
+     "enforcement_evidence": "1/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-28",
+     "category": "handover",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "F.s11",
+      "F.c14"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "1/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-29",
+     "category": "closing",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "F.s12",
+      "F.c18"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "1/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-30",
+     "category": "closing",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "F.s17",
+      "F.c15"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "1/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-31",
+     "category": "closing",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "F.s18",
+      "F.c16"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "1/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-32",
+     "category": "handover",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "F.s13",
+      "F.c21"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "1/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-33",
+     "category": "handover",
+     "critical": false,
+     "fit": "text",
+     "checks": [],
+     "layer": "conversational",
+     "reference": "not evaluated",
+     "extraction": "not evaluated",
+     "end_to_end": "not evaluated offline",
+     "policy_evidence": "none",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-34",
+     "category": "negotiation",
+     "critical": false,
+     "fit": "text",
+     "checks": [],
+     "layer": "conversational",
+     "reference": "not evaluated",
+     "extraction": "not evaluated",
+     "end_to_end": "not evaluated offline",
+     "policy_evidence": "none",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-35",
+     "category": "call",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "F.s14"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "encoded, enforcement not played",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-36",
+     "category": "closing",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "F.s16",
+      "F.c17"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "1/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-37",
+     "category": "closing",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "F.s19",
+      "F.c19"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "1/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-38",
+     "category": "closing",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "F.s20",
+      "F.c20"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "1/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-39",
+     "category": "closing",
+     "critical": false,
+     "fit": "text",
+     "checks": [],
+     "layer": "conversational",
+     "reference": "not evaluated",
+     "extraction": "not evaluated",
+     "end_to_end": "not evaluated offline",
+     "policy_evidence": "none",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-40",
+     "category": "handover",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "F.s21",
+      "F.c22"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "1/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-41",
+     "category": "handover",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "F.s22",
+      "F.c23"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "1/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-42",
+     "category": "third_party",
+     "critical": true,
+     "fit": "text",
+     "checks": [],
+     "layer": "conversational",
+     "reference": "not evaluated",
+     "extraction": "not evaluated",
+     "end_to_end": "not evaluated offline",
+     "policy_evidence": "none",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-43",
+     "category": "third_party",
+     "critical": false,
+     "fit": "text",
+     "checks": [],
+     "layer": "conversational",
+     "reference": "not evaluated",
+     "extraction": "not evaluated",
+     "end_to_end": "not evaluated offline",
+     "policy_evidence": "none",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-44",
+     "category": "handover",
+     "critical": true,
+     "fit": "text",
+     "checks": [],
+     "layer": "conversational",
+     "reference": "not evaluated",
+     "extraction": "not evaluated",
+     "end_to_end": "not evaluated offline",
+     "policy_evidence": "none",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-45",
+     "category": "handover",
+     "critical": false,
+     "fit": "text",
+     "checks": [],
+     "layer": "conversational",
+     "reference": "not evaluated",
+     "extraction": "not evaluated",
+     "end_to_end": "not evaluated offline",
+     "policy_evidence": "none",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-46",
+     "category": "identity",
+     "critical": false,
+     "fit": "text",
+     "checks": [],
+     "layer": "conversational",
+     "reference": "not evaluated",
+     "extraction": "not evaluated",
+     "end_to_end": "not evaluated offline",
+     "policy_evidence": "none",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-47",
+     "category": "accounts",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "F.c24"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "encoded, enforcement not played",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-48",
+     "category": "recording",
+     "critical": true,
+     "fit": "text",
+     "checks": [],
+     "layer": "conversational",
+     "reference": "not evaluated",
+     "extraction": "not evaluated",
+     "end_to_end": "not evaluated offline",
+     "policy_evidence": "none",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-49",
+     "category": "documents",
+     "critical": false,
+     "fit": "text",
+     "checks": [],
+     "layer": "conversational",
+     "reference": "not evaluated",
+     "extraction": "not evaluated",
+     "end_to_end": "not evaluated offline",
+     "policy_evidence": "none",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-50",
+     "category": "documents",
+     "critical": false,
+     "fit": "text",
+     "checks": [],
+     "layer": "conversational",
+     "reference": "not evaluated",
+     "extraction": "not evaluated",
+     "end_to_end": "not evaluated offline",
+     "policy_evidence": "none",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-51",
+     "category": "call",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "F.s15"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "encoded, enforcement not played",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-52",
+     "category": "negotiation",
+     "critical": false,
+     "fit": "text",
+     "checks": [],
+     "layer": "conversational",
+     "reference": "not evaluated",
+     "extraction": "not evaluated",
+     "end_to_end": "not evaluated offline",
+     "policy_evidence": "none",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-53",
+     "category": "identity",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "F.s23"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "encoded, enforcement not played",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-54",
+     "category": "notes",
+     "critical": false,
+     "fit": "text",
+     "checks": [],
+     "layer": "conversational",
+     "reference": "not evaluated",
+     "extraction": "not evaluated",
+     "end_to_end": "not evaluated offline",
+     "policy_evidence": "none",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-55",
+     "category": "notes",
+     "critical": false,
+     "fit": "text",
+     "checks": [],
+     "layer": "conversational",
+     "reference": "not evaluated",
+     "extraction": "not evaluated",
+     "end_to_end": "not evaluated offline",
+     "policy_evidence": "none",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-56",
+     "category": "notes",
+     "critical": false,
+     "fit": "text",
+     "checks": [],
+     "layer": "conversational",
+     "reference": "not evaluated",
+     "extraction": "not evaluated",
+     "end_to_end": "not evaluated offline",
+     "policy_evidence": "none",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-57",
+     "category": "notes",
+     "critical": false,
+     "fit": "text",
+     "checks": [],
+     "layer": "conversational",
+     "reference": "not evaluated",
+     "extraction": "not evaluated",
+     "end_to_end": "not evaluated offline",
+     "policy_evidence": "none",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "F-58",
+     "category": "notes",
+     "critical": false,
+     "fit": "text",
+     "checks": [],
+     "layer": "conversational",
+     "reference": "not evaluated",
+     "extraction": "not evaluated",
+     "end_to_end": "not evaluated offline",
+     "policy_evidence": "none",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    }
+   ],
+   "checks": [
+    {
+     "id": "F.s1",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "F-01"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.s2",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "F-02"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.s3",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "F-04"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.s4",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "F-06"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.s5",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "F-08"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.s6",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "F-11"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.s7",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "F-11"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.s8",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "F-12"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.s9",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "F-24"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.s10",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "F-25"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.s11",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "F-28"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.s12",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "F-29"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.s13",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "F-32"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.s14",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "F-35"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.s15",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "F-51"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.s16",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "F-36"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.s17",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "F-30"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.s18",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "F-31"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.s19",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "F-37"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.s20",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "F-38"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.s21",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "F-40"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.s22",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "F-41"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.s23",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "F-53"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.f1",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "F-13"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.f2",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "F-13"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.f3",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "F-13"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.f4",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "F-13"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.f5",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "F-17"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.f6",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "F-15"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.f7",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "F-16"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.f8",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "F-16"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.f9",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "F-15"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.f10",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "F-10"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.f11",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "F-10"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.f12",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "F-10"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.c1",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "F-04"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "fail",
+      "detail": [
+       "compiled level: step 1 (schedule_callback): expected blocked, got ok",
+       "compiled level: step 2 (schedule_callback): expected blocked, got ok",
+       "compiled level: step 3 (schedule_callback): expected blocked, got ok",
+       "compiled level: step 4 (schedule_callback): expected blocked, got ok",
+       "compiled level: ledger callbacks is [('2026-10-14', '15:00'), ('2026-10-15', '09:29'), ('2026-10-15', '17:30'), ('2026-10-15', '17:31'), ('2026-10-19', '10:00')], expected [('2026-10-15', '17:30')]"
+      ],
+      "requests": 5,
+      "blocked": 5,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.c2",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "F-07"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.c3",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "F-08"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 2,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.c4",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "F-14"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 7,
+      "blocked": 3,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.c5",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "F-13"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 5,
+      "blocked": 1,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.c6",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "F-17"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 5,
+      "blocked": 1,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.c7",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "F-18"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "fail",
+      "detail": [
+       "compiled level: step 3 (create_promise): expected blocked, got ok",
+       "compiled level: step 4 (create_promise): expected ok, got refused",
+       "compiled level: ledger promises is [('p1', 200.0, '2026-10-14')], expected [('p1', 400.0, '2026-10-14')]"
+      ],
+      "requests": 5,
+      "blocked": 1,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.c8",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "F-19"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "fail",
+      "detail": [
+       "compiled level: step 3 (create_promise): expected blocked, got ok",
+       "compiled level: step 4 (create_promise): expected ok, got refused",
+       "compiled level: ledger promises is [('p1', 215.0, '2026-10-15')], expected [('p1', 220.0, '2026-10-15')]"
+      ],
+      "requests": 5,
+      "blocked": 1,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.c9",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "F-23"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 5,
+      "blocked": 1,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.c10",
+     "kind": "calls",
+     "asserts": "policy",
+     "rules": [
+      "F-24"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 6,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.c11",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "F-24"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 7,
+      "blocked": 1,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.c12",
+     "kind": "calls",
+     "asserts": "policy",
+     "rules": [
+      "F-25"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 6,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.c13",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "F-27"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 5,
+      "blocked": 1,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.c14",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "F-28"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 5,
+      "blocked": 1,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.c15",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "F-30"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 6,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.c16",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "F-31"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 6,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.c17",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "F-36"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 6,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.c18",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "F-29"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 5,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.c19",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "F-37"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.c20",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "F-38"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 2,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.c21",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "F-32"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 2,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.c22",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "F-40"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 2,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.c23",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "F-41"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 2,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.c24",
+     "kind": "calls",
+     "asserts": "policy",
+     "rules": [
+      "F-47"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.c25",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "F-25"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "fail",
+      "detail": [
+       "compiled level: step 4 (close_call): expected blocked, got ok",
+       "compiled level: step 5 (add_note): expected ok, got unavailable",
+       "compiled level: step 6 (close_call): expected ok, got unavailable",
+       "compiled level: ledger notes is [], expected [('p2', 'declined')]"
+      ],
+      "requests": 5,
+      "blocked": 1,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.p1",
+     "kind": "prompt",
+     "asserts": "policy",
+     "rules": [
+      "F-21"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.t1",
+     "kind": "text",
+     "asserts": "policy",
+     "rules": [
+      "F-21"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "F.t2",
+     "kind": "text",
+     "asserts": "policy",
+     "rules": [
+      "F-22"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    }
+   ],
+   "summary": {
+    "rules": 58,
+    "by_layer": {
+     "none": 32,
+     "conversational": 22,
+     "compiler/runtime": 2,
+     "schema": 2
+    },
+    "by_end_to_end": {
+     "encoded, enforcement not played": 12,
+     "not evaluated offline": 22,
+     "failed": 2,
+     "enforced": 18,
+     "unsupported": 2,
+     "text only": 2
+    },
+    "by_category": {
+     "opening": {
+      "encoded, enforcement not played": 2,
+      "not evaluated offline": 1
+     },
+     "callback": {
+      "failed": 1,
+      "not evaluated offline": 1
+     },
+     "identity": {
+      "encoded, enforcement not played": 2,
+      "enforced": 2,
+      "not evaluated offline": 2
+     },
+     "accounts": {
+      "encoded, enforcement not played": 2
+     },
+     "calendar": {
+      "encoded, enforcement not played": 2
+     },
+     "dates": {
+      "enforced": 2,
+      "unsupported": 1
+     },
+     "amounts": {
+      "encoded, enforcement not played": 2,
+      "enforced": 1,
+      "unsupported": 1
+     },
+     "negotiation": {
+      "not evaluated offline": 3
+     },
+     "recording": {
+      "text only": 2,
+      "enforced": 2,
+      "not evaluated offline": 1
+     },
+     "notes": {
+      "failed": 1,
+      "not evaluated offline": 6
+     },
+     "handover": {
+      "enforced": 5,
+      "not evaluated offline": 3
+     },
+     "closing": {
+      "enforced": 6,
+      "not evaluated offline": 1
+     },
+     "call": {
+      "encoded, enforcement not played": 2
+     },
+     "third_party": {
+      "not evaluated offline": 2
+     },
+     "documents": {
+      "not evaluated offline": 2
+     }
+    },
+    "behaviour": {
+     "passed": 33,
+     "run": 37,
+     "policy": {
+      "passed": 15,
+      "run": 15
+     },
+     "enforcement": {
+      "passed": 18,
+      "run": 22
+     }
+    },
+    "critical": {
+     "rules": 38,
+     "not_evaluated": [
+      "F-03",
+      "F-42",
+      "F-44",
+      "F-48"
+     ],
+     "weak_evidence_only": [
+      "F-21"
+     ],
+     "not_confirmed_by_behaviour": [
+      "F-21"
+     ]
+    },
+    "contract": {
+     "requests": 152,
+     "blocked_by_policy": 17,
+     "problems": []
+    }
+   }
+  },
+  {
+   "package": "g",
+   "tier": "final",
+   "version": 1,
+   "reference_problems": [],
+   "spec_problems": null,
+   "api_notes": [],
+   "static_contract": [],
+   "rules": [
+    {
+     "id": "G-01",
+     "category": "opening_and_who_is_on_the_line",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "G.s1",
+      "G-01.t1",
+      "G-01.t2"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "encoded, enforcement not played",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "none",
+     "weak_evidence": "2/2",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "G-02",
+     "category": "opening_and_who_is_on_the_line",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "G.s2",
+      "G.c1"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "1/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "G-03",
+     "category": "opening_and_who_is_on_the_line",
+     "critical": true,
+     "fit": "unsupported",
+     "checks": [
+      "G.c7"
+     ],
+     "layer": "schema",
+     "reference": "cannot carry the rule",
+     "extraction": null,
+     "end_to_end": "unsupported",
+     "policy_evidence": "none",
+     "enforcement_evidence": "0/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "G-04",
+     "category": "opening_and_who_is_on_the_line",
+     "critical": false,
+     "fit": "text",
+     "checks": [],
+     "layer": "conversational",
+     "reference": "not evaluated",
+     "extraction": "not evaluated",
+     "end_to_end": "not evaluated offline",
+     "policy_evidence": "none",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "G-05",
+     "category": "identity",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "G.s3"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "encoded, enforcement not played",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "G-06",
+     "category": "identity",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "G.c2"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "none",
+     "enforcement_evidence": "1/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "G-07",
+     "category": "identity",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "G.s4",
+      "G.c3"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "1/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "G-08",
+     "category": "identity",
+     "critical": false,
+     "fit": "text",
+     "checks": [],
+     "layer": "conversational",
+     "reference": "not evaluated",
+     "extraction": "not evaluated",
+     "end_to_end": "not evaluated offline",
+     "policy_evidence": "none",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "G-09",
+     "category": "the_products",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "G.f12",
+      "G.f13",
+      "G.f14"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "encoded, enforcement not played",
+     "policy_evidence": "3/3",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "G-10",
+     "category": "dates",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "G.s5",
+      "G.s6"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "encoded, enforcement not played",
+     "policy_evidence": "2/2",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "G-11",
+     "category": "dates",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "G.f7",
+      "G.f8",
+      "G.f10"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "encoded, enforcement not played",
+     "policy_evidence": "3/3",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "G-12",
+     "category": "dates",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "G.f9",
+      "G.f11"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "encoded, enforcement not played",
+     "policy_evidence": "2/2",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "G-13",
+     "category": "dates",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "G.c4"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "none",
+     "enforcement_evidence": "1/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "G-14",
+     "category": "dates",
+     "critical": true,
+     "fit": "unsupported",
+     "checks": [
+      "G.c6"
+     ],
+     "layer": "schema",
+     "reference": "cannot carry the rule",
+     "extraction": null,
+     "end_to_end": "unsupported",
+     "policy_evidence": "none",
+     "enforcement_evidence": "0/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "G-15",
+     "category": "amounts",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "G.f2"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "encoded, enforcement not played",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "G-16",
+     "category": "amounts",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "G.f1",
+      "G.f3",
+      "G.f4",
+      "G.f5",
+      "G.f6",
+      "G.c5"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "5/5",
+     "enforcement_evidence": "1/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "G-17",
+     "category": "amounts",
+     "critical": false,
+     "fit": "text",
+     "checks": [],
+     "layer": "conversational",
+     "reference": "not evaluated",
+     "extraction": "not evaluated",
+     "end_to_end": "not evaluated offline",
+     "policy_evidence": "none",
+     "enforcement_evidence": "none",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "G-18",
+     "category": "recording",
+     "critical": true,
+     "fit": "partial",
+     "checks": [
+      "G.c8",
+      "G.p1",
+      "G-18.t1"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "partial",
+     "policy_evidence": "none",
+     "enforcement_evidence": "1/1",
+     "weak_evidence": "2/2",
+     "weak_only": false,
+     "unconfirmed": true,
+     "note": "not confirmed by behaviour offline: Whether the customer said yes before create_promise is called can only be seen in a live call. Offline it is shown only that the read-back question is in the spec and in the prompt of the step in which create_promise exists. That a second promise for a product is not recorded is enforced and checked."
+    },
+    {
+     "id": "G-19",
+     "category": "recording",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "G.s7",
+      "G.c9"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "1/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "G-20",
+     "category": "recording",
+     "critical": false,
+     "fit": "text",
+     "checks": [
+      "G-20.t1"
+     ],
+     "layer": null,
+     "reference": "passes (text only, weak evidence)",
+     "extraction": null,
+     "end_to_end": "text only",
+     "policy_evidence": "none",
+     "enforcement_evidence": "none",
+     "weak_evidence": "1/1",
+     "weak_only": true,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "G-21",
+     "category": "notes",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "G.s8",
+      "G.c14",
+      "G.c15"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "2/2",
+     "enforcement_evidence": "1/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "G-22",
+     "category": "handing_the_call_over",
+     "critical": false,
+     "fit": "text",
+     "checks": [
+      "G-22.t1"
+     ],
+     "layer": null,
+     "reference": "passes (text only, weak evidence)",
+     "extraction": null,
+     "end_to_end": "text only",
+     "policy_evidence": "none",
+     "enforcement_evidence": "none",
+     "weak_evidence": "1/1",
+     "weak_only": true,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "G-23",
+     "category": "handing_the_call_over",
+     "critical": true,
+     "fit": "partial",
+     "checks": [
+      "G.s9",
+      "G.c10"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "partial",
+     "policy_evidence": "1/1",
+     "enforcement_evidence": "1/1",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    },
+    {
+     "id": "G-24",
+     "category": "closing",
+     "critical": true,
+     "fit": "structured",
+     "checks": [
+      "G.s10",
+      "G.s11",
+      "G.c11",
+      "G.c12",
+      "G.c13"
+     ],
+     "layer": null,
+     "reference": "passes",
+     "extraction": null,
+     "end_to_end": "enforced",
+     "policy_evidence": "2/2",
+     "enforcement_evidence": "3/3",
+     "weak_evidence": "none",
+     "weak_only": false,
+     "unconfirmed": false,
+     "note": ""
+    }
+   ],
+   "checks": [
+    {
+     "id": "G.s1",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "G-01"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "G.s2",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "G-02"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "G.s3",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "G-05"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "G.s4",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "G-07"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "G.s5",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "G-10"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "G.s6",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "G-10"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "G.s7",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "G-19"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "G.s8",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "G-21"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "G.s9",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "G-23"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "G.s10",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "G-24"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "G.s11",
+     "kind": "structure",
+     "asserts": "policy",
+     "rules": [
+      "G-24"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "G.f1",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "G-16"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "G.f2",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "G-15"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "G.f3",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "G-16"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "G.f4",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "G-16"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "G.f5",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "G-16"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "G.f6",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "G-16"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "G.f7",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "G-11"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "G.f8",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "G-11"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "G.f9",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "G-12"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "G.f10",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "G-11"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "G.f11",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "G-12"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "G.f12",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "G-09"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "G.f13",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "G-09"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "G.f14",
+     "kind": "fact",
+     "asserts": "policy",
+     "rules": [
+      "G-09"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "G.c1",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "G-02"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 6,
+      "blocked": 4,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "G.c2",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "G-06"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "G.c3",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "G-07"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 5,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "G.c4",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "G-13"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 7,
+      "blocked": 3,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "G.c5",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "G-16"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 5,
+      "blocked": 1,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "G.c6",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "G-14"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "fail",
+      "detail": [
+       "compiled level: step 4 (create_promise): expected blocked, got ok",
+       "compiled level: step 5 (create_promise): expected ok, got refused",
+       "compiled level: ledger promises is [('p1', 900.0, '2026-10-15'), ('p2', 800.0, '2026-10-16')], expected [('p1', 900.0, '2026-10-15'), ('p2', 800.0, '2026-10-15')]"
+      ],
+      "requests": 6,
+      "blocked": 1,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "G.c7",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "G-03"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "fail",
+      "detail": [
+       "compiled level: step 1 (schedule_callback): expected blocked, got ok",
+       "compiled level: step 3 (schedule_callback): expected ok, got detached",
+       "compiled level: ledger callbacks is [('2026-10-15', '12:45')], expected [('2026-10-15', '13:31')]"
+      ],
+      "requests": 3,
+      "blocked": 2,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "G.c8",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "G-18"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 5,
+      "blocked": 1,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "G.c9",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "G-19"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 7,
+      "blocked": 1,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "G.c10",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "G-23"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 6,
+      "blocked": 1,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "G.c11",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "G-24"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 6,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "G.c12",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "G-24"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 6,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "G.c13",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "G-24"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 6,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "G.c14",
+     "kind": "calls",
+     "asserts": "policy",
+     "rules": [
+      "G-21"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 6,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "G.c15",
+     "kind": "calls",
+     "asserts": "enforcement",
+     "rules": [
+      "G-21"
+     ],
+     "reference": {
+      "spec": "na",
+      "compiled": "pass",
+      "detail": [],
+      "requests": 7,
+      "blocked": 1,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "G.p1",
+     "kind": "prompt",
+     "asserts": "policy",
+     "rules": [
+      "G-18"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 3,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "G-01.t1",
+     "kind": "text",
+     "asserts": "policy",
+     "rules": [
+      "G-01"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "G-01.t2",
+     "kind": "text",
+     "asserts": "policy",
+     "rules": [
+      "G-01"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "G-18.t1",
+     "kind": "text",
+     "asserts": "policy",
+     "rules": [
+      "G-18"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "G-20.t1",
+     "kind": "text",
+     "asserts": "policy",
+     "rules": [
+      "G-20"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    },
+    {
+     "id": "G-22.t1",
+     "kind": "text",
+     "asserts": "policy",
+     "rules": [
+      "G-22"
+     ],
+     "reference": {
+      "spec": "pass",
+      "compiled": "na",
+      "detail": [],
+      "requests": 0,
+      "blocked": 0,
+      "contract": []
+     },
+     "extracted": null
+    }
+   ],
+   "summary": {
+    "rules": 24,
+    "by_layer": {
+     "none": 19,
+     "schema": 2,
+     "conversational": 3
+    },
+    "by_end_to_end": {
+     "encoded, enforcement not played": 7,
+     "enforced": 8,
+     "unsupported": 2,
+     "not evaluated offline": 3,
+     "partial": 2,
+     "text only": 2
+    },
+    "by_category": {
+     "opening_and_who_is_on_the_line": {
+      "encoded, enforcement not played": 1,
+      "enforced": 1,
+      "unsupported": 1,
+      "not evaluated offline": 1
+     },
+     "identity": {
+      "encoded, enforcement not played": 1,
+      "enforced": 2,
+      "not evaluated offline": 1
+     },
+     "the_products": {
+      "encoded, enforcement not played": 1
+     },
+     "dates": {
+      "encoded, enforcement not played": 3,
+      "enforced": 1,
+      "unsupported": 1
+     },
+     "amounts": {
+      "encoded, enforcement not played": 1,
+      "enforced": 1,
+      "not evaluated offline": 1
+     },
+     "recording": {
+      "partial": 1,
+      "enforced": 1,
+      "text only": 1
+     },
+     "notes": {
+      "enforced": 1
+     },
+     "handing_the_call_over": {
+      "text only": 1,
+      "partial": 1
+     },
+     "closing": {
+      "enforced": 1
+     }
+    },
+    "behaviour": {
+     "passed": 27,
+     "run": 29,
+     "policy": {
+      "passed": 15,
+      "run": 15
+     },
+     "enforcement": {
+      "passed": 12,
+      "run": 14
+     }
+    },
+    "critical": {
+     "rules": 19,
+     "not_evaluated": [],
+     "weak_evidence_only": [],
+     "not_confirmed_by_behaviour": [
+      "G-18"
+     ]
+    },
+    "contract": {
+     "requests": 129,
+     "blocked_by_policy": 15,
+     "problems": []
+    }
+   }
+  }
+ ],
+ "mutations": {
+  "c": [
+   {
+    "id": "C.m1",
+    "what": "store card floor 40 -> 45 percent",
+    "expected": [
+     "C-12"
+    ],
+    "flagged": [
+     "C-12"
+    ],
+    "coupled": [],
+    "ok": true,
+    "layers": {
+     "C-12": "extraction"
+    }
+   },
+   {
+    "id": "C.m2",
+    "what": "first deadline band 5 -> 6 calendar days",
+    "expected": [
+     "C-10"
+    ],
+    "flagged": [
+     "C-09",
+     "C-10"
+    ],
+    "coupled": [
+     "C-09"
+    ],
+    "ok": true,
+    "layers": {
+     "C-09": "extraction",
+     "C-10": "extraction"
+    }
+   },
+   {
+    "id": "C.m3",
+    "what": "wrong answers allowed 2 -> 3",
+    "expected": [
+     "C-05"
+    ],
+    "flagged": [
+     "C-05"
+    ],
+    "coupled": [],
+    "ok": true,
+    "layers": {
+     "C-05": "extraction"
+    }
+   },
+   {
+    "id": "C.m4",
+    "what": "outcome table loses the reason wrong_number",
+    "expected": [
+     "C-20"
+    ],
+    "flagged": [
+     "C-20"
+    ],
+    "coupled": [],
+    "ok": true,
+    "layers": {
+     "C-20": "extraction"
+    }
+   }
+  ],
+  "d": [
+   {
+    "id": "D.m1",
+    "what": "credit card floor 30 -> 35 percent",
+    "expected": [
+     "D-07"
+    ],
+    "flagged": [
+     "D-07"
+    ],
+    "coupled": [],
+    "ok": true,
+    "layers": {
+     "D-07": "extraction"
+    }
+   },
+   {
+    "id": "D.m2",
+    "what": "mortgage deadline 3 -> 4 business days (the check that a date after the deadline is refused moves with it)",
+    "expected": [
+     "D-09",
+     "D-10"
+    ],
+    "flagged": [
+     "D-09",
+     "D-10"
+    ],
+    "coupled": [],
+    "ok": true,
+    "layers": {
+     "D-09": "extraction",
+     "D-10": "extraction"
+    }
+   },
+   {
+    "id": "D.m3",
+    "what": "callback window ends 17:00 -> 18:00",
+    "expected": [
+     "D-02"
+    ],
+    "flagged": [
+     "D-02"
+    ],
+    "coupled": [],
+    "ok": true,
+    "layers": {
+     "D-02": "extraction"
+    }
+   },
+   {
+    "id": "D.m4",
+    "what": "promise attempts 3 -> 2",
+    "expected": [
+     "D-13"
+    ],
+    "flagged": [
+     "D-13"
+    ],
+    "coupled": [],
+    "ok": true,
+    "layers": {
+     "D-13": "extraction"
+    }
+   }
+  ],
+  "e": [
+   {
+    "id": "E.m1",
+    "what": "electricity floor 35.00 -> 40.00",
+    "expected": [
+     "E-11"
+    ],
+    "flagged": [
+     "E-11",
+     "E-12"
+    ],
+    "coupled": [
+     "E-12"
+    ],
+    "ok": true,
+    "layers": {
+     "E-11": "extraction",
+     "E-12": "extraction"
+    }
+   },
+   {
+    "id": "E.m2",
+    "what": "the vulnerable floor is dropped",
+    "expected": [
+     "E-12"
+    ],
+    "flagged": [
+     "E-11",
+     "E-12"
+    ],
+    "coupled": [
+     "E-11"
+    ],
+    "ok": true,
+    "layers": {
+     "E-11": "extraction",
+     "E-12": "extraction"
+    }
+   },
+   {
+    "id": "E.m3",
+    "what": "ten calendar days -> twelve (the boundary check of rule 9 expects the date of rule 8)",
+    "expected": [
+     "E-08",
+     "E-09"
+    ],
+    "flagged": [
+     "E-07",
+     "E-08",
+     "E-09"
+    ],
+    "coupled": [
+     "E-07"
+    ],
+    "ok": true,
+    "layers": {
+     "E-07": "extraction",
+     "E-08": "extraction",
+     "E-09": "extraction"
+    }
+   },
+   {
+    "id": "E.m4",
+    "what": "Friday becomes a business day (every date rule counts business days)",
+    "expected": [
+     "E-05",
+     "E-06",
+     "E-07",
+     "E-08",
+     "E-09"
+    ],
+    "flagged": [
+     "E-05",
+     "E-06",
+     "E-07",
+     "E-08",
+     "E-09"
+    ],
+    "coupled": [],
+    "ok": true,
+    "layers": {
+     "E-05": "extraction",
+     "E-06": "extraction",
+     "E-07": "extraction",
+     "E-08": "extraction",
+     "E-09": "extraction"
+    }
+   }
+  ],
+  "f": [
+   {
+    "id": "F.m1",
+    "what": "memo ignored: card minimum back to half",
+    "expected": [
+     "F-17"
+    ],
+    "flagged": [
+     "F-17"
+    ],
+    "coupled": [],
+    "ok": true,
+    "layers": {
+     "F-17": "extraction"
+    }
+   },
+   {
+    "id": "F.m2",
+    "what": "memo ignored: latest date back to 10 calendar days",
+    "expected": [
+     "F-13"
+    ],
+    "flagged": [
+     "F-13"
+    ],
+    "coupled": [],
+    "ok": true,
+    "layers": {
+     "F-13": "extraction"
+    }
+   },
+   {
+    "id": "F.m3",
+    "what": "memo ignored: three wrong answers (the unverified close is played after two)",
+    "expected": [
+     "F-08",
+     "F-37"
+    ],
+    "flagged": [
+     "F-08",
+     "F-37"
+    ],
+    "coupled": [],
+    "ok": true,
+    "layers": {
+     "F-08": "extraction",
+     "F-37": "extraction"
+    }
+   },
+   {
+    "id": "F.m4",
+    "what": "memo ignored: 16 October is not a holiday (the dates that count working days move with it)",
+    "expected": [
+     "F-12",
+     "F-13",
+     "F-14"
+    ],
+    "flagged": [
+     "F-12",
+     "F-13",
+     "F-14"
+    ],
+    "coupled": [],
+    "ok": true,
+    "layers": {
+     "F-12": "extraction",
+     "F-13": "extraction",
+     "F-14": "extraction"
+    }
+   },
+   {
+    "id": "F.m5",
+    "what": "memo ignored: notes after a handover",
+    "expected": [
+     "F-28"
+    ],
+    "flagged": [
+     "F-28"
+    ],
+    "coupled": [],
+    "ok": true,
+    "layers": {
+     "F-28": "extraction"
+    }
+   },
+   {
+    "id": "F.m6",
+    "what": "memo ignored: the mail's callback window",
+    "expected": [
+     "F-04"
+    ],
+    "flagged": [
+     "F-04"
+    ],
+    "coupled": [],
+    "ok": true,
+    "layers": {
+     "F-04": "compiler/runtime"
+    }
+   },
+   {
+    "id": "F.m7",
+    "what": "the payment plans team closes with the wrong code",
+    "expected": [
+     "F-32"
+    ],
+    "flagged": [
+     "F-32"
+    ],
+    "coupled": [],
+    "ok": true,
+    "layers": {
+     "F-32": "extraction"
+    }
+   },
+   {
+    "id": "F.m8",
+    "what": "a promise comes before a handover at the close",
+    "expected": [
+     "F-30"
+    ],
+    "flagged": [
+     "F-30"
+    ],
+    "coupled": [],
+    "ok": true,
+    "layers": {
+     "F-30": "extraction"
+    }
+   },
+   {
+    "id": "F.m9",
+    "what": "the questions are asked in the old order",
+    "expected": [
+     "F-06",
+     "F-53"
+    ],
+    "flagged": [
+     "F-06",
+     "F-53"
+    ],
+    "coupled": [],
+    "ok": true,
+    "layers": {
+     "F-06": "extraction",
+     "F-53": "extraction"
+    }
+   }
+  ],
+  "g": [
+   {
+    "id": "G.m1",
+    "what": "dates in numbers read as day, month, year",
+    "expected": [
+     "G-06"
+    ],
+    "flagged": [
+     "G-06"
+    ],
+    "coupled": [],
+    "ok": true,
+    "layers": {
+     "G-06": "extraction"
+    }
+   },
+   {
+    "id": "G.m2",
+    "what": "card floor 25.00 -> 20.00",
+    "expected": [
+     "G-16"
+    ],
+    "flagged": [
+     "G-16"
+    ],
+    "coupled": [],
+    "ok": true,
+    "layers": {
+     "G-16": "extraction"
+    }
+   },
+   {
+    "id": "G.m3",
+    "what": "Saturday is not a business day (the dates that depend on the week move with it)",
+    "expected": [
+     "G-10",
+     "G-11",
+     "G-13"
+    ],
+    "flagged": [
+     "G-10",
+     "G-11",
+     "G-13"
+    ],
+    "coupled": [],
+    "ok": true,
+    "layers": {
+     "G-10": "extraction",
+     "G-11": "extraction",
+     "G-13": "extraction"
+    }
+   },
+   {
+    "id": "G.m4",
+    "what": "a promise comes before a transfer at the close",
+    "expected": [
+     "G-24"
+    ],
+    "flagged": [
+     "G-24"
+    ],
+    "coupled": [],
+    "ok": true,
+    "layers": {
+     "G-24": "extraction"
+    }
+   },
+   {
+    "id": "G.m5",
+    "what": "callbacks on the next two business days only",
+    "expected": [
+     "G-02"
+    ],
+    "flagged": [
+     "G-02"
+    ],
+    "coupled": [],
+    "ok": true,
+    "layers": {
+     "G-02": "extraction"
+    }
+   }
+  ]
+ }
+}

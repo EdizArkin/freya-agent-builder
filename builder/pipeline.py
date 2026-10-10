@@ -21,6 +21,7 @@ from builder.freya import deployment
 from builder.spec.models import SpecError
 from builder.spec.openapi import Api
 from builder.tracing.trace import Trace
+from builder.validation import contract
 from builder.validation.safety import leaks
 from builder.validation.spec import validate
 from builder.validation.workflow import check_workflow
@@ -38,7 +39,11 @@ def build_workflow(spec, document, best_effort=False):
     problems = check_workflow(workflow)
     if problems:
         raise CompileError('; '.join(problems))
-    return workflow, dict({'warnings': warnings}, **report)
+    try:
+        departures = contract.check_tools(workflow, api) + contract.document_notes(api)
+    except Exception as exc:      # the comparison is a report; it must never be the reason a build fails
+        departures = ['the comparison with the tool API did not run: %s: %s' % (type(exc).__name__, exc)]
+    return workflow, dict({'warnings': warnings, 'contract': departures}, **report)
 
 
 def arguments(argv=None):
@@ -93,6 +98,8 @@ def main(argv=None):
         workflow_path = files.write_json(store.WORKFLOW, workflow)
         for warning in report['warnings']:
             trace('warning: ' + warning)
+        for line in report['contract']:
+            trace('tool API contract: ' + line)
         trace('compiled and locally validated: %s | %d bytes | nodes %s' % (workflow_path, report['bytes'], ', '.join(report['nodes'])))
 
         # 4. the platform, only when asked

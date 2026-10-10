@@ -1,0 +1,89 @@
+{
+ "package": "g",
+ "mutations": [
+  {
+   "id": "G.m1",
+   "what": "dates in numbers read as day, month, year",
+   "rules": [
+    "G-06"
+   ],
+   "ops": [
+    {
+     "path": "/identity/questions/1/numeric_order",
+     "set": "DMY"
+    }
+   ]
+  },
+  {
+   "id": "G.m2",
+   "what": "card floor 25.00 -> 20.00",
+   "rules": [
+    "G-16"
+   ],
+   "ops": [
+    {
+     "path": "/account/values/2/expr/cases/2/expr/value",
+     "set": 20
+    }
+   ]
+  },
+  {
+   "id": "G.m3",
+   "what": "Saturday is not a business day (the dates that depend on the week move with it)",
+   "rules": [
+    "G-10",
+    "G-11",
+    "G-13"
+   ],
+   "ops": [
+    {
+     "path": "/calendar/business_weekdays",
+     "set": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ]
+    }
+   ]
+  },
+  {
+   "id": "G.m4",
+   "what": "a promise comes before a transfer at the close",
+   "rules": [
+    "G-24"
+   ],
+   "ops": [
+    {
+     "path": "/close/forced/1",
+     "set": {
+      "if": "promise_recorded",
+      "outcome": "promise"
+     }
+    },
+    {
+     "path": "/close/forced/2",
+     "set": {
+      "if": "transferred",
+      "outcome": "transferred",
+      "reason_from": "last_transfer_queue"
+     }
+    }
+   ]
+  },
+  {
+   "id": "G.m5",
+   "what": "callbacks on the next two business days only",
+   "rules": [
+    "G-02"
+   ],
+   "ops": [
+    {
+     "path": "/callback/next_business_days",
+     "set": 2
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,261 @@
+{
+ "package": "c",
+ "rules": [
+  {
+   "id": "C-01",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 1"
+   },
+   "evidence": "First sentence: \"Hello, this is the automated assistant of Northwind Credit Union. This call may be monitored.\" Then ask \"Am I speaking with {first_name} {last_name}?\". Do not mention arrears, money or the product before identity is verified.",
+   "category": "opening_and_who_is_on_the_line",
+   "critical": true,
+   "anchors": []
+  },
+  {
+   "id": "C-02",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 2"
+   },
+   "evidence": "If someone else answers, say that you will call again and give no reason. Do not arrange a time: `schedule_callback` is never used in this brief. Close as `not_reached` / `no_callback`. If the person says the number does not belong to the member, close as `not_reached` / `wrong_number`.",
+   "category": "opening_and_who_is_on_the_line",
+   "critical": true,
+   "anchors": [
+    "not_reached",
+    "no_callback",
+    "not_reached",
+    "wrong_number"
+   ]
+  },
+  {
+   "id": "C-03",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 3"
+   },
+   "evidence": "Ask two security questions, one at a time and in this order: the postcode of the registered address, then the year of birth. Call `verify_identity` with field `postcode` or `birth_year`.",
+   "category": "identity",
+   "critical": true,
+   "anchors": [
+    "postcode",
+    "birth_year"
+   ]
+  },
+  {
+   "id": "C-04",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 4"
+   },
+   "evidence": "Send the postcode in capital letters without spaces (\"nw1 4rt\" is sent as `NW14RT`). Send the year of birth as four digits.",
+   "category": "identity",
+   "critical": true,
+   "anchors": [
+    "NW14RT"
+   ]
+  },
+  {
+   "id": "C-05",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 5"
+   },
+   "evidence": "Two wrong answers in total end the check, whichever question they were on. The service itself allows three; this brief is stricter. Tell the member to visit a branch and close as `not_verified` / `failed`.",
+   "category": "identity",
+   "critical": true,
+   "anchors": [
+    "not_verified",
+    "failed"
+   ]
+  },
+  {
+   "id": "C-06",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 6"
+   },
+   "evidence": "If the member declines to answer a security question, close as `not_verified` / `declined` at once. Do not explain and do not ask again.",
+   "category": "identity",
+   "critical": false,
+   "anchors": [
+    "not_verified",
+    "declined"
+   ]
+  },
+  {
+   "id": "C-07",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 7"
+   },
+   "evidence": "After both questions pass, call `get_account`. Name the product in words: \"member loan\" or \"store card ending 6120\". State the past-due amount and how many days late it is.",
+   "category": "the_account",
+   "critical": true,
+   "anchors": []
+  },
+  {
+   "id": "C-08",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 8"
+   },
+   "evidence": "**Eligibility.** A promise may be recorded only when `plan_active` is `false` and `days_late` is 60 or less. Otherwise do not negotiate. Say that the arrears team will handle the account, call `transfer_to_agent` with queue `arrears_team` and close as `transferred` / `arrears`.",
+   "category": "the_account",
+   "critical": true,
+   "anchors": [
+    "plan_active",
+    "days_late",
+    "arrears_team",
+    "transferred",
+    "arrears"
+   ]
+  },
+  {
+   "id": "C-09",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 9"
+   },
+   "evidence": "Business days are Monday to Saturday, except these holidays: 2026-10-19, 2026-11-02, 2026-12-25, 2026-12-26.",
+   "category": "dates",
+   "critical": true,
+   "anchors": []
+  },
+  {
+   "id": "C-10",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 10"
+   },
+   "evidence": "The **deadline** is the fifth calendar day after today when `days_late` is 1 to 30, and the second calendar day after today when it is more. If that day is not a business day, the deadline is the last business day before it.",
+   "category": "dates",
+   "critical": true,
+   "anchors": [
+    "days_late"
+   ]
+  },
+  {
+   "id": "C-11",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 11"
+   },
+   "evidence": "A promise date is tomorrow or later, a business day, and not after the deadline. A promise for today is never recorded: payments take one day to set up.",
+   "category": "dates",
+   "critical": true,
+   "anchors": []
+  },
+  {
+   "id": "C-12",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 12"
+   },
+   "evidence": "The **floor** is 40 percent of the past-due amount for a store card and 25 percent for a member loan. The most that can be promised is the full past-due amount. Any amount from the floor to the full amount, both included, is accepted.",
+   "category": "amounts",
+   "critical": true,
+   "anchors": []
+  },
+  {
+   "id": "C-13",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 13"
+   },
+   "evidence": "Ask for the full amount on the deadline first. If the member refuses, make one persuasion attempt: the floor on the deadline. If that is refused too, close as `no_promise` / `refused`.",
+   "category": "amounts",
+   "critical": false,
+   "anchors": [
+    "no_promise",
+    "refused"
+   ]
+  },
+  {
+   "id": "C-14",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 14"
+   },
+   "evidence": "Read the amount and the date back and ask \"Is that correct?\". Call `create_promise` only after a clear yes. One promise per call.",
+   "category": "recording",
+   "critical": false,
+   "anchors": []
+  },
+  {
+   "id": "C-15",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 15"
+   },
+   "evidence": "If `create_promise` fails, do not try again. Say that you could not record it and close as `no_promise` / `service_error`.",
+   "category": "recording",
+   "critical": true,
+   "anchors": [
+    "no_promise",
+    "service_error"
+   ]
+  },
+  {
+   "id": "C-16",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 16"
+   },
+   "evidence": "After a recorded promise say: \"Your promise is on file.\"",
+   "category": "recording",
+   "critical": true,
+   "anchors": []
+  },
+  {
+   "id": "C-17",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 17"
+   },
+   "evidence": "\"I already paid\": take no promise and close as `paid`.",
+   "category": "other_things_members_say",
+   "critical": false,
+   "anchors": [
+    "paid"
+   ]
+  },
+  {
+   "id": "C-18",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 18"
+   },
+   "evidence": "A dispute about the debt, or a request for a person: call `transfer_to_agent` with queue `general` at once, without asking whether you can help first, and close as `transferred` / `general`. This applies before and after verification.",
+   "category": "other_things_members_say",
+   "critical": true,
+   "anchors": [
+    "general",
+    "transferred",
+    "general"
+   ]
+  },
+  {
+   "id": "C-19",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 19"
+   },
+   "evidence": "`add_note` is never used.",
+   "category": "other_things_members_say",
+   "critical": true,
+   "anchors": []
+  },
+  {
+   "id": "C-20",
+   "source": {
+    "document": "brief.md",
+    "locator": "rule 20"
+   },
+   "evidence": "Every call ends with exactly one `close_call`.",
+   "category": "closing",
+   "critical": true,
+   "anchors": []
+  }
+ ]
+}
