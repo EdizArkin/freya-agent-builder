@@ -147,9 +147,48 @@ So the runtime file may use only `json`, `re` and `datetime`, may not import the
 and may not contain two consecutive braces. `tests/test_architecture.py` checks all three
 and checks that each embedded function equals its source.
 
-State is one JSON string in the workflow variable `rt_state`: identity status, wrong
-answers, products with limits, promises, notes, failed attempts, transfers, callback,
-closed, a mark for the call that is on its way, and which close refusals were already used.
+State is kept in two layers.
+
+- **Records.** Everything the bank confirmed has a variable of its own: one per promised
+  product, one per noted product, one per transfer, one for the callback, one for the result
+  of the identity check, and one per `create_promise` request that went out. A record is
+  written once, by the post-hook that saw the bank's answer (the request marks by the
+  pre-hook that let the request through), and its name carries an id made when the call
+  starts, so a variable handed in with the call cannot pass for one.
+- **The view.** `rt_state` is one JSON string with the rest: wrong answers, products with
+  limits, which close refusals were used, the last refusal. Every hook reads it and then
+  completes it from the records before it decides anything.
+
+The reason is how the engine runs the tool calls of one model message, seen in live calls on
+2026-10-10. They can run side by side. Each call then works on its own copy of the variables,
+taken before any of them started, so no hook sees what another call of the message does.
+Afterwards the copies are merged, and for a variable several calls wrote, one write
+survives. With everything in `rt_state`, a note saved by one call was erased by the promise
+recorded next to it. A variable only one call writes is not affected.
+
+What this cannot do, because no call can see another call of the same message and the tool
+API has no idempotency key and no ordering:
+
+- the same call sent twice in one message is carried out twice;
+- a `close_call` that reaches the bank before another call of its message makes the bank
+  refuse that call, and the close cannot take its outcome from it;
+- the text in the prompt (`LIVE STATE`) and the "still open" list in a tool result are
+  computed from one call's copy and can be out of date until the next hook runs.
+
+In each of these cases what the model is told about its own call is still true. The prompt
+tells the model to send one tool call per message; that is the only defence there is.
+
+**Known defect, not fixed.** The isolation described above is not what always happens. In
+another live call of the same day two `add_note` calls started within a millisecond and
+shared their variables: both post-hooks read the arguments of the second call, so the
+runtime recorded one note of two, told the model twice that the same product was noted, and
+refused the next close once. The bank held both notes. A post-hook learns which call it
+belongs to from a variable its pre-hook wrote (`rt_args_<tool>`), and nothing a post-hook
+is documented to receive identifies its own call otherwise. Two calls of the same tool in
+one message are therefore not handled reliably. `tests/test_concurrency.py` reproduces this
+as expected failures. What the platform gives a post-hook has to be found out on the
+platform before this can be fixed on evidence.
+
 The reason of a blocked call is kept per tool (`rt_block_<tool>`), and a post-hook never
 turns an answer in which the bank carried the call out into a rejection.
 
@@ -163,10 +202,8 @@ that the model puts into one message are not run in the order written.
 | --- | --- | --- |
 | A promise or note breaks a rule, on a verified call | The pre-hook keeps the customer and replaces the product id with a placeholder, so the bank refuses the request with an ordinary answer and records nothing | The post-hook replaces the result with the reason and what to do next |
 | Any other call breaks a rule (callback outside the window, anything before verification) | The pre-hook detaches the request from the customer; the bank answers with an HTTP error and records nothing | `LAST REJECTED TOOL CALL` in the live state, and the fixed failure rules in the prompt |
-| The service fails (HTTP error) | Every pre-hook leaves a mark in the state; a post-hook removes it. A mark that is still there when `create_promise` is called again is a failed attempt and is counted | The fixed failure rules in the prompt, per tool, with the spec's own guidance; the live state repeats them while the mark is there |
+| The service fails (HTTP error) | Every `create_promise` request that goes out leaves a variable of its own. Requests for a product that has no recorded promise have failed, with or without an answer, and are counted | The fixed failure rules in the prompt, per tool, with the spec's own guidance; the live state repeats them while the mark is there |
 | More promise attempts than the spec allows | `pre_promise` blocks the call | As in the first row |
-| `close_call` arrives while another call of the same message has no result yet | `pre_close` blocks that close, once, and leaves the other call's mark alone | The other call's result says what to do next; the prompt says a failed close is repeated |
-| A second `create_promise` or `add_note` arrives while one of the same message has no result yet | The pre-hook blocks the second: both would share the variable that carries the arguments to the post-hook | As in the first row |
 | A close breaks a rule of the outcome table or leaves products open | `pre_close` blocks it, once per kind of problem; the next close goes through | `LAST REJECTED TOOL CALL` in the live state only: a close has no answer that could carry the reason |
 
 ## What is enforced in code, and what is not
@@ -183,7 +220,7 @@ Enforced by the runtime or by the graph, whatever the phone model does:
 | One note per product; none for a promised product; none after a transfer when the spec says so; only a reason the tool API lists | `pre_note` |
 | Callback only inside the computed slots; only one | `pre_callback` |
 | Retry-or-stop after a failed `create_promise`, by attempt count; no attempt beyond the limit | `pre_promise`, `post_promise` |
-| `close_call` does not overtake another call sent in the same message; a second call of the same tool in one message waits | `pre_close`, `pre_promise`, `pre_note` |
+| A record made by one call of a message survives the other calls of that message | one variable per record; `load_state` |
 | A close with open products (when the brief uses notes), without the reason its outcome needs, or with an unknown outcome is refused, once per kind of problem | `pre_close` |
 | Close outcome from what was recorded (`close.forced`); no reason on an outcome that takes none | `pre_close` |
 | The call ends only after `close_call` succeeded | graph |
@@ -257,9 +294,10 @@ Not yet verified live:
 
 - that the bank answers a request with an unknown product id with a refusal the post-hook
   can explain (the kit's README says it answers `unknown product_id`; the status is assumed);
-- that a pre-hook sees the state written by the pre-hook of another call in the same message,
-  and that calls of one message start within half a second of each other while a call of the
-  next message starts later (seen in the saved transcripts: 0.01 to 0.06 s against 0.9 s or more);
+- how exactly the variables of side-by-side calls are merged. Seen: a variable only one call
+  wrote survives, and for `rt_state` the call that came last in the message won. Not known:
+  whether a call writes back variables it did not change. The records are safe either way;
+- whether the bank itself refuses a second promise for a product;
 - what a phone model does after a refused close, which it sees only as a failed call;
 - that Freya accepts a workflow of about 200 KB (185 KB was accepted);
 - that the phone model uses the day names block and the failure rules;

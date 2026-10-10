@@ -24,7 +24,8 @@ from benchmarks.harness import scenarios as defs  # noqa: E402
 
 PASS, FAIL, GAP, FIXED, SPEC_ONLY = 'PASS', 'FAIL', 'GAP', 'UNEXPECTED PASS', 'NOT RUN'
 GAP_KINDS = {'defect': 'the builder does something wrong', 'unenforced': 'left to the phone model although code could enforce it',
-             'schema': 'agent-spec/1 cannot express the rule'}
+             'schema': 'agent-spec/1 cannot express the rule',
+             'platform': 'cannot be enforced from inside tool hooks on this platform'}
 
 
 def run_steps(scenario, sim, bank, products, identity):
@@ -50,7 +51,7 @@ def run_steps(scenario, sim, bank, products, identity):
             calls = [(c['call'], c.get('args') or {}) for c in step['together']]
             before = len(bank.calls)
             try:
-                results = sim.together(calls, step.get('arrival', 'reversed'))
+                results = sim.together(calls, step.get('arrival', 'reversed'), step.get('merge', 'all'), step.get('apply', 'message'))
             except LookupError as missing:
                 bad.append('%s (together): %s' % (label, missing))
                 continue

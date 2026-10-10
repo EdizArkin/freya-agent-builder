@@ -29,7 +29,7 @@ MATRIX = BENCH / 'requirements' / 'coverage_matrix.md'
 TIERS = ('runtime', 'scripted', 'live_only')
 MODES = ('offline', 'live', 'both', 'specification')
 STEP_KINDS = ('call', 'together', 'faults', 'check')
-GAP_KINDS = ('defect', 'unenforced', 'schema')
+GAP_KINDS = ('defect', 'unenforced', 'schema', 'platform')
 DEFAULT_VARIABLES = {'now': '2026-10-14T11:00', 'title': 'Ms', 'first_name': 'Ada', 'last_name': 'Okafor'}
 CUSTOMER_ID = 'c_benchmark'
 
@@ -186,28 +186,17 @@ def resolve(value, products, identity=None):
 # ---------------------------------------------------------------- the simulated call
 
 class Call(Sim):
-    """The offline engine with the two controls the benchmark needs: whether a model turn
-    lies between two calls, and in which order the calls of one message reach the bank."""
+    """The offline engine as the benchmark drives it. Calls of one message run side by side, each on
+    its own copy of the variables, as live calls showed; see tests/freya_sim.py for what is known
+    and what is assumed about the merge."""
 
     def call(self, name, args, time_passes=True):
-        if time_passes:
-            self._new_message()
         result = self._api(self._find(name), args)
         self.advance()
         return result.get('data') if isinstance(result.get('data'), dict) else {}
 
-    def together(self, calls, arrival='reversed'):
-        self._new_message()
-        tools = [self._find(name) for name, _ in calls]
-        configs = [self._request(tool, args) for tool, (_, args) in zip(tools, calls)]
-        order = list(range(len(calls)))
-        if arrival == 'reversed':
-            order.reverse()
-        results = {}
-        for index in order:
-            results[index] = self._respond(tools[index], configs[index])
-        self.advance()
-        return [results[i].get('data') if isinstance(results[i].get('data'), dict) else {} for i in range(len(calls))]
+    def together(self, calls, arrival='reversed', merge='all', apply='message'):
+        return Sim.together(self, *calls, arrival=arrival, merge=merge, apply=apply)
 
 
 _WORKFLOWS = {}

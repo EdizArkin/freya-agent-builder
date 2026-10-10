@@ -1,14 +1,14 @@
 # Benchmark report
 
-Run at 2026-10-10 21:32:55, offline. Nothing in this report measures what a phone model says or which tools it chooses; it reports what the generated runtime does with the tool calls each scenario plays.
+Run at 2026-10-10 22:14:51, offline. Nothing in this report measures what a phone model says or which tools it chooses; it reports what the generated runtime does with the tool calls each scenario plays.
 
 Specs used: A = tests/fixture_spec.py (hand-written); B = tests/fixture_spec.py (hand-written); C = benchmarks/synthetic_briefs/brief-c.spec.yaml (hand-written reference); D = benchmarks/synthetic_briefs/brief-d.spec.yaml (hand-written reference); E = benchmarks/synthetic_briefs/brief-e.spec.yaml (hand-written reference)
 
 | Result | Scenarios | Meaning |
 | --- | --- | --- |
-| PASS | 103 | every assertion held |
+| PASS | 99 | every assertion held |
 | FAIL | 0 | an assertion failed and no known gap explains it |
-| GAP | 9 | failed where the definition documents a gap of the builder |
+| GAP | 13 | failed where the definition documents a gap of the builder |
 | UNEXPECTED PASS | 0 | has a documented gap but passed: the definition is out of date |
 | NOT RUN | 11 | specification only, cannot be executed faithfully offline |
 
@@ -28,8 +28,8 @@ Specs used: A = tests/fixture_spec.py (hand-written); B = tests/fixture_spec.py 
 | multi_product | B | 8 | 0 | 0 | 1 |
 | notes | B | 10 | 0 | 0 | 0 |
 | promises | A | 7 | 0 | 0 | 0 |
-| retries | A | 10 | 0 | 0 | 0 |
-| transfers | A | 7 | 0 | 0 | 0 |
+| retries | A | 8 | 0 | 2 | 0 |
+| transfers | A | 5 | 0 | 2 | 0 |
 | transfers | B | 2 | 0 | 0 | 0 |
 
 ## Scenarios
@@ -106,22 +106,22 @@ Specs used: A = tests/fixture_spec.py (hand-written); B = tests/fixture_spec.py 
 | EC-RT-01 | runtime | PASS | HTTP 500 and then success |
 | EC-RT-02 | runtime | PASS | HTTP 500 twice |
 | EC-RT-03 | runtime | PASS | A third attempt after the retry is used up never reaches the ledger |
-| EC-RT-04 | runtime | PASS | A slow promise is overtaken by the close sent with it |
+| EC-RT-04 | runtime | GAP | A slow promise is overtaken by the close sent with it |
 | EC-RT-05 | runtime | PASS | The mark of a failed call does not hold back a close one turn later |
-| EC-RT-06 | runtime | PASS | A close in the same instant as a failed call is held once, never twice |
+| EC-RT-06 | runtime | PASS | A close right after a failed call is not held back |
 | EC-RT-07 | runtime | PASS | After a failed transfer a different, valid call goes through |
 | EC-RT-08 | runtime | PASS | A failed close leaves the call open |
 | EC-RT-09 | runtime | PASS | A failed callback booking is repeated and booked once |
-| EC-RT-10 | runtime | PASS | The same promise sent twice in one message is recorded once |
+| EC-RT-10 | runtime | GAP | The same promise sent twice in one message is recorded once |
 | EC-TR-01 | runtime | PASS | A transfer before verification closes as transferred |
 | EC-TR-02 | runtime | PASS | After a transfer the close cannot carry another outcome |
-| EC-TR-03 | runtime | PASS | Transfer and close in one message, the close arriving first |
+| EC-TR-03 | runtime | GAP | Transfer and close in one message, the close arriving first |
 | EC-TR-04 | runtime | PASS | A failed transfer is repeated and happens once |
 | EC-TR-05 | runtime | PASS | A transfer that never works does not force the outcome |
 | EC-TR-06 | runtime | PASS | No note after a transfer |
 | EC-TR-07 | runtime | PASS | A promise agreed but not yet recorded is not recorded after the transfer |
 | EC-TR-08 | runtime | PASS | A transfer after a recorded promise closes as transferred |
-| EC-TR-09 | runtime | PASS | Callback and close in one message, the close arriving first |
+| EC-TR-09 | runtime | GAP | Callback and close in one message, the close arriving first |
 | SC-01 | runtime | PASS | There is no callback tool in this agent |
 | SC-02 | runtime | PASS | Postcode first, then year of birth |
 | SC-03 | runtime | PASS | Two wrong answers end the check |
@@ -173,8 +173,54 @@ Specs used: A = tests/fixture_spec.py (hand-written); B = tests/fixture_spec.py 
 | agent-spec/1 cannot express the rule | SE-06 | A second transfer is refused |
 | agent-spec/1 cannot express the rule | SE-07 | A confirmed promise may still be recorded after a transfer to plans |
 | agent-spec/1 cannot express the rule | SE-10 | After 16:00 a promise for today is refused |
+| cannot be enforced from inside tool hooks on this platform | EC-RT-04 | A slow promise is overtaken by the close sent with it |
+| cannot be enforced from inside tool hooks on this platform | EC-RT-10 | The same promise sent twice in one message is recorded once |
+| cannot be enforced from inside tool hooks on this platform | EC-TR-03 | Transfer and close in one message, the close arriving first |
+| cannot be enforced from inside tool hooks on this platform | EC-TR-09 | Callback and close in one message, the close arriving first |
 
 ## Failed assertions
+
+### EC-RT-04 — A slow promise is overtaken by the close sent with it (GAP)
+Documented gap (cannot be enforced from inside tool hooks on this platform): The hooks of the close cannot see another call of the same message: each call starts from its own copy of the variables. When the close reaches the bank first, the other call is refused by the bank. Nothing inside a hook can prevent that.
+- step 3 (create_promise, sent together): expected ok, got bank_refused
+- step 3 (create_promise, sent together): tool result lacks 'is now recorded' (it says: NOT RECORDED: the service failed and nothing was recorded for credit card ending 7312. Do NOT tell the customer it is recorded. Call create_promise again now with exactly the same product, amount and date.)
+- step 3 (close_call, sent together): expected detached, got ok
+- step 4 (check): the call is in end, expected negotiate
+- step 5 (close_call): expected ok, got unavailable
+- ledger promises is [], expected [('p1', 480.0, '2026-10-16')]
+- bank calls were ['verify_identity', 'verify_identity', 'get_account', 'close_call', 'create_promise!refused'], expected ['verify_identity', 'verify_identity', 'get_account', 'create_promise', 'close_call']
+- the last call at the bank is create_promise!refused, expected close_call
+- bank calls: verify_identity > verify_identity > get_account > close_call > create_promise!refused
+
+### EC-RT-10 — The same promise sent twice in one message is recorded once (GAP)
+Documented gap (cannot be enforced from inside tool hooks on this platform): Both calls start from the same copy of the variables, so neither can know of the other, and the tool API has no idempotency key. Whether the bank itself refuses a second promise for a product is not known; the offline bank records both.
+- step 3 (create_promise, sent together): expected blocked, got ok
+- ledger promises is [('p1', 480.0, '2026-10-16'), ('p1', 480.0, '2026-10-16')], expected [('p1', 480.0, '2026-10-16')]
+- bank calls: verify_identity > verify_identity > get_account > create_promise > create_promise > close_call
+
+### EC-TR-03 — Transfer and close in one message, the close arriving first (GAP)
+Documented gap (cannot be enforced from inside tool hooks on this platform): The hooks of the close cannot see another call of the same message: each call starts from its own copy of the variables. When the close reaches the bank first, the other call is refused by the bank. Nothing inside a hook can prevent that.
+- step 3 (transfer_to_agent, sent together): expected ok, got bank_refused
+- step 3 (transfer_to_agent, sent together): tool result lacks 'is done' (it says: The transfer did NOT work. Call transfer_to_agent once more with the same queue.)
+- step 3 (close_call, sent together): expected detached, got ok
+- step 4 (check): the call is in end, expected negotiate
+- step 5 (close_call): expected ok, got unavailable
+- ledger transfers is [], expected ['restructuring']
+- bank calls were ['verify_identity', 'verify_identity', 'get_account', 'close_call', 'transfer_to_agent!refused'], expected ['verify_identity', 'verify_identity', 'get_account', 'transfer_to_agent', 'close_call']
+- the last call at the bank is transfer_to_agent!refused, expected close_call
+- bank calls: verify_identity > verify_identity > get_account > close_call > transfer_to_agent!refused
+
+### EC-TR-09 — Callback and close in one message, the close arriving first (GAP)
+Documented gap (cannot be enforced from inside tool hooks on this platform): The hooks of the close cannot see another call of the same message: each call starts from its own copy of the variables. When the close reaches the bank first, the other call is refused by the bank. Nothing inside a hook can prevent that.
+- step 1 (schedule_callback, sent together): expected ok, got bank_refused
+- step 1 (schedule_callback, sent together): tool result lacks 'The callback is booked' (it says: The callback was NOT booked. Call schedule_callback once more with the same values.)
+- step 1 (close_call, sent together): expected detached, got ok
+- step 2 (check): the call is in end, expected contact
+- step 3 (close_call): expected ok, got unavailable
+- ledger callbacks is [], expected [('2026-10-15', '11:00')]
+- bank calls were ['close_call', 'schedule_callback!refused'], expected ['schedule_callback', 'close_call']
+- the last call at the bank is schedule_callback!refused, expected close_call
+- bank calls: close_call > schedule_callback!refused
 
 ### SC-04 — The postcode is sent in capitals without spaces (GAP)
 Documented gap (agent-spec/1 cannot express the rule): Answers of format text are only trimmed. The schema has no way to say "upper case, no spaces", so the normalisation depends on the model.

@@ -1,5 +1,5 @@
 {
- "at": "2026-10-10 21:32:55",
+ "at": "2026-10-10 22:14:51",
  "specs": {
   "A": "tests/fixture_spec.py (hand-written)",
   "B": "tests/fixture_spec.py (hand-written)",
@@ -8,9 +8,9 @@
   "E": "benchmarks/synthetic_briefs/brief-e.spec.yaml (hand-written reference)"
  },
  "totals": {
-  "PASS": 103,
+  "PASS": 99,
   "FAIL": 0,
-  "GAP": 9,
+  "GAP": 13,
   "UNEXPECTED PASS": 0,
   "NOT RUN": 11
  },
@@ -1607,17 +1607,26 @@
    "brief": "A",
    "tier": "runtime",
    "mode": "offline",
-   "status": "PASS",
-   "failures": [],
+   "status": "GAP",
+   "failures": [
+    "step 3 (create_promise, sent together): expected ok, got bank_refused",
+    "step 3 (create_promise, sent together): tool result lacks 'is now recorded' (it says: NOT RECORDED: the service failed and nothing was recorded for credit card ending 7312. Do NOT tell the customer it is recorded. Call create_promise again now with exactly the same product, amount and date.)",
+    "step 3 (close_call, sent together): expected detached, got ok",
+    "step 4 (check): the call is in end, expected negotiate",
+    "step 5 (close_call): expected ok, got unavailable",
+    "ledger promises is [], expected [('p1', 480.0, '2026-10-16')]",
+    "bank calls were ['verify_identity', 'verify_identity', 'get_account', 'close_call', 'create_promise!refused'], expected ['verify_identity', 'verify_identity', 'get_account', 'create_promise', 'close_call']",
+    "the last call at the bank is create_promise!refused, expected close_call"
+   ],
    "bank_calls": [
     "verify_identity",
     "verify_identity",
     "get_account",
-    "create_promise",
-    "close_call"
+    "close_call",
+    "create_promise!refused"
    ],
-   "known_gap": null,
-   "gap_kind": null,
+   "known_gap": "The hooks of the close cannot see another call of the same message: each call starts from its own copy of the variables. When the close reaches the bank first, the other call is refused by the bank. Nothing inside a hook can prevent that.",
+   "gap_kind": "platform",
    "requirements": [
     "P-02",
     "A-46"
@@ -1648,7 +1657,7 @@
   },
   {
    "id": "EC-RT-06",
-   "title": "A close in the same instant as a failed call is held once, never twice",
+   "title": "A close right after a failed call is not held back",
    "category": "retries",
    "brief": "A",
    "tier": "runtime",
@@ -1743,18 +1752,21 @@
    "brief": "A",
    "tier": "runtime",
    "mode": "offline",
-   "status": "PASS",
-   "failures": [],
+   "status": "GAP",
+   "failures": [
+    "step 3 (create_promise, sent together): expected blocked, got ok",
+    "ledger promises is [('p1', 480.0, '2026-10-16'), ('p1', 480.0, '2026-10-16')], expected [('p1', 480.0, '2026-10-16')]"
+   ],
    "bank_calls": [
     "verify_identity",
     "verify_identity",
     "get_account",
     "create_promise",
-    "create_promise!refused",
+    "create_promise",
     "close_call"
    ],
-   "known_gap": null,
-   "gap_kind": null,
+   "known_gap": "Both calls start from the same copy of the variables, so neither can know of the other, and the tool API has no idempotency key. Whether the bank itself refuses a second promise for a product is not known; the offline bank records both.",
+   "gap_kind": "platform",
    "requirements": [
     "A-36",
     "P-02"
@@ -1811,17 +1823,26 @@
    "brief": "A",
    "tier": "runtime",
    "mode": "offline",
-   "status": "PASS",
-   "failures": [],
+   "status": "GAP",
+   "failures": [
+    "step 3 (transfer_to_agent, sent together): expected ok, got bank_refused",
+    "step 3 (transfer_to_agent, sent together): tool result lacks 'is done' (it says: The transfer did NOT work. Call transfer_to_agent once more with the same queue.)",
+    "step 3 (close_call, sent together): expected detached, got ok",
+    "step 4 (check): the call is in end, expected negotiate",
+    "step 5 (close_call): expected ok, got unavailable",
+    "ledger transfers is [], expected ['restructuring']",
+    "bank calls were ['verify_identity', 'verify_identity', 'get_account', 'close_call', 'transfer_to_agent!refused'], expected ['verify_identity', 'verify_identity', 'get_account', 'transfer_to_agent', 'close_call']",
+    "the last call at the bank is transfer_to_agent!refused, expected close_call"
+   ],
    "bank_calls": [
     "verify_identity",
     "verify_identity",
     "get_account",
-    "transfer_to_agent",
-    "close_call"
+    "close_call",
+    "transfer_to_agent!refused"
    ],
-   "known_gap": null,
-   "gap_kind": null,
+   "known_gap": "The hooks of the close cannot see another call of the same message: each call starts from its own copy of the variables. When the close reaches the bank first, the other call is refused by the bank. Nothing inside a hook can prevent that.",
+   "gap_kind": "platform",
    "requirements": [
     "P-02",
     "A-41",
@@ -1956,14 +1977,23 @@
    "brief": "A",
    "tier": "runtime",
    "mode": "offline",
-   "status": "PASS",
-   "failures": [],
-   "bank_calls": [
-    "schedule_callback",
-    "close_call"
+   "status": "GAP",
+   "failures": [
+    "step 1 (schedule_callback, sent together): expected ok, got bank_refused",
+    "step 1 (schedule_callback, sent together): tool result lacks 'The callback is booked' (it says: The callback was NOT booked. Call schedule_callback once more with the same values.)",
+    "step 1 (close_call, sent together): expected detached, got ok",
+    "step 2 (check): the call is in end, expected contact",
+    "step 3 (close_call): expected ok, got unavailable",
+    "ledger callbacks is [], expected [('2026-10-15', '11:00')]",
+    "bank calls were ['close_call', 'schedule_callback!refused'], expected ['schedule_callback', 'close_call']",
+    "the last call at the bank is schedule_callback!refused, expected close_call"
    ],
-   "known_gap": null,
-   "gap_kind": null,
+   "bank_calls": [
+    "close_call",
+    "schedule_callback!refused"
+   ],
+   "known_gap": "The hooks of the close cannot see another call of the same message: each call starts from its own copy of the variables. When the close reaches the bank first, the other call is refused by the bank. Nothing inside a hook can prevent that.",
+   "gap_kind": "platform",
    "requirements": [
     "P-02",
     "A-06"

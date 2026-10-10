@@ -542,6 +542,13 @@
         "callbacks": [],
         "transfers": []
       },
+      "bank_calls": [
+        "verify_identity",
+        "verify_identity",
+        "get_account",
+        "transfer_to_agent!500",
+        "close_call"
+      ],
       "ended": true
     },
     "EC-RT-07": {

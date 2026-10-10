@@ -353,7 +353,9 @@
       "spoken": [
         "The agent says goodbye only once."
       ],
-      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards.",
+      "known_gap": "The hooks of the close cannot see another call of the same message: each call starts from its own copy of the variables. When the close reaches the bank first, the other call is refused by the bank. Nothing inside a hook can prevent that.",
+      "gap_kind": "platform"
     },
     {
       "id": "EC-RT-05",
@@ -428,7 +430,7 @@
     },
     {
       "id": "EC-RT-06",
-      "title": "A close in the same instant as a failed call is held once, never twice",
+      "title": "A close right after a failed call is not held back",
       "category": "retries",
       "brief": "A",
       "tier": "runtime",
@@ -478,18 +480,6 @@
             "queue": "support"
           },
           "expect": "error"
-        },
-        {
-          "call": "close_call",
-          "args": {
-            "outcome": "no_promise",
-            "reason": "hardship"
-          },
-          "expect": "detached",
-          "says": [
-            "NOT CLOSED"
-          ],
-          "time_passes": false
         },
         {
           "call": "close_call",
@@ -805,7 +795,9 @@
       "spoken": [
         "Nothing specific."
       ],
-      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards.",
+      "known_gap": "Both calls start from the same copy of the variables, so neither can know of the other, and the tool API has no idempotency key. Whether the bank itself refuses a second promise for a product is not known; the offline bank records both.",
+      "gap_kind": "platform"
     }
   ]
 }

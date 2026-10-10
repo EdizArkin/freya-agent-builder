@@ -149,6 +149,10 @@ class EmbeddedRuntime(unittest.TestCase):
         direct, embedded = {'now': '2026-10-14T11:00'}, {'now': '2026-10-14T11:00'}
         runtime.setup(cfg, direct)
         exec(compile(compiler.runtime_code('setup', 'setup(CFG, vars)', cfg), '<freya>', 'exec'), {'__builtins__': __builtins__}, {'vars': embedded})
+        for variables in (direct, embedded):      # the id of the call is made from the clock and differs between two set-ups
+            state = json.loads(variables['rt_state'])
+            self.assertTrue(state.pop('run'))
+            variables['rt_state'] = json.dumps(state)
         self.assertEqual(json.dumps(direct, sort_keys=True), json.dumps(embedded, sort_keys=True))
         self.assertIn('rt_calendar', embedded)
 

@@ -108,41 +108,12 @@ class HttpErrors(unittest.TestCase):
 
 
 class CallOrder(unittest.TestCase):
-    def test_a_close_sent_with_a_transfer_waits_for_the_transfer(self):
-        sim, bank, case = start_case('PUB-09')
-        verify(sim, bank)
-        transfer, close = sim.together(('transfer_to_agent', {'queue': 'restructuring'}),
-                                       ('close_call', {'outcome': 'transferred', 'reason': 'restructuring'}))
-        self.assertIn('The transfer to queue restructuring is done', transfer['what_to_do_next'])
-        self.assertEqual(close, {})
-        self.assertEqual((bank.ledger['transfers'], bank.ledger['outcome'], sim.node), ([{'queue': 'restructuring'}], None, 'negotiate'))
-        self.assertEqual(state(sim)['blocks'], 1)
-        sim.tool('close_call', outcome='transferred', reason='restructuring')
-        self.assertEqual(ledger(bank), case['expected'])
-        self.assertEqual((tools_called(bank)[-2:], sim.node), (['transfer_to_agent', 'close_call'], 'end'))
-
-    def test_a_close_sent_with_a_callback_waits_for_the_callback(self):
-        sim, bank, case = start_case('PUB-02')
-        sim.together(('schedule_callback', {'date': '2026-10-15', 'time': '11:00'}),
-                     ('close_call', {'outcome': 'not_reached', 'reason': 'callback'}))
-        self.assertEqual((len(bank.ledger['callbacks']), bank.ledger['outcome']), (1, None))
-        sim.tool('close_call', outcome='not_reached', reason='callback')
-        self.assertEqual(ledger(bank), case['expected'])
 
     def test_a_close_after_a_failed_call_is_not_held_back(self):
         sim, bank = verified(faults={'transfer_to_agent': 1})
         self.assertEqual(sim.tool('transfer_to_agent', queue='support'), {})
         sim.tool('close_call', outcome='no_promise', reason='hardship')
         self.assertEqual((bank.ledger['outcome'], sim.node), ('no_promise', 'end'))
-
-    def test_the_close_is_held_back_once_at_most(self):
-        """Without a usable clock the mark of a lost call cannot age; the close must still get through."""
-        variables = {'rt_state': json.dumps(dict(rt.load_state({}), identity='verified', open=['transfer', '', None, '']))}
-        first = {'body': {'customer_id': 'c_real', 'outcome': 'paid'}}
-        rt.pre_close(CFG, variables, first)
-        second = {'body': {'customer_id': 'c_real', 'outcome': 'paid'}}
-        rt.pre_close(CFG, variables, second)
-        self.assertEqual((first['body']['customer_id'], second['body']['customer_id']), ('blocked_by_policy', 'c_real'))
 
     def test_the_model_is_told_to_send_close_call_alone(self):
         workflow, _ = build_workflow(fixture(True), OPENAPI)
@@ -223,50 +194,8 @@ def call_with(spec):
     return Sim(workflow, bank, {'now': '2026-10-14T11:00', 'title': 'Mr', 'last_name': 'Reyes'}), bank
 
 
-class OneMessage(unittest.TestCase):
-    """Several tool calls in one model message: what the bank did is what the model is told."""
-
-    def test_a_promise_sent_with_the_close_is_reported_and_remembered(self):
-        sim, bank = verified()
-        recorded, close = sim.together(('create_promise', {'product_id': 'p1', 'amount': 420, 'date': '2026-10-14'}),
-                                       ('close_call', {'outcome': 'promise'}))
-        self.assertNotIn('rejected_by_policy', recorded)
-        self.assertIn('is now recorded', recorded['what_to_do_next'])
-        self.assertEqual((close, state(sim)['promises'], sim.node), ({}, {'p1': {'amount': 420.0, 'date': '2026-10-14'}}, 'negotiate'))
-        again = sim.tool('create_promise', product_id='p1', amount=420, date='2026-10-14')
-        self.assertIn('already recorded', again['what_to_do_next'])
-        sim.tool('close_call', outcome='paid')
-        self.assertEqual((bank.ledger['outcome'], len(bank.ledger['promises'])), ('promise', 1))
-
-    def test_a_callback_sent_with_the_close_is_reported_and_decides_the_close(self):
-        sim, bank = start_call()
-        booked, _ = sim.together(('schedule_callback', {'date': '2026-10-15', 'time': '11:00'}),
-                                 ('close_call', {'outcome': 'not_reached', 'reason': 'no_callback'}))
-        self.assertIn('The callback is booked', booked['what_to_do_next'])
-        self.assertEqual(state(sim)['callback'], ['2026-10-15', '11:00'])
-        sim.tool('close_call', outcome='not_reached', reason='no_callback')
-        self.assertEqual((bank.ledger['reason'], len(bank.ledger['callbacks'])), ('callback', 1))
-
-    def test_the_same_promise_twice_in_one_message_is_recorded_once(self):
-        sim, bank = verified()
-        first, second = sim.together(('create_promise', {'product_id': 'p1', 'amount': 420, 'date': '2026-10-14'}),
-                                     ('create_promise', {'product_id': 'p1', 'amount': 420, 'date': '2026-10-14'}))
-        self.assertIn('is now recorded', first['what_to_do_next'])
-        self.assertTrue(second['rejected_by_policy'])
-        self.assertIn('NOT SENT', second['what_to_do_next'])
-        self.assertEqual((len(bank.ledger['promises']), state(sim)['fails'], list(state(sim)['promises'])), (1, {}, ['p1']))
-
-    def test_promises_for_two_products_in_one_message_do_not_mix_their_values(self):
-        sim, bank = verified(products=(CARD, LOAN), brief_b=True)
-        first, second = sim.together(('create_promise', {'product_id': 'p1', 'amount': 420, 'date': '2026-10-14'}),
-                                     ('create_promise', {'product_id': 'p2', 'amount': 900, 'date': '2026-10-16'}))
-        self.assertIn('credit card ending 4821 (420.00 on 2026-10-14)', first['what_to_do_next'])
-        self.assertTrue(second['rejected_by_policy'])
-        self.assertEqual(state(sim)['promises'], {'p1': {'amount': 420.0, 'date': '2026-10-14'}})
-        later = sim.tool('create_promise', product_id='p2', amount=900, date='2026-10-16')
-        self.assertIn('personal loan (900.00 on 2026-10-16)', later['what_to_do_next'])
-        self.assertEqual(bank.ledger['promises'], [{'product_id': 'p1', 'amount': 420.0, 'date': '2026-10-14'},
-                                                   {'product_id': 'p2', 'amount': 900.0, 'date': '2026-10-16'}])
+class Reports(unittest.TestCase):
+    """What the bank did is what the model is told. Calls of one message are in test_concurrency.py."""
 
     def test_a_retry_one_turn_after_a_failure_is_not_taken_for_a_duplicate(self):
         sim, bank = verified(faults={'create_promise': 1})

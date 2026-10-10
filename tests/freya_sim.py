@@ -6,9 +6,32 @@ way a sandbox can call exec, and it plays the phone model's tool calls by hand.
 Behaviour copied from live calls on 2026-10-10: the engine runs a post-hook only
 after a 2xx answer, any other status reaches the model as a bare error with no
 hook; the bank answers 404 for a customer it does not know and 200 with ok false
-for an action it refuses; two tool calls of one model message are not kept in order.
+for an action it refuses.
+
+Tool calls of one model message (`together`), as seen in three live calls:
+- They can run side by side. Each call then has its own copy of the variables,
+  taken before any of them started; its pre-hook and its post-hook share that
+  copy and see nothing the other calls wrote.
+- Afterwards the copies are merged into the call's variables. A variable only
+  one call wrote keeps that value. For a variable several calls wrote, one
+  write survives; in the two calls where it could be told, it was the write of
+  the call that came last in the message, not of the call that finished last.
+- Not known: whether a call writes back only what it changed or every variable
+  of its copy, stale values included. Both are modelled (`merge`), and so are
+  both orders (`apply`). A test of same-message behaviour has to hold in all four.
+- The order in which the calls reach the bank is not the order written (`arrival`).
+- In one live call two calls of one message ran one after the other, the second
+  seeing what the first had written. That is the same as two `tool` calls.
+- In another live call (M14 Brief B, repetition 2) two calls of the same tool that
+  started within one millisecond were NOT isolated: both post-hooks read the
+  arguments the second pre-hook had written. That is `hooks='shared'`: every
+  pre-hook runs on the call's variables in the order written, then every
+  post-hook. Whether hooks interleave in any other way is not known.
+- Why the engine isolated the calls in one case and not in the other is not known.
+  A test of same-message behaviour has to state which pattern it plays.
+
 Assumed from the kit's README, not yet seen live: an unknown product id is one of
-those refusals.
+the bank's refusals.
 """
 import copy
 import json
@@ -119,32 +142,34 @@ class Sim:
             if self.wf['nodes'][target]['node_type'] == 'end_call':
                 return
 
-    def _request(self, tool, args):
+    def _request(self, tool, args, variables=None):
+        variables = self.vars if variables is None else variables
         props = tool['function']['parameters']['properties']
         body = {}
         for name, leaf in props['body']['properties'].items():
             key = leaf['default'].strip('{}')
-            if key in self.vars:
-                body[name] = self.vars[key]
+            if key in variables:
+                body[name] = variables[key]
             elif name in args:
                 body[name] = args[name]
         config = {'url': props['url']['default'], 'method': 'POST', 'headers': {}, 'body': body}
         if tool.get('pre_process_code'):
-            run(tool['pre_process_code'], vars=self.vars, config=config)
+            run(tool['pre_process_code'], vars=variables, config=config)
         return config
 
-    def _respond(self, tool, config):
+    def _respond(self, tool, config, variables=None):
+        variables = self.vars if variables is None else variables
         status, data = self.bank.call(config['url'].rsplit('/', 1)[-1], config['body'])
         if status != 200:
             return {'status': 'error', 'error': 'API request failed: ' + repr(data)}
         result = {'status': 'success', 'data': data, 'status_code': status,
                   'message': 'x', 'header': {'Content-Type': 'application/json'}}
         if tool.get('post_process_code'):
-            run(tool['post_process_code'], vars=self.vars, result=result)
+            run(tool['post_process_code'], vars=variables, result=result)
         name = tool['function']['name']
         if isinstance(result.get('data'), dict):
             for key, value in result['data'].items():
-                self.vars[name + '_response.data.' + key] = value
+                variables[name + '_response.data.' + key] = value
         json.dumps(result)
         return result
 
@@ -159,31 +184,48 @@ class Sim:
         return found[0]
 
     def _new_message(self):
-        """A model turn lies between two messages: let the runtime's clock see that time pass."""
-        try:
-            state = json.loads(self.vars.get('rt_state') or '')
-            if state.get('open') and state['open'][2] is not None:
-                state['open'][2] -= 30
-                self.vars['rt_state'] = json.dumps(state)
-        except (ValueError, AttributeError, IndexError, TypeError):
-            pass
+        """A model turn lies between two messages. Kept for callers; the runtime no longer reads a clock."""
 
     def tool(self, name, **args):
         """The phone model calls a tool in the current conversation node."""
-        self._new_message()
         result = self._api(self._find(name), args)
         self.advance()
         return result['data'] if isinstance(result.get('data'), dict) else {}
 
-    def together(self, *calls):
-        """The phone model puts several tool calls into one message: the requests are prepared in
-        the order written, but they reach the bank in reverse, as seen live."""
-        self._new_message()
-        tools = [self._find(name) for name, _ in calls]
-        configs = [self._request(t, args) for t, (_, args) in zip(tools, calls)]
-        results = [self._respond(t, c) for t, c in reversed(list(zip(tools, configs)))][::-1]
+    def together(self, *calls, arrival='reversed', merge='all', apply='message', hooks='isolated'):
+        """The phone model puts several tool calls into one message and the engine runs them side by side.
+
+        hooks    'isolated': each call on its own copy of the variables (seen live on 2026-10-10, M13);
+                 'shared': all hooks on the same variables, pre-hooks first (seen live the same day, M14)
+        arrival  the order in which the requests reach the bank: 'written', 'reversed' or a list of positions
+        merge    'all': a call writes back every variable of its copy; 'changed': only those it changed
+        apply    whose write survives for a shared variable: the last call of the 'message', or the last 'completion'
+        """
+        start = copy.deepcopy(self.vars)
+        runs = []
+        for name, args in calls:
+            tool = self._find(name)
+            local = self.vars if hooks == 'shared' else copy.deepcopy(start)
+            runs.append([tool, self._request(tool, args, local), local, None])
+        order = list(range(len(runs)))
+        if arrival == 'reversed':
+            order.reverse()
+        elif arrival != 'written':
+            order = list(arrival)
+        if hooks == 'shared':
+            for index in order:
+                runs[index][3] = self._respond(runs[index][0], runs[index][1], self.vars)
+            self.advance()
+            return [r[3]['data'] if isinstance(r[3].get('data'), dict) else {} for r in runs]
+        for index in order:
+            tool, config, local, _ = runs[index]
+            runs[index][3] = self._respond(tool, config, local)
+        for index in (order if apply == 'completion' else range(len(runs))):
+            for key, value in runs[index][2].items():
+                if merge == 'all' or key not in start or start[key] != value:
+                    self.vars[key] = value
         self.advance()
-        return [r['data'] if isinstance(r.get('data'), dict) else {} for r in results]
+        return [r[3]['data'] if isinstance(r[3].get('data'), dict) else {} for r in runs]
 
     def prompt(self):
         text = self.wf['nodes'][self.node].get('task_message', '')

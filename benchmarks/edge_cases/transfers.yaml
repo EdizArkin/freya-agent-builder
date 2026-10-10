@@ -206,7 +206,9 @@
       "spoken": [
         "Nothing specific."
       ],
-      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards.",
+      "known_gap": "The hooks of the close cannot see another call of the same message: each call starts from its own copy of the variables. When the close reaches the bank first, the other call is refused by the bank. Nothing inside a hook can prevent that.",
+      "gap_kind": "platform"
     },
     {
       "id": "EC-TR-04",
@@ -689,7 +691,9 @@
       "spoken": [
         "Nothing specific."
       ],
-      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards.",
+      "known_gap": "The hooks of the close cannot see another call of the same message: each call starts from its own copy of the variables. When the close reaches the bank first, the other call is refused by the bank. Nothing inside a hook can prevent that.",
+      "gap_kind": "platform"
     }
   ]
 }

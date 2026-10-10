@@ -311,75 +311,106 @@ def check_callback(cfg, now, date, time):
     return 'that day or time is outside the allowed callback window'
 
 
+def safe(name):
+    return re.sub(r'[^A-Za-z0-9]', '_', str(name))
+
+
+def rec(st, kind, name=''):
+    """The variable that holds one confirmed record of this call."""
+    # Tool calls of one model message can run side by side. Each then works on its own copy of
+    # the variables, taken before any of them started, and what they wrote is merged afterwards:
+    # for a variable several of them wrote, one write survives. rt_state is such a variable, so
+    # it cannot be the record of what happened. A record therefore gets a variable of its own
+    # that is written once, by the post-hook that saw the bank confirm it, and that does not
+    # exist before. The name carries an id made at the start of the call, so that a variable
+    # handed in with the call cannot pass for a record.
+    return 'rt_done_' + str(st.get('run') or '') + '_' + kind + ('_' + safe(name) if name != '' else '')
+
+
+def attempts(vars, st, pid):
+    """How many create_promise requests went out for this product. Each leaves a variable of its own."""
+    count = 0
+    for i in range(1, 20):
+        if not vars.get(rec(st, 'try', str(pid) + '_' + str(i))):
+            break
+        count = i
+    return count
+
+
+def absorb(vars, st):
+    """Complete the state from the records: what any earlier call confirmed, whoever wrote rt_state last."""
+    for p in st['products']:
+        if not isinstance(p, dict) or 'id' not in p:
+            continue
+        pid = p['id']
+        raw = vars.get(rec(st, 'promise', pid))
+        if raw:
+            try:
+                value = json.loads(raw)
+                if isinstance(value, dict):
+                    st['promises'][pid] = value
+            except Exception:
+                pass
+        raw = vars.get(rec(st, 'note', pid))
+        if raw:
+            st['notes'][pid] = raw
+        tries = attempts(vars, st, pid)
+        if tries and pid not in st['promises']:
+            st['fails'][pid] = tries
+        else:
+            st['fails'].pop(pid, None)
+    queues = []
+    for i in range(1, 10):
+        raw = vars.get(rec(st, 'transfer', i))
+        if not raw:
+            break
+        queues.append(str(raw))
+    if queues:
+        st['transfers'] = queues
+    raw = vars.get(rec(st, 'callback'))
+    if raw:
+        try:
+            value = json.loads(raw)
+            if isinstance(value, list):
+                st['callback'] = value
+        except Exception:
+            pass
+    status = vars.get(rec(st, 'identity'))
+    if status in ('verified', 'failed'):
+        st['identity'] = status
+
+
 def load_state(vars):
     fresh = dict(wrong=0, identity='pending', verified=[], products=[], promises=dict(), notes=dict(),
-                 fails=dict(), transfers=[], callback=None, closed=False, blocks=0, open=None, held=[])
+                 fails=dict(), transfers=[], callback=None, closed=False, blocks=0, open=None, held=[], run='')
+    st = fresh
     try:
-        st = json.loads(vars.get('rt_state') or '')
-        if isinstance(st, dict):
+        got = json.loads(vars.get('rt_state') or '')
+        if isinstance(got, dict):
             for key in fresh:
-                if not isinstance(st.get(key), type(fresh[key])) and fresh[key] is not None:
-                    st[key] = fresh[key]
-            return st
+                if not isinstance(got.get(key), type(fresh[key])) and fresh[key] is not None:
+                    got[key] = fresh[key]
+            st = got
     except Exception:
         pass
-    return fresh
-
-
-def stamp():
     try:
-        return datetime.datetime.utcnow().timestamp()
+        absorb(vars, st)
     except Exception:
-        return None
+        pass
+    return st
+
+
+def run_id():
+    try:
+        return datetime.datetime.utcnow().strftime('%d%H%M%S%f')
+    except Exception:
+        return 'r'
 
 
 def opened(st, tool, key, hint):
-    # The engine runs no post-hook when the service answers with an HTTP error,
-    # so this mark is all that is left of such a call.
-    st['open'] = [tool, str(key), stamp(), hint]
-
-
-def unanswered(st, tool):
-    """The key of an earlier call of this tool that never got an answer, or None."""
-    prev = st.get('open')
-    if isinstance(prev, list) and len(prev) > 1 and prev[0] == tool:
-        st['open'] = None
-        return prev[1]
-    return None
-
-
-def in_flight(st, tool):
-    """The name of a call that went out a moment ago and has no result yet, or ''."""
-    # Calls of one model message start within a few hundredths of a second of each other and
-    # are not run in the order written. A call of a later message starts most of a second
-    # after the previous result. close_call waits for any other call; a second call of the
-    # same tool waits because both would share the variable that carries the arguments to
-    # the post-hook. Without a usable clock a mark holds one call back and no more, and for
-    # close_call that is so in every case: a call that failed without an answer leaves its
-    # mark behind, and the close must still get through.
-    prev = st.get('open')
-    if not isinstance(prev, list) or len(prev) < 4:
-        return ''
-    if (prev[0] == 'close') if tool == 'close' else (prev[0] != tool):
-        return ''
-    now = stamp()
-    known = prev[2] is not None and now is not None
-    if known and now - float(prev[2]) >= 0.5:
-        return ''
-    if len(prev) > 4 and (tool == 'close' or not known):
-        return ''
-    if len(prev) == 4:
-        prev.append('held')
-    return str(prev[0])
-
-
-def hold(cfg, vars, config, st, tool, other, field=None):
-    """Keep back a call that was sent in the same message as another one that has no result yet."""
-    name = dict(identity='verify_identity', promise='create_promise', note='add_note', callback='schedule_callback',
-                transfer='transfer_to_agent', close='close_call')
-    return block(cfg, vars, config, st, tool, ('NOT CLOSED: ' if tool == 'close' else 'NOT SENT: ') + name.get(tool, tool) + ' was sent together with another tool call (' + name.get(other, other)
-                 + ') whose result had not come back. Nothing was done. Send one tool call per message: read that result first, then call '
-                 + name.get(tool, tool) + ' again if it is still needed.', field, True)
+    # The engine runs no post-hook when the service answers with an HTTP error. This mark keeps
+    # what to do in that case in front of the model until some call gets an answer.
+    st['open'] = [tool, str(key), hint]
 
 
 def product_facts(cfg, products, today):
@@ -451,8 +482,8 @@ def live_text(cfg, st):
     if st.get('last_block'):
         rows.append('LAST REJECTED TOOL CALL: ' + st['last_block'])
     mark = st.get('open')
-    if isinstance(mark, list) and len(mark) > 3 and mark[3]:
-        rows.append('IF YOUR LAST TOOL CALL GAVE AN ERROR INSTEAD OF A RESULT: ' + str(mark[3]))
+    if isinstance(mark, list) and len(mark) > 2 and mark[2]:
+        rows.append('IF YOUR LAST TOOL CALL GAVE AN ERROR INSTEAD OF A RESULT: ' + str(mark[2]))
     return '\n'.join(rows) or 'Nothing recorded yet.'
 
 
@@ -466,6 +497,7 @@ def save_state(cfg, vars, st):
 def setup(cfg, vars):
     now = parse_now(vars.get(cfg['now_var']))
     st = load_state(dict())
+    st['run'] = run_id()
     st['now'] = now.strftime('%Y-%m-%dT%H:%M')
     st['today'] = now.date().isoformat()
     vars['rt_today'] = say_date(now.date()) + ', current time ' + now.strftime('%H:%M')
@@ -524,7 +556,7 @@ def body_of(config):
     return body if isinstance(body, dict) else dict()
 
 
-def block(cfg, vars, config, st, tool, message, field=None, keep_mark=False):
+def block(cfg, vars, config, st, tool, message, field=None):
     """Stop a call that would break policy, so that nothing can be recorded, and tell the model why."""
     # With `field`, on a verified call, the request keeps its customer but names a thing the bank
     # does not know: the bank refuses it with an ordinary answer and the post-hook can explain.
@@ -537,8 +569,7 @@ def block(cfg, vars, config, st, tool, message, field=None, keep_mark=False):
     else:
         for name in cfg['customer_fields']:
             body[name] = 'blocked_by_policy'
-    if not keep_mark:
-        st['open'] = None
+    st['open'] = None
     st['blocks'] = int(st.get('blocks', 0)) + 1
     st['last_block'] = message
     vars['rt_block_' + tool] = message
@@ -693,6 +724,7 @@ def post_identity(cfg, vars, result):
         missing = [f for f in order if f not in st['verified']]
         if all_ok or not missing:
             st['identity'] = 'verified'
+            vars[rec(st, 'identity')] = 'verified'
             return finish(cfg, vars, result, st, guide(cfg, 'identity.all_verified', 'Identity is fully verified. The account is being loaded now.'), dict(rt_identity='verified'))
         return finish(cfg, vars, result, st, guide(cfg, 'identity.next_question', 'That answer is correct. Do not ask it again. Now ask the next security question: ' + ask(missing[0]) + '.'))
     for h in idc.get('hints') or []:
@@ -711,6 +743,7 @@ def post_identity(cfg, vars, result):
     left = own if left is None else min(left, own)
     if left <= 0 or st['identity'] == 'failed':
         st['identity'] = 'failed'
+        vars[rec(st, 'identity')] = 'failed'
         return finish(cfg, vars, result, st, identity_over(cfg), dict(rt_identity='failed'))
     return finish(cfg, vars, result, st, guide(cfg, 'identity.wrong', 'That answer is WRONG. Wrong answers left before the check ends: ' + str(int(left)) + '. Do not move to another question. Ask the same question again: ' + ask(field) + '.'))
 
@@ -753,13 +786,7 @@ def pre_promise(cfg, vars, config):
     st = load_state(vars)
     body = body_of(config)
     soft = pc['product_param']
-    other = in_flight(st, 'promise')
-    if other:
-        return hold(cfg, vars, config, st, 'promise', other, soft)
     keep_args(vars, 'promise', config)
-    lost = unanswered(st, 'promise')
-    if lost:
-        st['fails'][lost] = int(st['fails'].get(lost, 0)) + 1
     if st['identity'] != 'verified' or not st['products']:
         return block(cfg, vars, config, st, 'promise', 'A promise cannot be recorded before identity is verified and the account is loaded.')
     pid = resolve_product(st, body.get(pc['product_param']))
@@ -771,7 +798,9 @@ def pre_promise(cfg, vars, config):
         return block(cfg, vars, config, st, 'promise', 'A promise is already recorded for ' + prod['label'] + '. It cannot be recorded again or changed. Do not call create_promise for this product again.', soft)
     if st['transfers'] and pc.get('forbidden_after_transfer', True):
         return block(cfg, vars, config, st, 'promise', 'The call has been transferred. No promise may be recorded after a transfer.', soft)
-    failures = int(st['fails'].get(pid, 0))
+    # Every request that went out for this product and did not end in a recorded promise has failed,
+    # with or without an answer.
+    failures = attempts(vars, st, pid)
     if failures >= int(pc.get('max_attempts', 2)):
         return block(cfg, vars, config, st, 'promise', promise_failure(cfg, prod['label'], failures), soft)
     amount = number(body.get(pc['amount_param']))
@@ -800,6 +829,7 @@ def pre_promise(cfg, vars, config):
             alt = latest
         return block(cfg, vars, config, st, 'promise', 'NOT RECORDED: ' + say_date(day) + ' is not a business day. Offer ' + say_date(alt) + ' instead, read it back and get a clear yes before calling create_promise again.', soft)
     body[pc['date_param']] = day.isoformat()
+    vars[rec(st, 'try', pid + '_' + str(failures + 1))] = 'sent'
     send(cfg, vars, config, st, 'promise', pid, promise_failure(cfg, prod['label'], failures + 1))
 
 
@@ -813,13 +843,14 @@ def post_promise(cfg, vars, result):
     label = ([p['label'] for p in st['products'] if p['id'] == pid] or [pid])[0]
     if succeeded(cfg, result):
         st['promises'][pid] = dict(amount=args.get(pc['amount_param']), date=args.get(pc['date_param']))
+        vars[rec(st, 'promise', pid)] = json.dumps(st['promises'][pid])
         st['fails'].pop(pid, None)
         rest = pending(st)
         base = 'RECORDED: the promise for ' + label + ' (' + money(args.get(pc['amount_param'])) + ' on ' + str(args.get(pc['date_param'])) + ') is now recorded. Do not call create_promise for this product again.'
         if rest:
             return finish(cfg, vars, result, st, guide(cfg, 'promise.recorded_more', base + ' Products still without a promise or a note: ' + ', '.join([p['id'] + ' "' + p['label'] + '"' for p in rest]) + '.'))
         return finish(cfg, vars, result, st, guide(cfg, 'promise.recorded_all', base + ' Every product is now handled.'))
-    st['fails'][pid] = int(st['fails'].get(pid, 0)) + 1
+    st['fails'][pid] = max(1, attempts(vars, st, pid))
     return finish(cfg, vars, result, st, promise_failure(cfg, label, st['fails'][pid]))
 
 
@@ -834,9 +865,6 @@ def pre_note(cfg, vars, config):
     st = load_state(vars)
     body = body_of(config)
     soft = nc['product_param']
-    other = in_flight(st, 'note')
-    if other:
-        return hold(cfg, vars, config, st, 'note', other, soft)
     keep_args(vars, 'note', config)
     pid = resolve_product(st, body.get(nc['product_param']))
     if not pid:
@@ -863,6 +891,7 @@ def post_note(cfg, vars, result):
     pid = str(args.get(nc['product_param']))
     if succeeded(cfg, result):
         st['notes'][pid] = args.get(nc['reason_param'])
+        vars[rec(st, 'note', pid)] = str(st['notes'][pid])
         rest = pending(st)
         if rest:
             return finish(cfg, vars, result, st, guide(cfg, 'note.recorded_more', 'The note is saved. Products still without a promise or a note: ' + ', '.join([p['id'] + ' "' + p['label'] + '"' for p in rest]) + '.'))
@@ -900,6 +929,7 @@ def post_callback(cfg, vars, result):
     args = last_args(vars, 'callback')
     if succeeded(cfg, result):
         st['callback'] = [args.get(cb['date_param']), args.get(cb['time_param'])]
+        vars[rec(st, 'callback')] = json.dumps(st['callback'])
         return finish(cfg, vars, result, st, guide(cfg, 'callback.booked', 'The callback is booked for ' + str(st['callback'][0]) + ' at ' + str(st['callback'][1]) + '.'))
     return finish(cfg, vars, result, st, callback_failure(cfg))
 
@@ -918,6 +948,7 @@ def post_transfer(cfg, vars, result):
     args = last_args(vars, 'transfer')
     if succeeded(cfg, result):
         st['transfers'].append(str(args.get(tc['queue_param'])))
+        vars[rec(st, 'transfer', len(st['transfers']))] = st['transfers'][-1]
         return finish(cfg, vars, result, st, guide(cfg, 'transfer.done', 'The transfer to queue ' + str(args.get(tc['queue_param'])) + ' is done.'))
     return finish(cfg, vars, result, st, transfer_failure(cfg))
 
@@ -985,9 +1016,6 @@ def pre_close(cfg, vars, config):
     cc = cfg['close']
     st = load_state(vars)
     body = body_of(config)
-    other = in_flight(st, 'close')
-    if other:
-        return hold(cfg, vars, config, st, 'close', other)
     after_transfer = bool(st['transfers']) and not cc.get('notes_after_transfer')
     rest = pending(st) if cc.get('notes_required') and st['identity'] == 'verified' and not after_transfer else []
     if rest and refuse_close(cfg, vars, config, st, 'open_products', 'NOT CLOSED: these products have neither a promise nor a note: '

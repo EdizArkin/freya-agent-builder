@@ -104,18 +104,20 @@ The bank's final records, the calls that may or may not reach it, and whether th
 
 | Result | Count |
 | --- | --- |
-| PASS | 103 |
-| GAP, known and confirmed | 9 |
+| PASS | 99 |
+| GAP, known and confirmed | 13 |
 | FAIL | 0 |
 | NOT RUN | 11 |
 
 The same numbers hold when the Brief A and B scenarios run against the two specs Claude extracted on 2026-10-10.
 
-The first run of this suite, against the builder as committed on 2026-10-10, had 95 passes and 17 gaps. Eight of those gaps were defects or missing checks in the runtime and have since been fixed; their scenarios now pass with unchanged expectations: `EC-RT-04`, `EC-TR-09`, `EC-RT-10`, `SC-03`, `EC-MP-06`, `EC-NT-10`, `EC-CL-02`, `EC-CL-03`.
+**Nine gaps are rules agent-spec/1 cannot express**, all found by the synthetic briefs: text answers that need a fixed form, a promise that is not allowed for a product, an earliest promise date, a rule that depends on the time of day, a promise that depends on another product, a minimum across products, a closing rule on the reason of a note, a limit on the number of transfers, and an exception to "nothing after a transfer" for one queue.
 
-**The nine gaps that remain are rules agent-spec/1 cannot express**, all found by the synthetic briefs: text answers that need a fixed form, a promise that is not allowed for a product, an earliest promise date, a rule that depends on the time of day, a promise that depends on another product, a minimum across products, a closing rule on the reason of a note, a limit on the number of transfers, and an exception to "nothing after a transfer" for one queue.
+**Four gaps cannot be closed from inside a tool hook** (`EC-RT-04`, `EC-TR-03`, `EC-TR-09`, `EC-RT-10`). A live call on 2026-10-10 showed that the tool calls of one model message run side by side, each on its own copy of the variables. No hook can see another call of the same message, so a close cannot wait for a promise, transfer or callback sent with it, and the same promise sent twice is carried out twice. Earlier versions of this suite counted three of these as passing, because the offline engine let the hooks of one message share their variables. The engine now copies what was seen live, and the scenarios keep their expectations and fail.
 
-Two of the fixes are deliberately bounded. A close that breaks a rule (open products, a missing or unlisted reason, an unknown outcome) is refused once per kind of problem and let through the next time, because a refused close cannot explain itself to the model and a call that never closes is the worse failure. The scenarios cover the first refusal and the correct second close; they do not show what a phone model does after the refusal.
+History: the first run of this suite, against the builder of the first commit of 2026-10-10, had 95 passes and 17 gaps. Eight of those were defects or missing checks in the runtime and were fixed. One scenario was changed afterwards: `EC-RT-06` asserted that a close right after a failed call is refused once, which was a side effect of a guard that has been removed; it now asserts that the close goes through.
+
+Two of the fixes are deliberately bounded. A close that breaks a rule (open products, a missing or unlisted reason, an unknown outcome) is refused once per kind of problem and let through the next time, because a refused close cannot explain itself to the model and a call that never closes is the worse failure.
 
 `reports/latest.md` has the full list and every failed assertion.
 
@@ -153,8 +155,8 @@ The other scenarios cannot be run live today: their accounts, faults or tool API
 
 ## Limits
 
-- The offline engine and bank are stand-ins that copy what live calls showed on 2026-10-10. Three behaviours they assume have not been seen live: how the bank answers an unknown product id, whether one pre-hook sees the state another call of the same message wrote, and the order of hooks inside one message.
-- A scenario that plays two calls in one message fixes their order. The real engine does not promise any order.
+- The offline engine and bank are stand-ins that copy what live calls showed on 2026-10-10. Two things they assume have not been seen live: how the bank answers an unknown product id, and whether a call of one message writes back variables it did not change.
+- A scenario that plays several calls in one message fixes the order in which they reach the bank and how their variables are merged. The real engine promises neither; `tests/test_concurrency.py` runs the same situations under every merge the live observations allow.
 - Thirty rules have no scenario at all. They are about wording and about recognising what a person means; the matrix lists them.
 - The scenarios for Brief A and B state what the briefs require as this suite reads them. Where a brief is silent the suite asserts nothing.
 
