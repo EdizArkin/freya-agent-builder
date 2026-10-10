@@ -178,16 +178,59 @@ API has no idempotency key and no ordering:
 In each of these cases what the model is told about its own call is still true. The prompt
 tells the model to send one tool call per message; that is the only defence there is.
 
-**Known defect, not fixed.** The isolation described above is not what always happens. In
-another live call of the same day two `add_note` calls started within a millisecond and
-shared their variables: both post-hooks read the arguments of the second call, so the
-runtime recorded one note of two, told the model twice that the same product was noted, and
-refused the next close once. The bank held both notes. A post-hook learns which call it
-belongs to from a variable its pre-hook wrote (`rt_args_<tool>`), and nothing a post-hook
-is documented to receive identifies its own call otherwise. Two calls of the same tool in
-one message are therefore not handled reliably. `tests/test_concurrency.py` reproduces this
-as expected failures. What the platform gives a post-hook has to be found out on the
-platform before this can be fixed on evidence.
+### Known platform limitation: the same tool twice in one message
+
+Not fixed, and not fixable from hooks with what the platform provides.
+
+**Root cause.** A post-hook learns which call it belongs to from a variable its pre-hook
+wrote (`rt_args_<tool>`). When two calls of the same tool are in one model message, both
+pre-hooks write that variable before either post-hook runs, and both post-hooks read the
+same value.
+
+**Seen live (M14 Brief B, repetition 2, PUB-12).** Two `add_note` calls started 1 ms apart.
+The bank saved both notes. Both post-hooks read the arguments of one call, so the runtime
+recorded one note of two, told the model twice that the same product was noted, and refused
+the next close once; the repeated close went through.
+
+**Offline.** `tests/freya_sim.py` plays this with `hooks='shared'`, and
+`tests/test_concurrency.py` (`SharedHooks`) keeps the reproduction as expected failures.
+
+**Plan A, call-specific context in a post-hook: not available.** The kit documents `result`
+as the only name of a post-hook. A probe agent with one tool was run on 2026-10-10 in a
+slot of its own (three calls, each with two calls of the tool in one message, started 1 ms,
+3 ms and 19 ms apart). In all six post-hooks:
+
+- the names in scope were `result`, `vars`, `json`, `datetime` and two encryption helpers;
+  there was no `config`, no arguments, no call or invocation id;
+- nothing in `result` (envelope, body, response header names) carried the request;
+- a key the pre-hook had put on `config` and a request header it had added were not
+  reachable;
+- the variable both pre-hooks wrote held the same value in both post-hooks, the one of the
+  call started last, in three calls of three;
+- the engine's own `<tool>_args.<field>` variable was not set.
+
+The probe also showed how the hooks see each other: every hook ran in an interpreter of its
+own; a variable only one pre-hook wrote was visible in both post-hooks; a variable both
+pre-hooks appended to held only one append; the second post-hook did not see what the first
+post-hook had written a tenth of a second earlier. So a post-hook can see that two calls
+were sent, but not which of them it is answering.
+
+**Plan B, serialization: no supported mechanism.** The documented tool settings are
+`timeoutMs`, `maxRetries`, `interruptible` and `alwaysRunsAt`. Nodes and the workflow have
+no setting for the order or parallelism of tool calls, and the `agent_config` the platform
+fills in has none either. The kit's advice, one tool per message, is a prompt instruction;
+the model has not always followed it.
+
+**What remains.** For two calls of one tool in one message the bank's records are right,
+and the runtime's own record can lack one of them. The effects seen or possible: one tool
+result names the wrong product; the next close is refused once although nothing is open
+(bounded: a refusal of one kind is given once); and, for two promises, the recorded amount
+and date of one product can be those of the other.
+
+**Precautions in place.** The prompt asks for one tool call per message. Records are per operation, so calls of different tools in one message do not
+disturb each other. A close refusal is never repeated for the same reason. After a live
+run, compare the bank ledger with the runtime's records, not only the score: the ledger and
+the judge both passed the call in which this defect occurred.
 
 The reason of a blocked call is kept per tool (`rt_block_<tool>`), and a post-hook never
 turns an answer in which the bank carried the call out into a rejection.

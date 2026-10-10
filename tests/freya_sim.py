@@ -26,7 +26,9 @@ Tool calls of one model message (`together`), as seen in three live calls:
   started within one millisecond were NOT isolated: both post-hooks read the
   arguments the second pre-hook had written. That is `hooks='shared'`: every
   pre-hook runs on the call's variables in the order written, then every
-  post-hook. Whether hooks interleave in any other way is not known.
+  post-hook. Whether hooks interleave in any other way is not known. A probe agent
+  showed the same in three calls of three, and that a post-hook is given nothing
+  that names its own call.
 - Why the engine isolated the calls in one case and not in the other is not known.
   A test of same-message behaviour has to state which pattern it plays.
 
