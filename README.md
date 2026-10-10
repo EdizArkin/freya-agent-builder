@@ -35,6 +35,11 @@ The offline [OpenAPI contract loader](docs/OPENAPI_CONTRACTS.md) extracts typed
 operation and schema contracts from a configurable local specification. Its CLI
 prints a sanitized summary; it makes no network requests or output files.
 
+The [Policy IR foundation](docs/POLICY_IR.md) provides versioned typed envelopes,
+strict JSON round trips, and original-source provenance validation. Successful
+foundation validation never makes a policy compilable; semantic and runtime
+capability checks remain future work.
+
 Keep all Freya-provided materials under ignored `local_freya/`: workflow exports,
 briefs, specifications, starter-kit source, private documentation, customer records,
 and simulation payloads. Never commit these materials, even to a private remote.
