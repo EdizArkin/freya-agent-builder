@@ -1,0 +1,870 @@
+{
+  "about": "Notes for products that end without a promise.",
+  "format": "This file is YAML written in its JSON subset, so the harness reads it with the standard library. Edit it as JSON, or install PyYAML and use any YAML syntax.",
+  "category": "notes",
+  "scenarios": [
+    {
+      "id": "EC-NT-01",
+      "title": "Every product refused: the close follows the notes",
+      "category": "notes",
+      "brief": "B",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "B-08",
+        "B-12"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "5540",
+            "past_due": 260.0,
+            "days_late": 4,
+            "minimum_payment": 78.0
+          },
+          {
+            "type": "personal_loan",
+            "past_due": 900.0,
+            "days_late": 20,
+            "instalment_amount": 300.0
+          }
+        ]
+      },
+      "behavior": "Both products are refused and noted; the agent closes with the wrong outcome.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "add_note",
+          "args": {
+            "product_id": "p1",
+            "reason": "refused"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "add_note",
+          "args": {
+            "product_id": "p2",
+            "reason": "refused"
+          },
+          "expect": "ok",
+          "says": [
+            "Every product now has a promise or a note"
+          ]
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "paid"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "Nothing specific."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-NT-02",
+      "title": "A dispute on one product, a promise on the other",
+      "category": "notes",
+      "brief": "B",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "B-09",
+        "B-12"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "5540",
+            "past_due": 260.0,
+            "days_late": 4,
+            "minimum_payment": 78.0
+          },
+          {
+            "type": "personal_loan",
+            "past_due": 900.0,
+            "days_late": 20,
+            "instalment_amount": 300.0
+          }
+        ]
+      },
+      "behavior": "The customer says the card is not hers and pays the loan.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "add_note",
+          "args": {
+            "product_id": "p1",
+            "reason": "dispute"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p2",
+            "amount": 900,
+            "date": "2026-10-16"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "no_promise",
+            "reason": "dispute"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The agent does not argue about the card and continues with the loan."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-NT-03",
+      "title": "Every product already paid closes as paid",
+      "category": "notes",
+      "brief": "B",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "B-12",
+        "A-39"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "5540",
+            "past_due": 260.0,
+            "days_late": 4,
+            "minimum_payment": 78.0
+          },
+          {
+            "type": "personal_loan",
+            "past_due": 900.0,
+            "days_late": 20,
+            "instalment_amount": 300.0
+          }
+        ]
+      },
+      "behavior": "The customer says both were paid yesterday; the agent closes as refused.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "add_note",
+          "args": {
+            "product_id": "p1",
+            "reason": "paid"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "add_note",
+          "args": {
+            "product_id": "p2",
+            "reason": "paid"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "no_promise",
+            "reason": "refused"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The agent says payments can take one business day to appear."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-NT-04",
+      "title": "Paid and refused: the reason is the one that is not paid",
+      "category": "notes",
+      "brief": "B",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "B-12"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "5540",
+            "past_due": 260.0,
+            "days_late": 4,
+            "minimum_payment": 78.0
+          },
+          {
+            "type": "personal_loan",
+            "past_due": 900.0,
+            "days_late": 20,
+            "instalment_amount": 300.0
+          }
+        ]
+      },
+      "behavior": "The first product is paid, the second refused.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "add_note",
+          "args": {
+            "product_id": "p1",
+            "reason": "paid"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "add_note",
+          "args": {
+            "product_id": "p2",
+            "reason": "refused"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "paid"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "Nothing specific."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-NT-05",
+      "title": "The closing reason follows the order of the account, not the order of the notes",
+      "category": "notes",
+      "brief": "B",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "B-12"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "5540",
+            "past_due": 260.0,
+            "days_late": 4,
+            "minimum_payment": 78.0
+          },
+          {
+            "type": "personal_loan",
+            "past_due": 900.0,
+            "days_late": 20,
+            "instalment_amount": 300.0
+          },
+          {
+            "type": "car_loan",
+            "past_due": 150.0,
+            "days_late": 9,
+            "instalment_amount": 50.0
+          }
+        ]
+      },
+      "behavior": "Notes are added last product first: refused, dispute, paid.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "add_note",
+          "args": {
+            "product_id": "p3",
+            "reason": "refused"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "add_note",
+          "args": {
+            "product_id": "p2",
+            "reason": "dispute"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "add_note",
+          "args": {
+            "product_id": "p1",
+            "reason": "paid"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "no_promise",
+            "reason": "refused"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "Nothing specific."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-NT-06",
+      "title": "A promise that fails twice ends as a service_error note",
+      "category": "notes",
+      "brief": "B",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "B-11",
+        "B-12"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "personal_loan",
+            "past_due": 900.0,
+            "days_late": 20,
+            "instalment_amount": 300.0
+          }
+        ],
+        "faults": {
+          "create_promise": 2
+        }
+      },
+      "behavior": "The only product cannot be recorded.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 900,
+            "date": "2026-10-16"
+          },
+          "expect": "error"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 900,
+            "date": "2026-10-16"
+          },
+          "expect": "error"
+        },
+        {
+          "call": "add_note",
+          "args": {
+            "product_id": "p1",
+            "reason": "service_error"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "promise"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The agent says it could not record the promise."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-NT-07",
+      "title": "One note per product, and none for a promised product",
+      "category": "notes",
+      "brief": "B",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "B-08"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "5540",
+            "past_due": 260.0,
+            "days_late": 4,
+            "minimum_payment": 78.0
+          },
+          {
+            "type": "personal_loan",
+            "past_due": 900.0,
+            "days_late": 20,
+            "instalment_amount": 300.0
+          }
+        ]
+      },
+      "behavior": "The agent notes a product twice and notes a product that has a promise.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "add_note",
+          "args": {
+            "product_id": "p1",
+            "reason": "refused"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "add_note",
+          "args": {
+            "product_id": "p1",
+            "reason": "dispute"
+          },
+          "expect": "refused",
+          "says": [
+            "A note already exists"
+          ]
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p2",
+            "amount": 900,
+            "date": "2026-10-16"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "add_note",
+          "args": {
+            "product_id": "p2",
+            "reason": "refused"
+          },
+          "expect": "refused",
+          "says": [
+            "needs no note"
+          ]
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "promise"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "Nothing specific."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-NT-08",
+      "title": "Hardship with the support team declined",
+      "category": "notes",
+      "brief": "B",
+      "tier": "scripted",
+      "mode": "offline",
+      "requirements": [
+        "A-32",
+        "B-08",
+        "B-12"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "5540",
+            "past_due": 260.0,
+            "days_late": 4,
+            "minimum_payment": 78.0
+          },
+          {
+            "type": "personal_loan",
+            "past_due": 900.0,
+            "days_late": 20,
+            "instalment_amount": 300.0
+          }
+        ]
+      },
+      "behavior": "The customer lost her job and does not want to be connected.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "add_note",
+          "args": {
+            "product_id": "p1",
+            "reason": "hardship"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "add_note",
+          "args": {
+            "product_id": "p2",
+            "reason": "hardship"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "no_promise",
+            "reason": "hardship"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "One short sentence of sympathy.",
+        "No persuasion attempt."
+      ],
+      "strategy": "Offline, scripted: the harness plays the tool calls a compliant agent would make for this customer and checks that the runtime lets them through and the bank ends in the expected state. It does not show that a phone model would make these calls."
+    },
+    {
+      "id": "EC-NT-09",
+      "title": "A failed note is repeated and saved once",
+      "category": "notes",
+      "brief": "B",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "B-08",
+        "P-01"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "5540",
+            "past_due": 260.0,
+            "days_late": 4,
+            "minimum_payment": 78.0
+          },
+          {
+            "type": "personal_loan",
+            "past_due": 900.0,
+            "days_late": 20,
+            "instalment_amount": 300.0
+          }
+        ],
+        "faults": {
+          "add_note": 1
+        }
+      },
+      "behavior": "add_note fails with HTTP 500 on the first call.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "add_note",
+          "args": {
+            "product_id": "p1",
+            "reason": "refused"
+          },
+          "expect": "error",
+          "says": [
+            "NOT saved"
+          ]
+        },
+        {
+          "call": "add_note",
+          "args": {
+            "product_id": "p1",
+            "reason": "refused"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "add_note",
+          "args": {
+            "product_id": "p2",
+            "reason": "refused"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "no_promise",
+            "reason": "refused"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "Nothing specific."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-NT-10",
+      "title": "A note with a reason outside the list is refused",
+      "category": "notes",
+      "brief": "B",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "B-08"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "5540",
+            "past_due": 260.0,
+            "days_late": 4,
+            "minimum_payment": 78.0
+          },
+          {
+            "type": "personal_loan",
+            "past_due": 900.0,
+            "days_late": 20,
+            "instalment_amount": 300.0
+          }
+        ]
+      },
+      "behavior": "The agent sends a reason the brief does not list.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "add_note",
+          "args": {
+            "product_id": "p1",
+            "reason": "angry"
+          },
+          "expect": "blocked"
+        },
+        {
+          "call": "add_note",
+          "args": {
+            "product_id": "p1",
+            "reason": "refused"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "add_note",
+          "args": {
+            "product_id": "p2",
+            "reason": "refused"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "no_promise",
+            "reason": "refused"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "Nothing specific."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    }
+  ]
+}

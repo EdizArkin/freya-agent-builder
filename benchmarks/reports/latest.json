@@ -1,0 +1,2845 @@
+{
+ "at": "2026-10-10 21:32:55",
+ "specs": {
+  "A": "tests/fixture_spec.py (hand-written)",
+  "B": "tests/fixture_spec.py (hand-written)",
+  "C": "benchmarks/synthetic_briefs/brief-c.spec.yaml (hand-written reference)",
+  "D": "benchmarks/synthetic_briefs/brief-d.spec.yaml (hand-written reference)",
+  "E": "benchmarks/synthetic_briefs/brief-e.spec.yaml (hand-written reference)"
+ },
+ "totals": {
+  "PASS": 103,
+  "FAIL": 0,
+  "GAP": 9,
+  "UNEXPECTED PASS": 0,
+  "NOT RUN": 11
+ },
+ "scenarios": [
+  {
+   "id": "EC-CL-01",
+   "title": "An outcome without a reason loses a reason sent with it",
+   "category": "closure",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-46"
+   ]
+  },
+  {
+   "id": "EC-CL-02",
+   "title": "An outcome that needs a reason is not closed without one",
+   "category": "closure",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-46"
+   ]
+  },
+  {
+   "id": "EC-CL-03",
+   "title": "A reason the outcome table does not list is not sent",
+   "category": "closure",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-46"
+   ]
+  },
+  {
+   "id": "EC-CL-04",
+   "title": "A booked callback decides the close",
+   "category": "closure",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "schedule_callback",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-06",
+    "A-46"
+   ]
+  },
+  {
+   "id": "EC-CL-05",
+   "title": "Nothing can be called after the close",
+   "category": "closure",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-46"
+   ]
+  },
+  {
+   "id": "EC-CL-06",
+   "title": "A wrong number ends with one call to the bank",
+   "category": "closure",
+   "brief": "A",
+   "tier": "scripted",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-08",
+    "A-46"
+   ]
+  },
+  {
+   "id": "EC-CL-07",
+   "title": "A Brief A agent has no add_note tool anywhere",
+   "category": "closure",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-46"
+   ]
+  },
+  {
+   "id": "EC-CL-08",
+   "title": "A promise outranks a paid note at the close",
+   "category": "closure",
+   "brief": "B",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise",
+    "add_note",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "B-12"
+   ]
+  },
+  {
+   "id": "EC-CV-01",
+   "title": "Says yes, then no, then yes",
+   "category": "conversations",
+   "brief": "A",
+   "tier": "scripted",
+   "mode": "both",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-34",
+    "A-35",
+    "A-36"
+   ]
+  },
+  {
+   "id": "EC-CV-02",
+   "title": "Changes the day at the read-back",
+   "category": "conversations",
+   "brief": "A",
+   "tier": "scripted",
+   "mode": "both",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-35",
+    "A-26",
+    "A-34"
+   ]
+  },
+  {
+   "id": "EC-CV-03",
+   "title": "Presses for an exception to the deadline",
+   "category": "conversations",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "both",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise!refused",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-23",
+    "A-33",
+    "A-31"
+   ]
+  },
+  {
+   "id": "EC-CV-04",
+   "title": "An unclear yes, then a clear one",
+   "category": "conversations",
+   "brief": "A",
+   "tier": "scripted",
+   "mode": "both",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-34"
+   ]
+  },
+  {
+   "id": "EC-CV-05",
+   "title": "Never gives a clear yes",
+   "category": "conversations",
+   "brief": "A",
+   "tier": "live_only",
+   "mode": "live",
+   "status": "NOT RUN",
+   "failures": [],
+   "bank_calls": [],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-34",
+    "A-30",
+    "A-31"
+   ]
+  },
+  {
+   "id": "EC-CV-06",
+   "title": "Gives the security answers in two parts",
+   "category": "conversations",
+   "brief": "A",
+   "tier": "live_only",
+   "mode": "live",
+   "status": "NOT RUN",
+   "failures": [],
+   "bank_calls": [],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-11",
+    "A-12",
+    "A-41"
+   ]
+  },
+  {
+   "id": "EC-CV-07",
+   "title": "Asks three times whether this is a scam or a robot",
+   "category": "conversations",
+   "brief": "A",
+   "tier": "live_only",
+   "mode": "live",
+   "status": "NOT RUN",
+   "failures": [],
+   "bank_calls": [],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-04",
+    "A-43",
+    "A-03"
+   ]
+  },
+  {
+   "id": "EC-CV-08",
+   "title": "Asks twice to change a recorded promise",
+   "category": "conversations",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "both",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise",
+    "create_promise!refused",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-36"
+   ]
+  },
+  {
+   "id": "EC-CV-09",
+   "title": "A relative presses for details and offers to pay",
+   "category": "conversations",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "both",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "schedule_callback",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-05",
+    "A-10",
+    "A-06",
+    "A-01"
+   ]
+  },
+  {
+   "id": "EC-CV-10",
+   "title": "Mentions a job loss and still names a date",
+   "category": "conversations",
+   "brief": "A",
+   "tier": "live_only",
+   "mode": "live",
+   "status": "NOT RUN",
+   "failures": [],
+   "bank_calls": [],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-32"
+   ]
+  },
+  {
+   "id": "EC-CV-11",
+   "title": "Says twice that she does not want to talk, before verification",
+   "category": "conversations",
+   "brief": "A",
+   "tier": "live_only",
+   "mode": "live",
+   "status": "NOT RUN",
+   "failures": [],
+   "bank_calls": [],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-45",
+    "A-15"
+   ]
+  },
+  {
+   "id": "EC-CV-12",
+   "title": "Demands that half of the debt is cancelled",
+   "category": "conversations",
+   "brief": "A",
+   "tier": "live_only",
+   "mode": "live",
+   "status": "NOT RUN",
+   "failures": [],
+   "bank_calls": [],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-33",
+    "A-30",
+    "A-31"
+   ]
+  },
+  {
+   "id": "EC-DT-01",
+   "title": "Yesterday is refused, today is accepted",
+   "category": "dates",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise!refused",
+    "create_promise",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-19"
+   ]
+  },
+  {
+   "id": "EC-DT-02",
+   "title": "A date after the deadline is refused and the deadline right after it is recorded",
+   "category": "dates",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise!refused",
+    "create_promise",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-18",
+    "A-23",
+    "P-05"
+   ]
+  },
+  {
+   "id": "EC-DT-03",
+   "title": "Early band: the twelfth business day is the last one accepted",
+   "category": "dates",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise!refused",
+    "create_promise",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-18",
+    "A-19"
+   ]
+  },
+  {
+   "id": "EC-DT-04",
+   "title": "A Saturday is refused and the next business day is named",
+   "category": "dates",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise!refused",
+    "create_promise",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-19",
+    "A-20"
+   ]
+  },
+  {
+   "id": "EC-DT-05",
+   "title": "A bank holiday inside the deadline is refused",
+   "category": "dates",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise!refused",
+    "create_promise",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-19",
+    "A-20"
+   ]
+  },
+  {
+   "id": "EC-DT-06",
+   "title": "A weekend day after the deadline is refused for the deadline, not for the weekend",
+   "category": "dates",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise!refused",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-20",
+    "A-23"
+   ]
+  },
+  {
+   "id": "EC-DT-07",
+   "title": "Dates that are not dates are refused",
+   "category": "dates",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise!refused",
+    "create_promise!refused",
+    "create_promise!refused",
+    "create_promise!refused",
+    "create_promise",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-19",
+    "A-22"
+   ]
+  },
+  {
+   "id": "EC-DT-08",
+   "title": "The date of \"this Friday\" and \"Friday next week\" is given, not left to counting",
+   "category": "dates",
+   "brief": "A",
+   "tier": "scripted",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-22"
+   ]
+  },
+  {
+   "id": "EC-DT-09",
+   "title": "On a Friday, \"next Friday\" and the first offer are the Friday of next week",
+   "category": "dates",
+   "brief": "A",
+   "tier": "scripted",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-22",
+    "A-30",
+    "A-18"
+   ]
+  },
+  {
+   "id": "EC-DT-10",
+   "title": "Holidays at the turn of the year",
+   "category": "dates",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise!refused",
+    "create_promise!refused",
+    "create_promise!refused",
+    "create_promise",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-18",
+    "A-19",
+    "A-20"
+   ]
+  },
+  {
+   "id": "EC-DT-11",
+   "title": "A vague period and no exact day leads to the deadline",
+   "category": "dates",
+   "brief": "A",
+   "tier": "live_only",
+   "mode": "live",
+   "status": "NOT RUN",
+   "failures": [],
+   "bank_calls": [],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-21"
+   ]
+  },
+  {
+   "id": "EC-ID-01",
+   "title": "Account tools do not exist before verification",
+   "category": "identity",
+   "brief": "B",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-10",
+    "A-16"
+   ]
+  },
+  {
+   "id": "EC-ID-02",
+   "title": "One correct answer of two is not verification",
+   "category": "identity",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-11",
+    "A-16"
+   ]
+  },
+  {
+   "id": "EC-ID-03",
+   "title": "Three wrong answers across both questions end the check for good",
+   "category": "identity",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "verify_identity",
+    "verify_identity",
+    "verify_identity!refused",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-12",
+    "A-14"
+   ]
+  },
+  {
+   "id": "EC-ID-04",
+   "title": "Day and month the other way round is not a wrong answer",
+   "category": "identity",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-13"
+   ]
+  },
+  {
+   "id": "EC-ID-05",
+   "title": "Wrong answers are remembered after a correct one",
+   "category": "identity",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-12"
+   ]
+  },
+  {
+   "id": "EC-ID-06",
+   "title": "A failure of the identity service is not a wrong answer",
+   "category": "identity",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity!500",
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-12",
+    "P-01"
+   ]
+  },
+  {
+   "id": "EC-ID-07",
+   "title": "State handed in with the call cannot stand in for verification",
+   "category": "identity",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "P-04",
+    "A-16"
+   ]
+  },
+  {
+   "id": "EC-ID-08",
+   "title": "Numeric date and spaced digits are normalised before they are sent",
+   "category": "identity",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-11"
+   ]
+  },
+  {
+   "id": "EC-ID-09",
+   "title": "An answer the service cannot read is not counted",
+   "category": "identity",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity!refused",
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-11",
+    "A-12"
+   ]
+  },
+  {
+   "id": "EC-ID-10",
+   "title": "Asks what the call is about instead of answering, twice",
+   "category": "identity",
+   "brief": "A",
+   "tier": "scripted",
+   "mode": "both",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-15",
+    "A-01"
+   ]
+  },
+  {
+   "id": "EC-MP-01",
+   "title": "One date for two products with different deadlines",
+   "category": "multi_product",
+   "brief": "B",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise",
+    "create_promise!refused",
+    "create_promise",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "B-03",
+    "B-06"
+   ]
+  },
+  {
+   "id": "EC-MP-02",
+   "title": "Each product has its own floor",
+   "category": "multi_product",
+   "brief": "B",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise",
+    "create_promise!refused",
+    "create_promise",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "B-01",
+    "A-25",
+    "A-27"
+   ]
+  },
+  {
+   "id": "EC-MP-03",
+   "title": "Three products on one date, one promise each",
+   "category": "multi_product",
+   "brief": "B",
+   "tier": "scripted",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise",
+    "create_promise",
+    "create_promise",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "B-07",
+    "B-01"
+   ]
+  },
+  {
+   "id": "EC-MP-04",
+   "title": "Promise, refusal and dispute in one call: the promise wins the close",
+   "category": "multi_product",
+   "brief": "B",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise",
+    "add_note",
+    "add_note",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "B-08",
+    "B-09",
+    "B-12"
+   ]
+  },
+  {
+   "id": "EC-MP-05",
+   "title": "What happens to one product does not leak into another",
+   "category": "multi_product",
+   "brief": "B",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise",
+    "create_promise!refused",
+    "create_promise!500",
+    "create_promise!500",
+    "create_promise",
+    "create_promise!refused",
+    "add_note",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "B-11",
+    "A-36",
+    "A-37"
+   ]
+  },
+  {
+   "id": "EC-MP-06",
+   "title": "The call is not closed while a product has neither a promise nor a note",
+   "category": "multi_product",
+   "brief": "B",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise",
+    "add_note",
+    "add_note",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "B-08"
+   ]
+  },
+  {
+   "id": "EC-MP-07",
+   "title": "An unknown product id is refused when there are several products",
+   "category": "multi_product",
+   "brief": "B",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise!refused",
+    "create_promise",
+    "add_note",
+    "add_note",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "B-01",
+    "B-08"
+   ]
+  },
+  {
+   "id": "EC-MP-08",
+   "title": "Refuses the product whose deadline is earlier than the date he named",
+   "category": "multi_product",
+   "brief": "B",
+   "tier": "scripted",
+   "mode": "both",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise",
+    "add_note",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "B-06",
+    "B-08",
+    "A-23",
+    "B-05"
+   ]
+  },
+  {
+   "id": "EC-MP-09",
+   "title": "One date for three products, after the deadline of two of them",
+   "category": "multi_product",
+   "brief": "B",
+   "tier": "live_only",
+   "mode": "live",
+   "status": "NOT RUN",
+   "failures": [],
+   "bank_calls": [],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "B-06",
+    "B-07"
+   ]
+  },
+  {
+   "id": "EC-NT-01",
+   "title": "Every product refused: the close follows the notes",
+   "category": "notes",
+   "brief": "B",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "add_note",
+    "add_note",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "B-08",
+    "B-12"
+   ]
+  },
+  {
+   "id": "EC-NT-02",
+   "title": "A dispute on one product, a promise on the other",
+   "category": "notes",
+   "brief": "B",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "add_note",
+    "create_promise",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "B-09",
+    "B-12"
+   ]
+  },
+  {
+   "id": "EC-NT-03",
+   "title": "Every product already paid closes as paid",
+   "category": "notes",
+   "brief": "B",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "add_note",
+    "add_note",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "B-12",
+    "A-39"
+   ]
+  },
+  {
+   "id": "EC-NT-04",
+   "title": "Paid and refused: the reason is the one that is not paid",
+   "category": "notes",
+   "brief": "B",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "add_note",
+    "add_note",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "B-12"
+   ]
+  },
+  {
+   "id": "EC-NT-05",
+   "title": "The closing reason follows the order of the account, not the order of the notes",
+   "category": "notes",
+   "brief": "B",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "add_note",
+    "add_note",
+    "add_note",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "B-12"
+   ]
+  },
+  {
+   "id": "EC-NT-06",
+   "title": "A promise that fails twice ends as a service_error note",
+   "category": "notes",
+   "brief": "B",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise!500",
+    "create_promise!500",
+    "add_note",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "B-11",
+    "B-12"
+   ]
+  },
+  {
+   "id": "EC-NT-07",
+   "title": "One note per product, and none for a promised product",
+   "category": "notes",
+   "brief": "B",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "add_note",
+    "add_note!refused",
+    "create_promise",
+    "add_note!refused",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "B-08"
+   ]
+  },
+  {
+   "id": "EC-NT-08",
+   "title": "Hardship with the support team declined",
+   "category": "notes",
+   "brief": "B",
+   "tier": "scripted",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "add_note",
+    "add_note",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-32",
+    "B-08",
+    "B-12"
+   ]
+  },
+  {
+   "id": "EC-NT-09",
+   "title": "A failed note is repeated and saved once",
+   "category": "notes",
+   "brief": "B",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "add_note!500",
+    "add_note",
+    "add_note",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "B-08",
+    "P-01"
+   ]
+  },
+  {
+   "id": "EC-NT-10",
+   "title": "A note with a reason outside the list is refused",
+   "category": "notes",
+   "brief": "B",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "add_note!refused",
+    "add_note",
+    "add_note",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "B-08"
+   ]
+  },
+  {
+   "id": "EC-PR-01",
+   "title": "One cent below the floor is refused, the floor itself is accepted",
+   "category": "promises",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise!refused",
+    "create_promise",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-25",
+    "A-27",
+    "P-05"
+   ]
+  },
+  {
+   "id": "EC-PR-02",
+   "title": "One cent above the past-due amount is refused",
+   "category": "promises",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise!refused",
+    "create_promise",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-27"
+   ]
+  },
+  {
+   "id": "EC-PR-03",
+   "title": "Zero, negative and non-numeric amounts are refused",
+   "category": "promises",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise!refused",
+    "create_promise!refused",
+    "create_promise!refused",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-27"
+   ]
+  },
+  {
+   "id": "EC-PR-04",
+   "title": "A second promise for the same product is refused",
+   "category": "promises",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise",
+    "create_promise!refused",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-36"
+   ]
+  },
+  {
+   "id": "EC-PR-05",
+   "title": "Amount as text and date with a time are normalised",
+   "category": "promises",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-19",
+    "A-27"
+   ]
+  },
+  {
+   "id": "EC-PR-06",
+   "title": "No promise without a loaded account",
+   "category": "promises",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account!500",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-16",
+    "A-44"
+   ]
+  },
+  {
+   "id": "EC-PR-07",
+   "title": "An invented product id on a one-product account is corrected",
+   "category": "promises",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-36"
+   ]
+  },
+  {
+   "id": "EC-RT-01",
+   "title": "HTTP 500 and then success",
+   "category": "retries",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise!500",
+    "create_promise",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-37",
+    "P-01"
+   ]
+  },
+  {
+   "id": "EC-RT-02",
+   "title": "HTTP 500 twice",
+   "category": "retries",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise!500",
+    "create_promise!500",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-37",
+    "P-01"
+   ]
+  },
+  {
+   "id": "EC-RT-03",
+   "title": "A third attempt after the retry is used up never reaches the ledger",
+   "category": "retries",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise!500",
+    "create_promise!500",
+    "create_promise!refused",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-37"
+   ]
+  },
+  {
+   "id": "EC-RT-04",
+   "title": "A slow promise is overtaken by the close sent with it",
+   "category": "retries",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "P-02",
+    "A-46"
+   ]
+  },
+  {
+   "id": "EC-RT-05",
+   "title": "The mark of a failed call does not hold back a close one turn later",
+   "category": "retries",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "transfer_to_agent!500",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "P-03",
+    "A-32"
+   ]
+  },
+  {
+   "id": "EC-RT-06",
+   "title": "A close in the same instant as a failed call is held once, never twice",
+   "category": "retries",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "transfer_to_agent!500",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "P-03"
+   ]
+  },
+  {
+   "id": "EC-RT-07",
+   "title": "After a failed transfer a different, valid call goes through",
+   "category": "retries",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "transfer_to_agent!500",
+    "create_promise",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "P-01",
+    "A-32"
+   ]
+  },
+  {
+   "id": "EC-RT-08",
+   "title": "A failed close leaves the call open",
+   "category": "retries",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "close_call!500",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-46",
+    "P-01"
+   ]
+  },
+  {
+   "id": "EC-RT-09",
+   "title": "A failed callback booking is repeated and booked once",
+   "category": "retries",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "schedule_callback!500",
+    "schedule_callback",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-06",
+    "P-01"
+   ]
+  },
+  {
+   "id": "EC-RT-10",
+   "title": "The same promise sent twice in one message is recorded once",
+   "category": "retries",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise",
+    "create_promise!refused",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-36",
+    "P-02"
+   ]
+  },
+  {
+   "id": "EC-TR-01",
+   "title": "A transfer before verification closes as transferred",
+   "category": "transfers",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "transfer_to_agent",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-42",
+    "A-45",
+    "A-46"
+   ]
+  },
+  {
+   "id": "EC-TR-02",
+   "title": "After a transfer the close cannot carry another outcome",
+   "category": "transfers",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "transfer_to_agent",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-41",
+    "A-46"
+   ]
+  },
+  {
+   "id": "EC-TR-03",
+   "title": "Transfer and close in one message, the close arriving first",
+   "category": "transfers",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "transfer_to_agent",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "P-02",
+    "A-41",
+    "A-46"
+   ]
+  },
+  {
+   "id": "EC-TR-04",
+   "title": "A failed transfer is repeated and happens once",
+   "category": "transfers",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "transfer_to_agent!500",
+    "transfer_to_agent",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-32",
+    "P-01"
+   ]
+  },
+  {
+   "id": "EC-TR-05",
+   "title": "A transfer that never works does not force the outcome",
+   "category": "transfers",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "transfer_to_agent!500",
+    "transfer_to_agent!500",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-32",
+    "A-46"
+   ]
+  },
+  {
+   "id": "EC-TR-06",
+   "title": "No note after a transfer",
+   "category": "transfers",
+   "brief": "B",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "transfer_to_agent",
+    "add_note!refused",
+    "add_note!refused",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "B-10"
+   ]
+  },
+  {
+   "id": "EC-TR-07",
+   "title": "A promise agreed but not yet recorded is not recorded after the transfer",
+   "category": "transfers",
+   "brief": "B",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise",
+    "transfer_to_agent",
+    "create_promise!refused",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "B-10",
+    "B-12"
+   ]
+  },
+  {
+   "id": "EC-TR-08",
+   "title": "A transfer after a recorded promise closes as transferred",
+   "category": "transfers",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise",
+    "transfer_to_agent",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "A-46",
+    "A-32"
+   ]
+  },
+  {
+   "id": "EC-TR-09",
+   "title": "Callback and close in one message, the close arriving first",
+   "category": "transfers",
+   "brief": "A",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "schedule_callback",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "P-02",
+    "A-06"
+   ]
+  },
+  {
+   "id": "SC-01",
+   "title": "There is no callback tool in this agent",
+   "category": "brief_c",
+   "brief": "C",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "C-02"
+   ]
+  },
+  {
+   "id": "SC-02",
+   "title": "Postcode first, then year of birth",
+   "category": "brief_c",
+   "brief": "C",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "C-03",
+    "C-07"
+   ]
+  },
+  {
+   "id": "SC-03",
+   "title": "Two wrong answers end the check",
+   "category": "brief_c",
+   "brief": "C",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "C-05"
+   ]
+  },
+  {
+   "id": "SC-04",
+   "title": "The postcode is sent in capitals without spaces",
+   "category": "brief_c",
+   "brief": "C",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "GAP",
+   "failures": [
+    "step 1 (verify_identity): tool result lacks 'That answer is correct' (it says: That answer is WRONG. Wrong answers left before the check ends: 1. Do not move to another question. Ask the same question again: \"the postcode of your registered address\" (field postcode).)",
+    "step 3 (check): the call is in contact, expected negotiate",
+    "step 3 (check): state wrong is 1, expected 0"
+   ],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "close_call"
+   ],
+   "known_gap": "Answers of format text are only trimmed. The schema has no way to say \"upper case, no spaces\", so the normalisation depends on the model.",
+   "gap_kind": "schema",
+   "requirements": [
+    "C-04"
+   ]
+  },
+  {
+   "id": "SC-05",
+   "title": "Floor as a percentage of the past-due amount",
+   "category": "brief_c",
+   "brief": "C",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise!refused",
+    "create_promise",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "C-12"
+   ]
+  },
+  {
+   "id": "SC-06",
+   "title": "Saturday is a business day and the deadline rolls back over a holiday",
+   "category": "brief_c",
+   "brief": "C",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise!refused",
+    "create_promise",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "C-09",
+    "C-10"
+   ]
+  },
+  {
+   "id": "SC-07",
+   "title": "A promise for today is refused",
+   "category": "brief_c",
+   "brief": "C",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "GAP",
+   "failures": [
+    "step 3 (create_promise): expected refused, got ok",
+    "step 4 (create_promise): expected ok, got refused",
+    "ledger promises is [('p1', 300.0, '2026-10-14')], expected [('p1', 300.0, '2026-10-15')]"
+   ],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise",
+    "create_promise!refused",
+    "close_call"
+   ],
+   "known_gap": "The schema has a latest date per product but no earliest date. \"Tomorrow or later\" lives in the rule text only.",
+   "gap_kind": "schema",
+   "requirements": [
+    "C-11"
+   ]
+  },
+  {
+   "id": "SC-08",
+   "title": "No promise on an account that is already on a plan",
+   "category": "brief_c",
+   "brief": "C",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "GAP",
+   "failures": [
+    "step 3 (create_promise): expected blocked, got ok",
+    "ledger promises is [('p1', 500.0, '2026-10-16')], expected []"
+   ],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise",
+    "transfer_to_agent",
+    "close_call"
+   ],
+   "known_gap": "The schema cannot say that a product is not eligible for a promise. Limits are an amount range and a latest date; a condition on other fields is rule text only.",
+   "gap_kind": "schema",
+   "requirements": [
+    "C-08"
+   ]
+  },
+  {
+   "id": "SC-09",
+   "title": "No retry after a failed promise",
+   "category": "brief_c",
+   "brief": "C",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise!500",
+    "create_promise!refused",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "C-15"
+   ]
+  },
+  {
+   "id": "SC-10",
+   "title": "More than thirty days late: two calendar days, a quarter as the floor",
+   "category": "brief_c",
+   "brief": "C",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise!refused",
+    "create_promise!refused",
+    "create_promise",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "C-10",
+    "C-12"
+   ]
+  },
+  {
+   "id": "SC-11",
+   "title": "A request for a person before verification",
+   "category": "brief_c",
+   "brief": "C",
+   "tier": "scripted",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "transfer_to_agent",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "C-18"
+   ]
+  },
+  {
+   "id": "SC-12",
+   "title": "Declines the first security question",
+   "category": "brief_c",
+   "brief": "C",
+   "tier": "live_only",
+   "mode": "specification",
+   "status": "NOT RUN",
+   "failures": [],
+   "bank_calls": [],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "C-01",
+    "C-06"
+   ]
+  },
+  {
+   "id": "SD-01",
+   "title": "A mortgage is promised in full or not at all",
+   "category": "brief_d",
+   "brief": "D",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise!refused",
+    "create_promise",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "D-07"
+   ]
+  },
+  {
+   "id": "SD-02",
+   "title": "Three products, three different deadlines",
+   "category": "brief_d",
+   "brief": "D",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise!refused",
+    "create_promise",
+    "create_promise",
+    "create_promise",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "D-09",
+    "D-10"
+   ]
+  },
+  {
+   "id": "SD-03",
+   "title": "Notes are added after a transfer",
+   "category": "brief_d",
+   "brief": "D",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "transfer_to_agent",
+    "add_note",
+    "add_note",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "D-15",
+    "D-14"
+   ]
+  },
+  {
+   "id": "SD-04",
+   "title": "No promise after a transfer, but the notes still go in",
+   "category": "brief_d",
+   "brief": "D",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise",
+    "transfer_to_agent",
+    "create_promise!refused",
+    "add_note",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "D-15"
+   ]
+  },
+  {
+   "id": "SD-05",
+   "title": "Two failures and a third attempt that works",
+   "category": "brief_d",
+   "brief": "D",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise!500",
+    "create_promise!500",
+    "create_promise",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "D-13"
+   ]
+  },
+  {
+   "id": "SD-06",
+   "title": "Three failures use up the attempts",
+   "category": "brief_d",
+   "brief": "D",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise!500",
+    "create_promise!500",
+    "create_promise!500",
+    "create_promise!refused",
+    "add_note",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "D-13",
+    "D-14"
+   ]
+  },
+  {
+   "id": "SD-07",
+   "title": "No promise on the card while the mortgage is open",
+   "category": "brief_d",
+   "brief": "D",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "GAP",
+   "failures": [
+    "step 3 (create_promise): expected blocked, got ok",
+    "step 5 (create_promise): expected ok, got refused"
+   ],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise",
+    "create_promise",
+    "create_promise!refused",
+    "close_call"
+   ],
+   "known_gap": "The schema has no rule that makes a promise on one product depend on the state of another. Product order is rule text only.",
+   "gap_kind": "schema",
+   "requirements": [
+    "D-06"
+   ]
+  },
+  {
+   "id": "SD-08",
+   "title": "Promises below the household minimum are not recorded",
+   "category": "brief_d",
+   "brief": "D",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "GAP",
+   "failures": [
+    "step 4 (create_promise): expected blocked, got ok",
+    "step 5 (add_note): expected ok, got refused",
+    "ledger outcome is 'promise', expected 'no_promise'",
+    "ledger reason is None, expected 'refused'",
+    "ledger promises is [('p2', 180.0, '2026-10-16')], expected []",
+    "ledger notes is [('p1', 'refused')], expected [('p1', 'refused'), ('p2', 'refused')]"
+   ],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "add_note",
+    "create_promise",
+    "add_note!refused",
+    "close_call"
+   ],
+   "known_gap": "Limits are per product. The schema has no limit across products, so a minimum on the sum of all promises is rule text only.",
+   "gap_kind": "schema",
+   "requirements": [
+    "D-11"
+   ]
+  },
+  {
+   "id": "SD-09",
+   "title": "A dispute outranks a promise at the close",
+   "category": "brief_d",
+   "brief": "D",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "GAP",
+   "failures": [
+    "ledger outcome is 'promise', expected 'no_promise'",
+    "ledger reason is None, expected 'dispute'"
+   ],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise",
+    "add_note",
+    "close_call"
+   ],
+   "known_gap": "close.forced can test \"a promise was recorded\" and \"notes without any promise\", but not \"some product has a note with this reason\". The promise rule fires first.",
+   "gap_kind": "schema",
+   "requirements": [
+    "D-17",
+    "D-18"
+   ]
+  },
+  {
+   "id": "SD-10",
+   "title": "Paid and deferred: the close takes the reason that is not paid",
+   "category": "brief_d",
+   "brief": "D",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "add_note",
+    "add_note",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "D-14",
+    "D-18"
+   ]
+  },
+  {
+   "id": "SD-11",
+   "title": "A callback is never for today",
+   "category": "brief_d",
+   "brief": "D",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "schedule_callback",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "D-02"
+   ]
+  },
+  {
+   "id": "SD-12",
+   "title": "Every product is stated, the secured one first",
+   "category": "brief_d",
+   "brief": "D",
+   "tier": "live_only",
+   "mode": "specification",
+   "status": "NOT RUN",
+   "failures": [],
+   "bank_calls": [],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "D-05",
+    "D-06",
+    "D-12"
+   ]
+  },
+  {
+   "id": "SE-01",
+   "title": "Friday is not a business day, Sunday is",
+   "category": "brief_e",
+   "brief": "E",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise!refused",
+    "create_promise",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "E-05",
+    "E-06"
+   ]
+  },
+  {
+   "id": "SE-02",
+   "title": "Two deadline rules: the ten-day rule wins mid-month",
+   "category": "brief_e",
+   "brief": "E",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise!refused",
+    "create_promise",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "E-07",
+    "E-08"
+   ]
+  },
+  {
+   "id": "SE-03",
+   "title": "Two deadline rules: the end of the month wins late in the month",
+   "category": "brief_e",
+   "brief": "E",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise!refused",
+    "create_promise",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "E-07",
+    "E-08"
+   ]
+  },
+  {
+   "id": "SE-04",
+   "title": "More than thirty days late: the next business day, across the weekend",
+   "category": "brief_e",
+   "brief": "E",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise!refused",
+    "create_promise",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "E-09"
+   ]
+  },
+  {
+   "id": "SE-05",
+   "title": "The vulnerable floor replaces the product floor",
+   "category": "brief_e",
+   "brief": "E",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise!refused",
+    "create_promise",
+    "create_promise",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "E-11",
+    "E-12"
+   ]
+  },
+  {
+   "id": "SE-06",
+   "title": "A second transfer is refused",
+   "category": "brief_e",
+   "brief": "E",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "GAP",
+   "failures": [
+    "step 4 (transfer_to_agent): expected blocked, got ok",
+    "ledger reason is 'complaint', expected 'plan'",
+    "ledger transfers is ['plans', 'complaints'], expected ['plans']"
+   ],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "transfer_to_agent",
+    "transfer_to_agent",
+    "close_call"
+   ],
+   "known_gap": "Nothing limits the number of transfers. A second transfer is carried out and its queue then decides the closing reason.",
+   "gap_kind": "schema",
+   "requirements": [
+    "E-16"
+   ]
+  },
+  {
+   "id": "SE-07",
+   "title": "A confirmed promise may still be recorded after a transfer to plans",
+   "category": "brief_e",
+   "brief": "E",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "GAP",
+   "failures": [
+    "step 4 (create_promise): expected ok, got refused",
+    "ledger promises is [], expected [('p1', 180.0, '2026-10-15')]"
+   ],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "transfer_to_agent",
+    "create_promise!refused",
+    "close_call"
+   ],
+   "known_gap": "promise.forbidden_after_transfer is one switch for every queue. An exception for one queue cannot be written, and the reference spec keeps the general rule.",
+   "gap_kind": "schema",
+   "requirements": [
+    "E-18",
+    "E-17"
+   ]
+  },
+  {
+   "id": "SE-08",
+   "title": "Nothing is recorded after a transfer to welfare",
+   "category": "brief_e",
+   "brief": "E",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "transfer_to_agent",
+    "create_promise!refused",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "E-17",
+    "E-19"
+   ]
+  },
+  {
+   "id": "SE-09",
+   "title": "A failed identity check outranks an earlier transfer",
+   "category": "brief_e",
+   "brief": "E",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "transfer_to_agent",
+    "verify_identity",
+    "verify_identity",
+    "verify_identity",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "E-20",
+    "E-19"
+   ]
+  },
+  {
+   "id": "SE-10",
+   "title": "After 16:00 a promise for today is refused",
+   "category": "brief_e",
+   "brief": "E",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "GAP",
+   "failures": [
+    "step 3 (create_promise): expected refused, got ok",
+    "step 4 (create_promise): expected ok, got refused",
+    "ledger promises is [('p1', 180.0, '2026-10-14')], expected [('p1', 180.0, '2026-10-15')]"
+   ],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise",
+    "create_promise!refused",
+    "close_call"
+   ],
+   "known_gap": "No limit depends on the time of day, and there is no earliest date. The 16:00 rule is rule text only.",
+   "gap_kind": "schema",
+   "requirements": [
+    "E-10"
+   ]
+  },
+  {
+   "id": "SE-11",
+   "title": "A callback only on the next business day before noon",
+   "category": "brief_e",
+   "brief": "E",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "schedule_callback",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "E-02"
+   ]
+  },
+  {
+   "id": "SE-12",
+   "title": "The gas floor is a fifth of the past-due amount",
+   "category": "brief_e",
+   "brief": "E",
+   "tier": "runtime",
+   "mode": "offline",
+   "status": "PASS",
+   "failures": [],
+   "bank_calls": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise!refused",
+    "create_promise",
+    "close_call"
+   ],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "E-11"
+   ]
+  },
+  {
+   "id": "SE-13",
+   "title": "A vulnerable household is offered the floor first, never the full amount",
+   "category": "brief_e",
+   "brief": "E",
+   "tier": "live_only",
+   "mode": "specification",
+   "status": "NOT RUN",
+   "failures": [],
+   "bank_calls": [],
+   "known_gap": null,
+   "gap_kind": null,
+   "requirements": [
+    "E-13",
+    "E-14",
+    "E-16"
+   ]
+  }
+ ]
+}

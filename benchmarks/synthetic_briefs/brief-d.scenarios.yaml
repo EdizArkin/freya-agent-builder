@@ -1,0 +1,1115 @@
+{
+  "about": "Scenarios for synthetic Brief D.",
+  "format": "This file is YAML written in its JSON subset, so the harness reads it with the standard library. Edit it as JSON, or install PyYAML and use any YAML syntax.",
+  "category": "brief_d",
+  "scenarios": [
+    {
+      "id": "SD-01",
+      "title": "A mortgage is promised in full or not at all",
+      "category": "brief_d",
+      "brief": "D",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "D-07"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1972-02-28",
+          "phone_last4": "9034"
+        },
+        "products": [
+          {
+            "type": "mortgage",
+            "past_due": 1500.0,
+            "days_late": 10,
+            "secured": true
+          }
+        ],
+        "variables": {
+          "title": "Mr",
+          "first_name": "Erik",
+          "last_name": "Lindqvist"
+        }
+      },
+      "behavior": "The customer offers half of the mortgage arrears.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1972-02-28"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "9034"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 750,
+            "date": "2026-10-16"
+          },
+          "expect": "refused",
+          "says": [
+            "below the lowest amount",
+            "1500.00"
+          ]
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 1500,
+            "date": "2026-10-16"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "promise"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The agent says a mortgage payment cannot be split."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "SD-02",
+      "title": "Three products, three different deadlines",
+      "category": "brief_d",
+      "brief": "D",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "D-09",
+        "D-10"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1972-02-28",
+          "phone_last4": "9034"
+        },
+        "products": [
+          {
+            "type": "mortgage",
+            "past_due": 1500.0,
+            "days_late": 10,
+            "secured": true
+          },
+          {
+            "type": "credit_card",
+            "card_last4": "4417",
+            "past_due": 600.0,
+            "days_late": 16,
+            "secured": false
+          },
+          {
+            "type": "overdraft",
+            "past_due": 200.0,
+            "days_late": 5,
+            "secured": false
+          }
+        ],
+        "variables": {
+          "title": "Mr",
+          "first_name": "Erik",
+          "last_name": "Lindqvist"
+        }
+      },
+      "behavior": "A mortgage, a credit card sixteen days late and an overdraft five days late.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1972-02-28"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "9034"
+          },
+          "expect": "ok"
+        },
+        {
+          "check": {
+            "prompt_has": [
+              "latest date Mon 2026-10-19",
+              "latest date Wed 2026-10-21",
+              "latest date Wed 2026-10-28"
+            ]
+          }
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 1500,
+            "date": "2026-10-20"
+          },
+          "expect": "refused",
+          "says": [
+            "Mon 2026-10-19"
+          ]
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 1500,
+            "date": "2026-10-19"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p2",
+            "amount": 600,
+            "date": "2026-10-21"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p3",
+            "amount": 200,
+            "date": "2026-10-28"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "promise"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "Nothing specific."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "SD-03",
+      "title": "Notes are added after a transfer",
+      "category": "brief_d",
+      "brief": "D",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "D-15",
+        "D-14"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1972-02-28",
+          "phone_last4": "9034"
+        },
+        "products": [
+          {
+            "type": "mortgage",
+            "past_due": 1500.0,
+            "days_late": 10,
+            "secured": true
+          },
+          {
+            "type": "credit_card",
+            "card_last4": "4417",
+            "past_due": 600.0,
+            "days_late": 16,
+            "secured": false
+          }
+        ],
+        "variables": {
+          "title": "Mr",
+          "first_name": "Erik",
+          "last_name": "Lindqvist"
+        }
+      },
+      "behavior": "The customer asks for a new plan before anything is promised.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1972-02-28"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "9034"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "transfer_to_agent",
+          "args": {
+            "queue": "restructuring"
+          },
+          "expect": "ok",
+          "says": [
+            "deferred"
+          ]
+        },
+        {
+          "call": "add_note",
+          "args": {
+            "product_id": "p1",
+            "reason": "deferred"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "add_note",
+          "args": {
+            "product_id": "p2",
+            "reason": "deferred"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "transferred",
+            "reason": "restructuring"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The agent describes no plan of its own."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "SD-04",
+      "title": "No promise after a transfer, but the notes still go in",
+      "category": "brief_d",
+      "brief": "D",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "D-15"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1972-02-28",
+          "phone_last4": "9034"
+        },
+        "products": [
+          {
+            "type": "mortgage",
+            "past_due": 1500.0,
+            "days_late": 10,
+            "secured": true
+          },
+          {
+            "type": "credit_card",
+            "card_last4": "4417",
+            "past_due": 600.0,
+            "days_late": 16,
+            "secured": false
+          }
+        ],
+        "variables": {
+          "title": "Mr",
+          "first_name": "Erik",
+          "last_name": "Lindqvist"
+        }
+      },
+      "behavior": "The mortgage is promised, then the customer asks for a new plan for the card.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1972-02-28"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "9034"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 1500,
+            "date": "2026-10-19"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "transfer_to_agent",
+          "args": {
+            "queue": "restructuring"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p2",
+            "amount": 600,
+            "date": "2026-10-21"
+          },
+          "expect": "refused",
+          "says": [
+            "No promise may be recorded after a transfer"
+          ]
+        },
+        {
+          "call": "add_note",
+          "args": {
+            "product_id": "p2",
+            "reason": "deferred"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "promise"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "Nothing specific."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "SD-05",
+      "title": "Two failures and a third attempt that works",
+      "category": "brief_d",
+      "brief": "D",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "D-13"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1972-02-28",
+          "phone_last4": "9034"
+        },
+        "products": [
+          {
+            "type": "mortgage",
+            "past_due": 1500.0,
+            "days_late": 10,
+            "secured": true
+          }
+        ],
+        "variables": {
+          "title": "Mr",
+          "first_name": "Erik",
+          "last_name": "Lindqvist"
+        },
+        "faults": {
+          "create_promise": 2
+        }
+      },
+      "behavior": "The promise service fails twice; this brief allows three attempts.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1972-02-28"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "9034"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 1500,
+            "date": "2026-10-19"
+          },
+          "expect": "error",
+          "says": [
+            "Call create_promise again"
+          ]
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 1500,
+            "date": "2026-10-19"
+          },
+          "expect": "error",
+          "says": [
+            "Call create_promise again"
+          ]
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 1500,
+            "date": "2026-10-19"
+          },
+          "expect": "ok",
+          "says": [
+            "is now recorded"
+          ]
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "promise"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "Nothing specific."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "SD-06",
+      "title": "Three failures use up the attempts",
+      "category": "brief_d",
+      "brief": "D",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "D-13",
+        "D-14"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1972-02-28",
+          "phone_last4": "9034"
+        },
+        "products": [
+          {
+            "type": "mortgage",
+            "past_due": 1500.0,
+            "days_late": 10,
+            "secured": true
+          }
+        ],
+        "variables": {
+          "title": "Mr",
+          "first_name": "Erik",
+          "last_name": "Lindqvist"
+        },
+        "faults": {
+          "create_promise": 3
+        }
+      },
+      "behavior": "The promise service fails three times; the agent tries a fourth time.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1972-02-28"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "9034"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 1500,
+            "date": "2026-10-19"
+          },
+          "expect": "error"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 1500,
+            "date": "2026-10-19"
+          },
+          "expect": "error"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 1500,
+            "date": "2026-10-19"
+          },
+          "expect": "error",
+          "says": [
+            "Do not try again for this product"
+          ]
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 1500,
+            "date": "2026-10-19"
+          },
+          "expect": "refused",
+          "says": [
+            "Do not try again for this product"
+          ]
+        },
+        {
+          "call": "add_note",
+          "args": {
+            "product_id": "p1",
+            "reason": "service_error"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "promise"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The agent says it could not record the promise."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "SD-07",
+      "title": "No promise on the card while the mortgage is open",
+      "category": "brief_d",
+      "brief": "D",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "D-06"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1972-02-28",
+          "phone_last4": "9034"
+        },
+        "products": [
+          {
+            "type": "mortgage",
+            "past_due": 1500.0,
+            "days_late": 10,
+            "secured": true
+          },
+          {
+            "type": "credit_card",
+            "card_last4": "4417",
+            "past_due": 600.0,
+            "days_late": 16,
+            "secured": false
+          }
+        ],
+        "variables": {
+          "title": "Mr",
+          "first_name": "Erik",
+          "last_name": "Lindqvist"
+        }
+      },
+      "behavior": "The agent records the credit card first.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1972-02-28"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "9034"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p2",
+            "amount": 600,
+            "date": "2026-10-16"
+          },
+          "expect": "blocked"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 1500,
+            "date": "2026-10-19"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p2",
+            "amount": 600,
+            "date": "2026-10-16"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "promise"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The agent deals with the mortgage first."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards.",
+      "known_gap": "The schema has no rule that makes a promise on one product depend on the state of another. Product order is rule text only.",
+      "gap_kind": "schema"
+    },
+    {
+      "id": "SD-08",
+      "title": "Promises below the household minimum are not recorded",
+      "category": "brief_d",
+      "brief": "D",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "D-11"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1972-02-28",
+          "phone_last4": "9034"
+        },
+        "products": [
+          {
+            "type": "mortgage",
+            "past_due": 1500.0,
+            "days_late": 10,
+            "secured": true
+          },
+          {
+            "type": "credit_card",
+            "card_last4": "4417",
+            "past_due": 600.0,
+            "days_late": 16,
+            "secured": false
+          }
+        ],
+        "variables": {
+          "title": "Mr",
+          "first_name": "Erik",
+          "last_name": "Lindqvist"
+        }
+      },
+      "behavior": "The mortgage is refused; the card floor alone is far below 40 percent of the total.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1972-02-28"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "9034"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "add_note",
+          "args": {
+            "product_id": "p1",
+            "reason": "refused"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p2",
+            "amount": 180,
+            "date": "2026-10-16"
+          },
+          "expect": "blocked"
+        },
+        {
+          "call": "add_note",
+          "args": {
+            "product_id": "p2",
+            "reason": "refused"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "no_promise",
+            "reason": "refused"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The agent says the total is too low and asks the customer to raise it."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards.",
+      "known_gap": "Limits are per product. The schema has no limit across products, so a minimum on the sum of all promises is rule text only.",
+      "gap_kind": "schema"
+    },
+    {
+      "id": "SD-09",
+      "title": "A dispute outranks a promise at the close",
+      "category": "brief_d",
+      "brief": "D",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "D-17",
+        "D-18"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1972-02-28",
+          "phone_last4": "9034"
+        },
+        "products": [
+          {
+            "type": "mortgage",
+            "past_due": 1500.0,
+            "days_late": 10,
+            "secured": true
+          },
+          {
+            "type": "credit_card",
+            "card_last4": "4417",
+            "past_due": 600.0,
+            "days_late": 16,
+            "secured": false
+          }
+        ],
+        "variables": {
+          "title": "Mr",
+          "first_name": "Erik",
+          "last_name": "Lindqvist"
+        }
+      },
+      "behavior": "The mortgage is promised and the card is disputed.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1972-02-28"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "9034"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 1500,
+            "date": "2026-10-19"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "add_note",
+          "args": {
+            "product_id": "p2",
+            "reason": "dispute"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "no_promise",
+            "reason": "dispute"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "Nothing specific."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards.",
+      "known_gap": "close.forced can test \"a promise was recorded\" and \"notes without any promise\", but not \"some product has a note with this reason\". The promise rule fires first.",
+      "gap_kind": "schema"
+    },
+    {
+      "id": "SD-10",
+      "title": "Paid and deferred: the close takes the reason that is not paid",
+      "category": "brief_d",
+      "brief": "D",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "D-14",
+        "D-18"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1972-02-28",
+          "phone_last4": "9034"
+        },
+        "products": [
+          {
+            "type": "mortgage",
+            "past_due": 1500.0,
+            "days_late": 10,
+            "secured": true
+          },
+          {
+            "type": "credit_card",
+            "card_last4": "4417",
+            "past_due": 600.0,
+            "days_late": 16,
+            "secured": false
+          }
+        ],
+        "variables": {
+          "title": "Mr",
+          "first_name": "Erik",
+          "last_name": "Lindqvist"
+        }
+      },
+      "behavior": "The mortgage was already paid; the card customer wanted a date after the deadline and refused the deadline.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1972-02-28"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "9034"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "add_note",
+          "args": {
+            "product_id": "p1",
+            "reason": "paid"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "add_note",
+          "args": {
+            "product_id": "p2",
+            "reason": "deferred"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "paid"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "Nothing specific."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "SD-11",
+      "title": "A callback is never for today",
+      "category": "brief_d",
+      "brief": "D",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "D-02"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1972-02-28",
+          "phone_last4": "9034"
+        },
+        "products": [
+          {
+            "type": "mortgage",
+            "past_due": 1500.0,
+            "days_late": 10,
+            "secured": true
+          }
+        ],
+        "variables": {
+          "title": "Mr",
+          "first_name": "Erik",
+          "last_name": "Lindqvist"
+        }
+      },
+      "behavior": "A relative offers this afternoon, then the day after tomorrow at five.",
+      "steps": [
+        {
+          "call": "schedule_callback",
+          "args": {
+            "date": "2026-10-14",
+            "time": "15:00"
+          },
+          "expect": "detached",
+          "says": [
+            "NOT BOOKED"
+          ]
+        },
+        {
+          "call": "schedule_callback",
+          "args": {
+            "date": "2026-10-16",
+            "time": "17:00"
+          },
+          "expect": "ok",
+          "says": [
+            "The callback is booked"
+          ]
+        },
+        {
+          "call": "schedule_callback",
+          "args": {
+            "date": "2026-10-15",
+            "time": "10:00"
+          },
+          "expect": "detached",
+          "says": [
+            "already booked"
+          ]
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "not_reached",
+            "reason": "no_callback"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The agent asks once for another time."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "SD-12",
+      "title": "Every product is stated, the secured one first",
+      "category": "brief_d",
+      "brief": "D",
+      "tier": "live_only",
+      "mode": "specification",
+      "requirements": [
+        "D-05",
+        "D-06",
+        "D-12"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1972-02-28",
+          "phone_last4": "9034"
+        },
+        "products": [
+          {
+            "type": "mortgage",
+            "past_due": 1500.0,
+            "days_late": 10,
+            "secured": true
+          },
+          {
+            "type": "credit_card",
+            "card_last4": "4417",
+            "past_due": 600.0,
+            "days_late": 16,
+            "secured": false
+          },
+          {
+            "type": "overdraft",
+            "past_due": 200.0,
+            "days_late": 5,
+            "secured": false
+          }
+        ],
+        "variables": {
+          "title": "Mr",
+          "first_name": "Erik",
+          "last_name": "Lindqvist"
+        }
+      },
+      "behavior": "The customer agrees to everything.",
+      "spoken": [
+        "All three products are stated before anything is asked.",
+        "The mortgage is handled first.",
+        "All promises are read back together and confirmed once."
+      ],
+      "strategy": "Live only: the behaviour is decided by what the phone model says and understands. Run it on Freya with a simulated customer; score with the ledger and the conversation checks. No bank serves this brief, so it stays a specification until one does."
+    }
+  ]
+}

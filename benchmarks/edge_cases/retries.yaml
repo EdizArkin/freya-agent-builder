@@ -1,0 +1,811 @@
+{
+  "about": "Service failures, retries, calls that overtake each other and stale marks.",
+  "format": "This file is YAML written in its JSON subset, so the harness reads it with the standard library. Edit it as JSON, or install PyYAML and use any YAML syntax.",
+  "category": "retries",
+  "scenarios": [
+    {
+      "id": "EC-RT-01",
+      "title": "HTTP 500 and then success",
+      "category": "retries",
+      "brief": "A",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "A-37",
+        "P-01"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "7312",
+            "past_due": 480.0,
+            "days_late": 12,
+            "minimum_payment": 144.0
+          }
+        ],
+        "faults": {
+          "create_promise": 1
+        }
+      },
+      "behavior": "The promise service fails on the first call.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 480,
+            "date": "2026-10-16"
+          },
+          "expect": "error",
+          "says": [
+            "Call create_promise again"
+          ]
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 480,
+            "date": "2026-10-16"
+          },
+          "expect": "ok",
+          "says": [
+            "is now recorded"
+          ]
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "promise"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The agent does not say the promise is recorded before the second call succeeds."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-RT-02",
+      "title": "HTTP 500 twice",
+      "category": "retries",
+      "brief": "A",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "A-37",
+        "P-01"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "7312",
+            "past_due": 480.0,
+            "days_late": 12,
+            "minimum_payment": 144.0
+          }
+        ],
+        "faults": {
+          "create_promise": 2
+        }
+      },
+      "behavior": "The promise service fails on both attempts.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 480,
+            "date": "2026-10-16"
+          },
+          "expect": "error",
+          "says": [
+            "Call create_promise again"
+          ]
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 480,
+            "date": "2026-10-16"
+          },
+          "expect": "error",
+          "says": [
+            "Do not try again for this product"
+          ]
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "no_promise",
+            "reason": "service_error"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The agent says it could not record the promise."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-RT-03",
+      "title": "A third attempt after the retry is used up never reaches the ledger",
+      "category": "retries",
+      "brief": "A",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "A-37"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "7312",
+            "past_due": 480.0,
+            "days_late": 12,
+            "minimum_payment": 144.0
+          }
+        ],
+        "faults": {
+          "create_promise": 2
+        }
+      },
+      "behavior": "After two failures the service is healthy again and the agent tries a third time.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 480,
+            "date": "2026-10-16"
+          },
+          "expect": "error"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 480,
+            "date": "2026-10-16"
+          },
+          "expect": "error"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 480,
+            "date": "2026-10-16"
+          },
+          "expect": "refused",
+          "says": [
+            "Do not try again for this product"
+          ]
+        },
+        {
+          "check": {
+            "state": {
+              "fails.p1": 2
+            }
+          }
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "no_promise",
+            "reason": "service_error"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The agent says it could not record the promise."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-RT-04",
+      "title": "A slow promise is overtaken by the close sent with it",
+      "category": "retries",
+      "brief": "A",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "P-02",
+        "A-46"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "7312",
+            "past_due": 480.0,
+            "days_late": 12,
+            "minimum_payment": 144.0
+          }
+        ]
+      },
+      "behavior": "The agent sends create_promise and close_call in one message; the close reaches the bank first.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "together": [
+            {
+              "call": "create_promise",
+              "args": {
+                "product_id": "p1",
+                "amount": 480,
+                "date": "2026-10-16"
+              },
+              "expect": "ok",
+              "says": [
+                "is now recorded"
+              ]
+            },
+            {
+              "call": "close_call",
+              "args": {
+                "outcome": "promise"
+              },
+              "expect": "detached"
+            }
+          ],
+          "arrival": "reversed"
+        },
+        {
+          "check": {
+            "node": "negotiate"
+          }
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "promise"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The agent says goodbye only once."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-RT-05",
+      "title": "The mark of a failed call does not hold back a close one turn later",
+      "category": "retries",
+      "brief": "A",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "P-03",
+        "A-32"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "7312",
+            "past_due": 480.0,
+            "days_late": 12,
+            "minimum_payment": 144.0
+          }
+        ],
+        "faults": {
+          "transfer_to_agent": 1
+        }
+      },
+      "behavior": "The transfer fails with HTTP 500; the customer then declines the support team.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "transfer_to_agent",
+          "args": {
+            "queue": "support"
+          },
+          "expect": "error",
+          "says": [
+            "did NOT work"
+          ]
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "no_promise",
+            "reason": "hardship"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The agent does not say the customer was transferred."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-RT-06",
+      "title": "A close in the same instant as a failed call is held once, never twice",
+      "category": "retries",
+      "brief": "A",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "P-03"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "7312",
+            "past_due": 480.0,
+            "days_late": 12,
+            "minimum_payment": 144.0
+          }
+        ],
+        "faults": {
+          "transfer_to_agent": 1
+        }
+      },
+      "behavior": "The transfer fails and the close follows with no measurable time between them.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "transfer_to_agent",
+          "args": {
+            "queue": "support"
+          },
+          "expect": "error"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "no_promise",
+            "reason": "hardship"
+          },
+          "expect": "detached",
+          "says": [
+            "NOT CLOSED"
+          ],
+          "time_passes": false
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "no_promise",
+            "reason": "hardship"
+          },
+          "expect": "ok",
+          "time_passes": false
+        }
+      ],
+      "spoken": [
+        "Nothing specific."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-RT-07",
+      "title": "After a failed transfer a different, valid call goes through",
+      "category": "retries",
+      "brief": "A",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "P-01",
+        "A-32"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "7312",
+            "past_due": 480.0,
+            "days_late": 12,
+            "minimum_payment": 144.0
+          }
+        ],
+        "faults": {
+          "transfer_to_agent": 1
+        }
+      },
+      "behavior": "The transfer fails; the customer then names a date and an amount himself.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "transfer_to_agent",
+          "args": {
+            "queue": "support"
+          },
+          "expect": "error"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 480,
+            "date": "2026-10-16"
+          },
+          "expect": "ok",
+          "says": [
+            "is now recorded"
+          ]
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "promise"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The agent does not say the customer was transferred."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-RT-08",
+      "title": "A failed close leaves the call open",
+      "category": "retries",
+      "brief": "A",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "A-46",
+        "P-01"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "7312",
+            "past_due": 480.0,
+            "days_late": 12,
+            "minimum_payment": 144.0
+          }
+        ],
+        "faults": {
+          "close_call": 1
+        }
+      },
+      "behavior": "close_call fails with HTTP 500 and is sent again.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "paid"
+          },
+          "expect": "error",
+          "says": [
+            "did NOT work"
+          ]
+        },
+        {
+          "check": {
+            "node": "negotiate"
+          }
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "paid"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "Nothing specific."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-RT-09",
+      "title": "A failed callback booking is repeated and booked once",
+      "category": "retries",
+      "brief": "A",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "A-06",
+        "P-01"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "7312",
+            "past_due": 480.0,
+            "days_late": 12,
+            "minimum_payment": 144.0
+          }
+        ],
+        "faults": {
+          "schedule_callback": 1
+        }
+      },
+      "behavior": "A relative gives a time inside the window; the first booking fails with HTTP 500.",
+      "steps": [
+        {
+          "call": "schedule_callback",
+          "args": {
+            "date": "2026-10-15",
+            "time": "11:00"
+          },
+          "expect": "error",
+          "says": [
+            "NOT booked"
+          ]
+        },
+        {
+          "call": "schedule_callback",
+          "args": {
+            "date": "2026-10-15",
+            "time": "11:00"
+          },
+          "expect": "ok",
+          "says": [
+            "The callback is booked"
+          ]
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "not_reached",
+            "reason": "callback"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The agent does not say the callback is booked before the second call succeeds."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-RT-10",
+      "title": "The same promise sent twice in one message is recorded once",
+      "category": "retries",
+      "brief": "A",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "A-36",
+        "P-02"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "7312",
+            "past_due": 480.0,
+            "days_late": 12,
+            "minimum_payment": 144.0
+          }
+        ]
+      },
+      "behavior": "The agent repeats create_promise for the same product inside one message.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "together": [
+            {
+              "call": "create_promise",
+              "args": {
+                "product_id": "p1",
+                "amount": 480,
+                "date": "2026-10-16"
+              },
+              "expect": "ok"
+            },
+            {
+              "call": "create_promise",
+              "args": {
+                "product_id": "p1",
+                "amount": 480,
+                "date": "2026-10-16"
+              },
+              "expect": "blocked"
+            }
+          ],
+          "arrival": "written"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "promise"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "Nothing specific."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    }
+  ]
+}

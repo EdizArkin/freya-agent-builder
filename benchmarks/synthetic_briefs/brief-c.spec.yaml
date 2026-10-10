@@ -1,0 +1,237 @@
+{
+  "spec_version": "agent-spec/1",
+  "language": "English",
+  "now_variable": "now",
+  "ok_field": "ok",
+  "call_variables": [
+    "customer_id",
+    "first_name",
+    "last_name",
+    "now"
+  ],
+  "test_variables": {
+    "first_name": "Imani",
+    "last_name": "Brandt",
+    "now": "2026-10-14T11:00"
+  },
+  "opening_line": "Hello, this is the automated assistant of Northwind Credit Union. This call may be monitored. Am I speaking with {{first_name}} {{last_name}}?",
+  "calendar": {
+    "business_weekdays": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "week_start": 0,
+    "holidays": [
+      "2026-10-19",
+      "2026-11-02",
+      "2026-12-25",
+      "2026-12-26"
+    ]
+  },
+  "identity": {
+    "field_param": "field",
+    "answer_param": "answer",
+    "max_wrong": 2,
+    "questions": [
+      {
+        "field": "postcode",
+        "ask": "the postcode of your registered address",
+        "format": "text"
+      },
+      {
+        "field": "birth_year",
+        "ask": "your year of birth",
+        "format": "digits"
+      }
+    ],
+    "response": {
+      "verified": "verified",
+      "all_verified": "all_verified",
+      "wrong_left": "wrong_answers_left",
+      "hint": "hint"
+    },
+    "hints": []
+  },
+  "account": {
+    "products_path": "products",
+    "id_field": "product_id",
+    "limits": {
+      "min_amount": "floor",
+      "max_amount": "full",
+      "latest_date": "deadline"
+    },
+    "values": [
+      {
+        "name": "label",
+        "expr": {
+          "kind": "by",
+          "cases": [
+            {
+              "when": {
+                "type": "store_card"
+              },
+              "expr": {
+                "kind": "text",
+                "template": "store card ending {card_last4}"
+              }
+            },
+            {
+              "when": {},
+              "expr": {
+                "kind": "const",
+                "value": "member loan"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "full",
+        "label": "FULL past-due amount",
+        "expr": {
+          "kind": "field",
+          "field": "past_due"
+        }
+      },
+      {
+        "name": "floor",
+        "label": "FLOOR (lowest amount that can be recorded)",
+        "expr": {
+          "kind": "by",
+          "cases": [
+            {
+              "when": {
+                "type": "store_card"
+              },
+              "expr": {
+                "kind": "percent",
+                "of": {
+                  "kind": "field",
+                  "field": "past_due"
+                },
+                "percent": 40
+              }
+            },
+            {
+              "when": {},
+              "expr": {
+                "kind": "percent",
+                "of": {
+                  "kind": "field",
+                  "field": "past_due"
+                },
+                "percent": 25
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "deadline",
+        "label": "DEADLINE (latest date that can be recorded)",
+        "expr": {
+          "kind": "by",
+          "cases": [
+            {
+              "when": {
+                "days_late": {
+                  "min": 1,
+                  "max": 30
+                }
+              },
+              "expr": {
+                "kind": "calendar_days_after",
+                "n": 5,
+                "roll": "previous_business"
+              }
+            },
+            {
+              "when": {},
+              "expr": {
+                "kind": "calendar_days_after",
+                "n": 2,
+                "roll": "previous_business"
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "promise": {
+    "product_param": "product_id",
+    "amount_param": "amount",
+    "date_param": "date",
+    "max_attempts": 1,
+    "business_day_only": true
+  },
+  "transfer": {
+    "queue_param": "queue"
+  },
+  "close": {
+    "outcome_param": "outcome",
+    "reason_param": "reason",
+    "outcomes": {
+      "promise": [],
+      "paid": [],
+      "transferred": [
+        "arrears",
+        "general"
+      ],
+      "no_promise": [
+        "refused",
+        "service_error"
+      ],
+      "not_verified": [
+        "failed",
+        "declined"
+      ],
+      "not_reached": [
+        "no_callback",
+        "wrong_number"
+      ]
+    },
+    "queue_reasons": {
+      "arrears_team": "arrears",
+      "general": "general"
+    },
+    "forced": [
+      {
+        "if": "transferred",
+        "outcome": "transferred",
+        "reason_from": "last_transfer_queue"
+      },
+      {
+        "if": "promise_recorded",
+        "outcome": "promise"
+      },
+      {
+        "if": "identity_failed",
+        "outcome": "not_verified",
+        "reason": "failed"
+      }
+    ]
+  },
+  "guidance": {
+    "identity.failed": "Tell the member to visit a branch, thank them, say goodbye and call close_call with outcome not_verified, reason failed.",
+    "promise.recorded_all": "Say exactly: \"Your promise is on file.\" Then thank the member, say goodbye and call close_call with outcome promise.",
+    "promise.failed_final": "Do not retry. Say you could not record it, then call close_call with outcome no_promise, reason service_error.",
+    "transfer.done": "Say goodbye and call close_call with outcome transferred and the reason of that queue."
+  },
+  "tool_descriptions": {
+    "verify_identity": "Check one security answer. CALL it every time the customer in person gives a complete answer to a security question.",
+    "transfer_to_agent": "Hand the call to a person. CALL it whenever your instructions name a queue.",
+    "create_promise": "Record a payment promise. CALL it once per product, only after the customer clearly confirmed the read-back.",
+    "close_call": "End the call. CALL it exactly once, as the very last tool call, after saying goodbye."
+  },
+  "rules": {
+    "always": "You are the automated assistant of Northwind Credit Union on an outbound call. Address the member by first name: {{first_name}}.\n- A dispute or a request for a person, at any point of the call: call transfer_to_agent with queue general at once, then close_call transferred / general.\n- Never offer terms that are not in your instructions. add_note and schedule_callback are never used.",
+    "before_verification": "You have said the opening sentence. Do not mention arrears, money or any product before identity is verified.\n- Someone else answers: say you will call again, give no reason, close_call not_reached / no_callback. If the number does not belong to the member: close_call not_reached / wrong_number.\n- Ask the security questions in order. Send the postcode in capital letters without spaces, the year of birth as four digits.\n- Two wrong answers in total end the check: close_call not_verified / failed. If the member declines to answer: close_call not_verified / declined at once.",
+    "after_verification": "Name the product by its label and state the past-due amount and the days late.\n- ELIGIBILITY: if plan_active is true or days_late is more than 60, do not negotiate. Say the arrears team will handle the account, call transfer_to_agent with queue arrears_team, close_call transferred / arrears.\n- A promise date is tomorrow or later, never today, a business day, not after the DEADLINE. Amounts from the FLOOR up to the FULL amount are accepted.\n- Ask for the FULL amount on the DEADLINE. One persuasion attempt: the FLOOR on the DEADLINE. Then close_call no_promise / refused.\n- Read the amount and the date back and ask \"Is that correct?\". Call create_promise only after a clear yes. If it fails, do not retry.\n- \"I already paid\": close_call paid."
+  },
+  "unsupported": []
+}

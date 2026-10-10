@@ -1,0 +1,530 @@
+{
+  "about": "The close: outcome, reason and what may follow it.",
+  "format": "This file is YAML written in its JSON subset, so the harness reads it with the standard library. Edit it as JSON, or install PyYAML and use any YAML syntax.",
+  "category": "closure",
+  "scenarios": [
+    {
+      "id": "EC-CL-01",
+      "title": "An outcome without a reason loses a reason sent with it",
+      "category": "closure",
+      "brief": "A",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "A-46"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "7312",
+            "past_due": 480.0,
+            "days_late": 12,
+            "minimum_payment": 144.0
+          }
+        ]
+      },
+      "behavior": "The agent closes as paid and adds a reason.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "paid",
+            "reason": "refused"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "Nothing specific."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-CL-02",
+      "title": "An outcome that needs a reason is not closed without one",
+      "category": "closure",
+      "brief": "A",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "A-46"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "7312",
+            "past_due": 480.0,
+            "days_late": 12,
+            "minimum_payment": 144.0
+          }
+        ]
+      },
+      "behavior": "The agent closes as no_promise and gives no reason.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "no_promise"
+          },
+          "expect": "blocked"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "no_promise",
+            "reason": "refused"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "Nothing specific."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-CL-03",
+      "title": "A reason the outcome table does not list is not sent",
+      "category": "closure",
+      "brief": "A",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "A-46"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "7312",
+            "past_due": 480.0,
+            "days_late": 12,
+            "minimum_payment": 144.0
+          }
+        ]
+      },
+      "behavior": "The agent closes as no_promise with a reason of its own.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "no_promise",
+            "reason": "angry"
+          },
+          "expect": "blocked"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "no_promise",
+            "reason": "refused"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "Nothing specific."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-CL-04",
+      "title": "A booked callback decides the close",
+      "category": "closure",
+      "brief": "A",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "A-06",
+        "A-46"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "7312",
+            "past_due": 480.0,
+            "days_late": 12,
+            "minimum_payment": 144.0
+          }
+        ]
+      },
+      "behavior": "A callback is booked; the agent then closes as no_callback.",
+      "steps": [
+        {
+          "call": "schedule_callback",
+          "args": {
+            "date": "2026-10-15",
+            "time": "19:00"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "not_reached",
+            "reason": "no_callback"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "Nothing specific."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-CL-05",
+      "title": "Nothing can be called after the close",
+      "category": "closure",
+      "brief": "A",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "A-46"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "7312",
+            "past_due": 480.0,
+            "days_late": 12,
+            "minimum_payment": 144.0
+          }
+        ]
+      },
+      "behavior": "After close_call the agent tries to close again and to record a promise.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "paid"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "paid"
+          },
+          "expect": "unavailable"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 480,
+            "date": "2026-10-16"
+          },
+          "expect": "unavailable"
+        }
+      ],
+      "spoken": [
+        "Nothing specific."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-CL-06",
+      "title": "A wrong number ends with one call to the bank",
+      "category": "closure",
+      "brief": "A",
+      "tier": "scripted",
+      "mode": "offline",
+      "requirements": [
+        "A-08",
+        "A-46"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "7312",
+            "past_due": 480.0,
+            "days_late": 12,
+            "minimum_payment": 144.0
+          }
+        ]
+      },
+      "behavior": "The person who answers says the number does not belong to the customer.",
+      "steps": [
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "not_reached",
+            "reason": "wrong_number"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The agent says nothing about the reason for the call."
+      ],
+      "strategy": "Offline, scripted: the harness plays the tool calls a compliant agent would make for this customer and checks that the runtime lets them through and the bank ends in the expected state. It does not show that a phone model would make these calls."
+    },
+    {
+      "id": "EC-CL-07",
+      "title": "A Brief A agent has no add_note tool anywhere",
+      "category": "closure",
+      "brief": "A",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "A-46"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "7312",
+            "past_due": 480.0,
+            "days_late": 12,
+            "minimum_payment": 144.0
+          }
+        ]
+      },
+      "behavior": "The agent looks for add_note before and after verification.",
+      "steps": [
+        {
+          "check": {
+            "node": "contact",
+            "tools": [
+              "verify_identity",
+              "schedule_callback",
+              "transfer_to_agent",
+              "close_call"
+            ]
+          }
+        },
+        {
+          "call": "add_note",
+          "args": {
+            "product_id": "p1",
+            "reason": "refused"
+          },
+          "expect": "unavailable"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "check": {
+            "node": "negotiate",
+            "tools": [
+              "create_promise",
+              "transfer_to_agent",
+              "close_call"
+            ]
+          }
+        },
+        {
+          "call": "add_note",
+          "args": {
+            "product_id": "p1",
+            "reason": "refused"
+          },
+          "expect": "unavailable"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "no_promise",
+            "reason": "refused"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "Nothing specific."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-CL-08",
+      "title": "A promise outranks a paid note at the close",
+      "category": "closure",
+      "brief": "B",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "B-12"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "5540",
+            "past_due": 260.0,
+            "days_late": 4,
+            "minimum_payment": 78.0
+          },
+          {
+            "type": "personal_loan",
+            "past_due": 900.0,
+            "days_late": 20,
+            "instalment_amount": 300.0
+          }
+        ]
+      },
+      "behavior": "One product is promised, the other already paid; the agent closes as paid.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 260,
+            "date": "2026-10-16"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "add_note",
+          "args": {
+            "product_id": "p2",
+            "reason": "paid"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "paid"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "Nothing specific."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    }
+  ]
+}

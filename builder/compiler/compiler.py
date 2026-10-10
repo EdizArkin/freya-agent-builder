@@ -152,6 +152,11 @@ def runtime_cfg(spec, api):
     for key in ('note', 'callback'):
         if spec.get(key):
             cfg[key] = spec[key]
+    if spec.get('note'):
+        # Not part of the spec: the reasons the tool API accepts, and what the close has to know about notes.
+        reasons = (props('add_note').get(spec['note'].get('reason_param')) or {}).get('enum') or []
+        cfg['note'] = dict(spec['note'], reasons=list(reasons))
+        cfg['close'] = dict(spec['close'], notes_required=True, notes_after_transfer=not spec['note'].get('forbidden_after_transfer'))
     return cfg
 
 

@@ -149,7 +149,9 @@ and checks that each embedded function equals its source.
 
 State is one JSON string in the workflow variable `rt_state`: identity status, wrong
 answers, products with limits, promises, notes, failed attempts, transfers, callback,
-closed, and a mark for the call that is on its way.
+closed, a mark for the call that is on its way, and which close refusals were already used.
+The reason of a blocked call is kept per tool (`rt_block_<tool>`), and a post-hook never
+turns an answer in which the bank carried the call out into a rejection.
 
 ## How a refusal or a failure reaches the model
 
@@ -163,7 +165,9 @@ that the model puts into one message are not run in the order written.
 | Any other call breaks a rule (callback outside the window, anything before verification) | The pre-hook detaches the request from the customer; the bank answers with an HTTP error and records nothing | `LAST REJECTED TOOL CALL` in the live state, and the fixed failure rules in the prompt |
 | The service fails (HTTP error) | Every pre-hook leaves a mark in the state; a post-hook removes it. A mark that is still there when `create_promise` is called again is a failed attempt and is counted | The fixed failure rules in the prompt, per tool, with the spec's own guidance; the live state repeats them while the mark is there |
 | More promise attempts than the spec allows | `pre_promise` blocks the call | As in the first row |
-| `close_call` arrives while another call of the same message has no result yet | `pre_close` blocks that close, once | The other call's result says what to do next; the prompt says a failed close is repeated |
+| `close_call` arrives while another call of the same message has no result yet | `pre_close` blocks that close, once, and leaves the other call's mark alone | The other call's result says what to do next; the prompt says a failed close is repeated |
+| A second `create_promise` or `add_note` arrives while one of the same message has no result yet | The pre-hook blocks the second: both would share the variable that carries the arguments to the post-hook | As in the first row |
+| A close breaks a rule of the outcome table or leaves products open | `pre_close` blocks it, once per kind of problem; the next close goes through | `LAST REJECTED TOOL CALL` in the live state only: a close has no answer that could carry the reason |
 
 ## What is enforced in code, and what is not
 
@@ -173,13 +177,14 @@ Enforced by the runtime or by the graph, whatever the phone model does:
 | --- | --- |
 | No account tool before identity is fully verified | graph: the tools exist only in `negotiate`; `get_account` is engine-run |
 | State supplied by the caller is discarded | `setup` |
-| Wrong answers counted across questions; hints and unreadable answers not counted; a failed check stays failed | `post_identity` |
+| Wrong answers counted across questions; hints and unreadable answers not counted; the lower of the brief's and the service's limit ends the check; a failed check stays failed whatever the service answers | `pre_identity`, `post_identity` |
 | Promise amount within the limits; date not past, not after the latest date, a business day | `pre_promise` |
 | One promise per product; known product only; none after a transfer; none without a loaded account | `pre_promise` |
-| One note per product; none for a promised product; none after a transfer when the spec says so | `pre_note` |
+| One note per product; none for a promised product; none after a transfer when the spec says so; only a reason the tool API lists | `pre_note` |
 | Callback only inside the computed slots; only one | `pre_callback` |
 | Retry-or-stop after a failed `create_promise`, by attempt count; no attempt beyond the limit | `pre_promise`, `post_promise` |
-| `close_call` does not overtake another call sent in the same message | `pre_close` |
+| `close_call` does not overtake another call sent in the same message; a second call of the same tool in one message waits | `pre_close`, `pre_promise`, `pre_note` |
+| A close with open products (when the brief uses notes), without the reason its outcome needs, or with an unknown outcome is refused, once per kind of problem | `pre_close` |
 | Close outcome from what was recorded (`close.forced`); no reason on an outcome that takes none | `pre_close` |
 | The call ends only after `close_call` succeeded | graph |
 | Calendar, deadlines, floors, offer dates | computed in `setup` and `account_facts`, given to the model as facts |
@@ -252,8 +257,11 @@ Not yet verified live:
 
 - that the bank answers a request with an unknown product id with a refusal the post-hook
   can explain (the kit's README says it answers `unknown product_id`; the status is assumed);
-- that a pre-hook sees the state written by the pre-hook of another call in the same message;
-- that Freya accepts the larger workflow (about 160 to 175 KB);
+- that a pre-hook sees the state written by the pre-hook of another call in the same message,
+  and that calls of one message start within half a second of each other while a call of the
+  next message starts later (seen in the saved transcripts: 0.01 to 0.06 s against 0.9 s or more);
+- what a phone model does after a refused close, which it sees only as a failed call;
+- that Freya accepts a workflow of about 200 KB (185 KB was accepted);
 - that the phone model uses the day names block and the failure rules;
 - amount blocks, callback blocks, notes and calls with several products.
 

@@ -1,0 +1,25 @@
+{
+  "about": "Changes to the shared tool API that Brief C assumes. Applied to a copy of the kit file at run time.",
+  "identity_fields": [
+    "postcode",
+    "birth_year"
+  ],
+  "queues": [
+    "arrears_team",
+    "general"
+  ],
+  "product_types": [
+    "member_loan",
+    "store_card"
+  ],
+  "product_fields": {
+    "plan_active": {
+      "type": "boolean",
+      "description": "true when the account is already on a payment plan"
+    }
+  },
+  "remove_product_fields": [
+    "minimum_payment",
+    "instalment_amount"
+  ]
+}

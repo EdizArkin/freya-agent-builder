@@ -10,6 +10,7 @@ from builder.pipeline import build_workflow
 from builder.runtime import runtime as rt
 from builder.spec.openapi import Api
 from tests.fixture_spec import spec as fixture
+from tests.freya_sim import Bank, Sim
 from tests.support import OPENAPI
 from tests.test_enforcement import after_error, start as start_call, tools_called, verified
 from tests.test_runtime import ledger, start as start_case, verify
@@ -209,6 +210,183 @@ class Conversation(unittest.TestCase):
     def test_a_complete_value_in_an_unfinished_sentence_is_used(self):
         workflow, _ = build_workflow(fixture(), OPENAPI)
         self.assertIn('a value is complete as soon as all of its parts have been said', workflow['system_prompt'])
+
+
+CARD = {'type': 'credit_card', 'card_last4': '4821', 'past_due': 420.0, 'days_late': 6, 'minimum_payment': 126.0}
+LOAN = {'type': 'personal_loan', 'past_due': 900.0, 'days_late': 20, 'instalment_amount': 300.0}
+WHO = {'date_of_birth': '1988-03-14', 'phone_last4': '4471'}
+
+
+def call_with(spec):
+    workflow, _ = build_workflow(spec, OPENAPI)
+    bank = Bank('c_real', WHO, [CARD])
+    return Sim(workflow, bank, {'now': '2026-10-14T11:00', 'title': 'Mr', 'last_name': 'Reyes'}), bank
+
+
+class OneMessage(unittest.TestCase):
+    """Several tool calls in one model message: what the bank did is what the model is told."""
+
+    def test_a_promise_sent_with_the_close_is_reported_and_remembered(self):
+        sim, bank = verified()
+        recorded, close = sim.together(('create_promise', {'product_id': 'p1', 'amount': 420, 'date': '2026-10-14'}),
+                                       ('close_call', {'outcome': 'promise'}))
+        self.assertNotIn('rejected_by_policy', recorded)
+        self.assertIn('is now recorded', recorded['what_to_do_next'])
+        self.assertEqual((close, state(sim)['promises'], sim.node), ({}, {'p1': {'amount': 420.0, 'date': '2026-10-14'}}, 'negotiate'))
+        again = sim.tool('create_promise', product_id='p1', amount=420, date='2026-10-14')
+        self.assertIn('already recorded', again['what_to_do_next'])
+        sim.tool('close_call', outcome='paid')
+        self.assertEqual((bank.ledger['outcome'], len(bank.ledger['promises'])), ('promise', 1))
+
+    def test_a_callback_sent_with_the_close_is_reported_and_decides_the_close(self):
+        sim, bank = start_call()
+        booked, _ = sim.together(('schedule_callback', {'date': '2026-10-15', 'time': '11:00'}),
+                                 ('close_call', {'outcome': 'not_reached', 'reason': 'no_callback'}))
+        self.assertIn('The callback is booked', booked['what_to_do_next'])
+        self.assertEqual(state(sim)['callback'], ['2026-10-15', '11:00'])
+        sim.tool('close_call', outcome='not_reached', reason='no_callback')
+        self.assertEqual((bank.ledger['reason'], len(bank.ledger['callbacks'])), ('callback', 1))
+
+    def test_the_same_promise_twice_in_one_message_is_recorded_once(self):
+        sim, bank = verified()
+        first, second = sim.together(('create_promise', {'product_id': 'p1', 'amount': 420, 'date': '2026-10-14'}),
+                                     ('create_promise', {'product_id': 'p1', 'amount': 420, 'date': '2026-10-14'}))
+        self.assertIn('is now recorded', first['what_to_do_next'])
+        self.assertTrue(second['rejected_by_policy'])
+        self.assertIn('NOT SENT', second['what_to_do_next'])
+        self.assertEqual((len(bank.ledger['promises']), state(sim)['fails'], list(state(sim)['promises'])), (1, {}, ['p1']))
+
+    def test_promises_for_two_products_in_one_message_do_not_mix_their_values(self):
+        sim, bank = verified(products=(CARD, LOAN), brief_b=True)
+        first, second = sim.together(('create_promise', {'product_id': 'p1', 'amount': 420, 'date': '2026-10-14'}),
+                                     ('create_promise', {'product_id': 'p2', 'amount': 900, 'date': '2026-10-16'}))
+        self.assertIn('credit card ending 4821 (420.00 on 2026-10-14)', first['what_to_do_next'])
+        self.assertTrue(second['rejected_by_policy'])
+        self.assertEqual(state(sim)['promises'], {'p1': {'amount': 420.0, 'date': '2026-10-14'}})
+        later = sim.tool('create_promise', product_id='p2', amount=900, date='2026-10-16')
+        self.assertIn('personal loan (900.00 on 2026-10-16)', later['what_to_do_next'])
+        self.assertEqual(bank.ledger['promises'], [{'product_id': 'p1', 'amount': 420.0, 'date': '2026-10-14'},
+                                                   {'product_id': 'p2', 'amount': 900.0, 'date': '2026-10-16'}])
+
+    def test_a_retry_one_turn_after_a_failure_is_not_taken_for_a_duplicate(self):
+        sim, bank = verified(faults={'create_promise': 1})
+        self.assertEqual(sim.tool('create_promise', product_id='p1', amount=420, date='2026-10-14'), {})
+        again = sim.tool('create_promise', product_id='p1', amount=420, date='2026-10-14')
+        self.assertIn('is now recorded', again['what_to_do_next'])
+
+    def test_a_reason_left_by_one_tool_is_never_read_by_another(self):
+        variables = {'rt_state': json.dumps(dict(rt.load_state({}), identity='verified', today='2026-10-14', products=[
+            {'id': 'p1', 'label': 'x', 'min_amount': 1.0, 'max_amount': 500.0, 'latest_date': '2026-10-23'}])),
+            'rt_block_close': 'NOT CLOSED: held', 'rt_args_promise': json.dumps({'product_id': 'p1', 'amount': 420.0, 'date': '2026-10-14'})}
+        result = {'status': 'success', 'data': {'ok': True, 'promise_id': 'pr1'}}
+        rt.post_promise(CFG, variables, result)
+        self.assertIn('is now recorded', result['data']['what_to_do_next'])
+        self.assertEqual(variables['rt_block_close'], 'NOT CLOSED: held')
+
+    def test_a_success_is_never_reported_as_a_rejection(self):
+        for tool, post, args in (('promise', rt.post_promise, {'product_id': 'p1', 'amount': 420.0, 'date': '2026-10-14'}),
+                                 ('note', rt.post_note, {'product_id': 'p1', 'reason': 'refused'}),
+                                 ('callback', rt.post_callback, {'date': '2026-10-15', 'time': '11:00'})):
+            variables = {'rt_state': json.dumps(dict(rt.load_state({}), identity='verified', products=[{'id': 'p1', 'label': 'x'}])),
+                         'rt_block_' + tool: 'an older refusal', 'rt_args_' + tool: json.dumps(args)}
+            result = {'status': 'success', 'data': {'ok': True}}
+            post(CFG, variables, result)
+            self.assertNotIn('rejected_by_policy', result['data'], tool)
+            self.assertEqual(result['status'], 'success', tool)
+
+
+class IdentityLimit(unittest.TestCase):
+    def test_a_limit_below_the_service_limit_ends_the_check(self):
+        spec = fixture()
+        spec['identity']['max_wrong'] = 2
+        sim, bank = call_with(spec)
+        first = sim.tool('verify_identity', field='date_of_birth', answer='1990-01-01')
+        self.assertIn('check ends: 1', first['what_to_do_next'])
+        second = sim.tool('verify_identity', field='date_of_birth', answer='1990-01-02')
+        self.assertIn('IDENTITY CHECK FAILED', second['what_to_do_next'])
+        self.assertEqual((sim.vars['rt_identity'], bank.wrong_left), ('failed', 1))
+        asked = len(bank.calls)
+        self.assertEqual(sim.tool('verify_identity', field='date_of_birth', answer='1988-03-14'), {})
+        self.assertEqual((len(bank.calls), sim.node, sim.vars['rt_identity']), (asked, 'contact', 'failed'))
+        sim.tool('close_call', outcome='promise')
+        self.assertEqual((bank.ledger['outcome'], bank.ledger['reason']), ('not_verified', 'failed'))
+        self.assertNotIn('get_account', tools_called(bank))
+
+    def test_a_failed_check_stays_failed_whatever_the_service_answers(self):
+        variables = {'rt_state': json.dumps(dict(rt.load_state({}), identity='failed', wrong=2)),
+                     'rt_args_identity': json.dumps({'field': 'phone_last4', 'answer': '4471'})}
+        result = {'status': 'success', 'data': {'ok': True, 'verified': True, 'all_verified': True}}
+        rt.post_identity(CFG, variables, result)
+        self.assertEqual((result['data']['verified'], result['data']['all_verified'], result['data']['rt_identity'], variables['rt_identity']),
+                         (False, False, 'failed', 'failed'))
+
+    def test_the_service_limit_still_applies_when_the_brief_allows_more(self):
+        spec = fixture()
+        spec['identity']['max_wrong'] = 5
+        sim, bank = call_with(spec)
+        for answer in ('1990-01-01', '1990-01-02'):
+            sim.tool('verify_identity', field='date_of_birth', answer=answer)
+        self.assertIn('IDENTITY CHECK FAILED', sim.tool('verify_identity', field='date_of_birth', answer='1990-01-03')['what_to_do_next'])
+
+
+class NotesAndClose(unittest.TestCase):
+    def test_a_note_reason_outside_the_tool_api_is_refused(self):
+        sim, bank = verified(products=(CARD, LOAN), brief_b=True)
+        bad = sim.tool('add_note', product_id='p1', reason='angry')
+        self.assertTrue(bad['rejected_by_policy'])
+        self.assertIn('refused, hardship, dispute, paid, service_error', bad['what_to_do_next'])
+        self.assertEqual(bank.ledger['notes'], [])
+        self.assertIn('The note is saved', sim.tool('add_note', product_id='p1', reason='refused')['what_to_do_next'])
+
+    def test_the_compiler_adds_what_the_hooks_need_without_touching_the_spec(self):
+        spec = fixture(True)
+        cfg = runtime_cfg(spec, Api(OPENAPI))
+        self.assertEqual(cfg['note']['reasons'], ['refused', 'hardship', 'dispute', 'paid', 'service_error'])
+        self.assertEqual((cfg['close']['notes_required'], cfg['close']['notes_after_transfer']), (True, False))
+        self.assertNotIn('reasons', spec['note'])
+        self.assertNotIn('notes_required', spec['close'])
+        self.assertNotIn('notes_required', runtime_cfg(fixture(), Api(OPENAPI))['close'])
+
+    def test_a_close_with_open_products_is_refused_once(self):
+        sim, bank = verified(products=(CARD, LOAN), brief_b=True)
+        sim.tool('create_promise', product_id='p1', amount=420, date='2026-10-14')
+        self.assertEqual(sim.tool('close_call', outcome='promise'), {})
+        self.assertIn('NOT CLOSED: these products have neither a promise nor a note: p2 "personal loan"', sim.vars['rt_live'])
+        self.assertEqual((sim.node, bank.ledger['outcome']), ('negotiate', None))
+        sim.tool('add_note', product_id='p2', reason='refused')
+        sim.tool('close_call', outcome='promise')
+        self.assertEqual((sim.node, bank.ledger['outcome'], bank.ledger['notes']), ('end', 'promise', [{'product_id': 'p2', 'reason': 'refused'}]))
+
+    def test_every_kind_of_refusal_is_used_once_and_the_call_then_closes(self):
+        sim, bank = verified(products=(CARD, LOAN), brief_b=True)
+        self.assertEqual(sim.tool('close_call', outcome='no_promise'), {})
+        self.assertIn('neither a promise nor a note', sim.vars['rt_live'])
+        self.assertEqual(sim.tool('close_call', outcome='no_promise'), {})
+        self.assertIn('needs one of these reasons', sim.vars['rt_live'])
+        self.assertEqual((sim.node, bank.ledger['outcome']), ('negotiate', None))
+        sim.tool('close_call', outcome='no_promise')
+        self.assertEqual((sim.node, bank.ledger['outcome']), ('end', 'no_promise'))
+
+    def test_open_products_do_not_hold_a_close_after_a_transfer_or_without_notes_in_the_brief(self):
+        sim, bank = verified(products=(CARD, LOAN), brief_b=True)
+        sim.tool('transfer_to_agent', queue='restructuring')
+        sim.tool('close_call', outcome='transferred', reason='restructuring')
+        self.assertEqual(sim.node, 'end')
+        sim, bank = verified()
+        sim.tool('close_call', outcome='no_promise', reason='refused')
+        self.assertEqual(sim.node, 'end')
+
+    def test_a_close_needs_the_reason_its_outcome_lists(self):
+        for args, part in (({'outcome': 'no_promise'}, 'needs one of these reasons: refused, hardship, dispute, service_error'),
+                           ({'outcome': 'no_promise', 'reason': 'angry'}, 'needs one of these reasons'),
+                           ({'outcome': 'finished'}, 'finished is not an outcome')):
+            sim, bank = verified()
+            self.assertEqual(sim.tool('close_call', **args), {})
+            self.assertIn('NOT CLOSED: ', sim.vars['rt_live'])
+            self.assertIn(part, sim.vars['rt_live'])
+            self.assertEqual((sim.node, bank.ledger['outcome']), ('negotiate', None))
+            sim.tool('close_call', outcome='no_promise', reason='refused')
+            self.assertEqual((sim.node, bank.ledger['reason']), ('end', 'refused'))
 
 
 if __name__ == '__main__':

@@ -1,0 +1,765 @@
+{
+  "about": "Who is on the line and the security check.",
+  "format": "This file is YAML written in its JSON subset, so the harness reads it with the standard library. Edit it as JSON, or install PyYAML and use any YAML syntax.",
+  "category": "identity",
+  "scenarios": [
+    {
+      "id": "EC-ID-01",
+      "title": "Account tools do not exist before verification",
+      "category": "identity",
+      "brief": "B",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "A-10",
+        "A-16"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "7312",
+            "past_due": 480.0,
+            "days_late": 12,
+            "minimum_payment": 144.0
+          }
+        ]
+      },
+      "behavior": "The agent tries to look at the account and to record things before any security question was answered.",
+      "steps": [
+        {
+          "check": {
+            "node": "contact",
+            "tools": [
+              "verify_identity",
+              "schedule_callback",
+              "transfer_to_agent",
+              "close_call"
+            ]
+          }
+        },
+        {
+          "call": "get_account",
+          "expect": "unavailable"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 480,
+            "date": "2026-10-16"
+          },
+          "expect": "unavailable"
+        },
+        {
+          "call": "add_note",
+          "args": {
+            "product_id": "p1",
+            "reason": "refused"
+          },
+          "expect": "unavailable"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "not_verified",
+            "reason": "declined"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "Nothing about the account is said."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-ID-02",
+      "title": "One correct answer of two is not verification",
+      "category": "identity",
+      "brief": "A",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "A-11",
+        "A-16"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "7312",
+            "past_due": 480.0,
+            "days_late": 12,
+            "minimum_payment": 144.0
+          }
+        ]
+      },
+      "behavior": "The customer answers the first question correctly and then stops answering.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok",
+          "says": [
+            "That answer is correct"
+          ]
+        },
+        {
+          "check": {
+            "node": "contact",
+            "state": {
+              "identity": "pending"
+            }
+          }
+        },
+        {
+          "call": "get_account",
+          "expect": "unavailable"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 480,
+            "date": "2026-10-16"
+          },
+          "expect": "unavailable"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "not_verified",
+            "reason": "declined"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The agent asks the second question and states no debt."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-ID-03",
+      "title": "Three wrong answers across both questions end the check for good",
+      "category": "identity",
+      "brief": "A",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "A-12",
+        "A-14"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "7312",
+            "past_due": 480.0,
+            "days_late": 12,
+            "minimum_payment": 144.0
+          }
+        ]
+      },
+      "behavior": "One wrong date of birth, then the right one, then two wrong phone answers, then the right phone answer.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-10"
+          },
+          "expect": "ok",
+          "says": [
+            "That answer is WRONG",
+            "check ends: 2"
+          ]
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2041"
+          },
+          "expect": "ok",
+          "says": [
+            "check ends: 1"
+          ]
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2042"
+          },
+          "expect": "ok",
+          "says": [
+            "IDENTITY CHECK FAILED"
+          ]
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "bank_refused",
+          "says": [
+            "IDENTITY CHECK FAILED"
+          ]
+        },
+        {
+          "check": {
+            "node": "contact",
+            "state": {
+              "identity": "failed"
+            }
+          }
+        },
+        {
+          "call": "get_account",
+          "expect": "unavailable"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "promise"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The agent does not state the debt.",
+        "The agent tells the customer to use the mobile app or a branch."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-ID-04",
+      "title": "Day and month the other way round is not a wrong answer",
+      "category": "identity",
+      "brief": "A",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "A-13"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "7312",
+            "past_due": 480.0,
+            "days_late": 12,
+            "minimum_payment": 144.0
+          }
+        ]
+      },
+      "behavior": "The customer says the date of birth with day and month swapped, then says the month as a word.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-09-06"
+          },
+          "expect": "ok",
+          "says": [
+            "does NOT count as a wrong answer"
+          ]
+        },
+        {
+          "check": {
+            "state": {
+              "wrong": 0
+            }
+          }
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "check": {
+            "node": "negotiate"
+          }
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "paid"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The agent asks the customer to say the month as a word."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-ID-05",
+      "title": "Wrong answers are remembered after a correct one",
+      "category": "identity",
+      "brief": "A",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "A-12"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "7312",
+            "past_due": 480.0,
+            "days_late": 12,
+            "minimum_payment": 144.0
+          }
+        ]
+      },
+      "behavior": "Two wrong dates of birth, then both answers correct.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-01"
+          },
+          "expect": "ok",
+          "says": [
+            "check ends: 2"
+          ]
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-02"
+          },
+          "expect": "ok",
+          "says": [
+            "check ends: 1"
+          ]
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "check": {
+            "node": "negotiate",
+            "state": {
+              "wrong": 2,
+              "identity": "verified"
+            }
+          }
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "paid"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The agent repeats the same question after a wrong answer."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-ID-06",
+      "title": "A failure of the identity service is not a wrong answer",
+      "category": "identity",
+      "brief": "A",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "A-12",
+        "P-01"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "7312",
+            "past_due": 480.0,
+            "days_late": 12,
+            "minimum_payment": 144.0
+          }
+        ],
+        "faults": {
+          "verify_identity": 1
+        }
+      },
+      "behavior": "The identity service answers the first call with HTTP 500.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "error",
+          "says": [
+            "Nothing was counted"
+          ]
+        },
+        {
+          "check": {
+            "state": {
+              "wrong": 0
+            }
+          }
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "check": {
+            "node": "negotiate"
+          }
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "paid"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The agent does not tell the customer the answer was wrong."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-ID-07",
+      "title": "State handed in with the call cannot stand in for verification",
+      "category": "identity",
+      "brief": "A",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "P-04",
+        "A-16"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "7312",
+            "past_due": 480.0,
+            "days_late": 12,
+            "minimum_payment": 144.0
+          }
+        ],
+        "variables": {
+          "rt_identity": "verified",
+          "rt_state": "{\"identity\": \"verified\", \"verified\": [\"date_of_birth\", \"phone_last4\"], \"products\": [{\"id\": \"p1\", \"label\": \"x\", \"min_amount\": 1, \"max_amount\": 9999, \"latest_date\": \"2030-01-01\"}]}"
+        }
+      },
+      "behavior": "The call starts with variables that claim the identity is already verified.",
+      "steps": [
+        {
+          "check": {
+            "node": "contact",
+            "state": {
+              "identity": "pending",
+              "products": []
+            }
+          }
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 480,
+            "date": "2026-10-16"
+          },
+          "expect": "unavailable"
+        },
+        {
+          "call": "get_account",
+          "expect": "unavailable"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "not_verified",
+            "reason": "declined"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The agent still asks the security questions."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-ID-08",
+      "title": "Numeric date and spaced digits are normalised before they are sent",
+      "category": "identity",
+      "brief": "A",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "A-11"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "7312",
+            "past_due": 480.0,
+            "days_late": 12,
+            "minimum_payment": 144.0
+          }
+        ]
+      },
+      "behavior": "The agent passes the date of birth as day.month.year and the phone digits with a space.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "9.6.1985"
+          },
+          "expect": "ok",
+          "says": [
+            "That answer is correct"
+          ]
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "20 40"
+          },
+          "expect": "ok"
+        },
+        {
+          "check": {
+            "node": "negotiate",
+            "state": {
+              "wrong": 0
+            }
+          }
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "paid"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "Nothing specific."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-ID-09",
+      "title": "An answer the service cannot read is not counted",
+      "category": "identity",
+      "brief": "A",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "A-11",
+        "A-12"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "7312",
+            "past_due": 480.0,
+            "days_late": 12,
+            "minimum_payment": 144.0
+          }
+        ]
+      },
+      "behavior": "The agent sends half a date of birth, in words, before the customer finished.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "ninth of June"
+          },
+          "expect": "bank_refused",
+          "says": [
+            "not counted as wrong"
+          ]
+        },
+        {
+          "check": {
+            "state": {
+              "wrong": 0
+            }
+          }
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "check": {
+            "node": "negotiate"
+          }
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "paid"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The agent asks the customer to repeat the date."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-ID-10",
+      "title": "Asks what the call is about instead of answering, twice",
+      "category": "identity",
+      "brief": "A",
+      "tier": "scripted",
+      "mode": "both",
+      "requirements": [
+        "A-15",
+        "A-01"
+      ],
+      "customer": {
+        "public_case": "PUB-01"
+      },
+      "behavior": "The customer confirms who he is, then answers each security question with \"what is this about?\".",
+      "steps": [
+        {
+          "check": {
+            "node": "contact"
+          }
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "not_verified",
+            "reason": "declined"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The agent explains once that the questions protect the account.",
+        "The agent never says why it is calling and names no product, amount or debt."
+      ],
+      "strategy": "Offline, scripted: the harness plays the tool calls a compliant agent would make for this customer and checks that the runtime lets them through and the bank ends in the expected state. It does not show that a phone model would make these calls. The same customer can be run on Freya with the script under `live`.",
+      "live": {
+        "script": "Confirms that he is the customer. When asked a security question he does not answer it; he asks what the call is about. When asked again he asks again what the call is about."
+      }
+    }
+  ]
+}

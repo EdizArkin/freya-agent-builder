@@ -1,0 +1,25 @@
+{
+  "about": "Changes to the shared tool API that Brief D assumes. Applied to a copy of the kit file at run time.",
+  "product_types": [
+    "mortgage",
+    "credit_card",
+    "overdraft"
+  ],
+  "note_reasons": [
+    "refused",
+    "dispute",
+    "paid",
+    "deferred",
+    "service_error"
+  ],
+  "product_fields": {
+    "secured": {
+      "type": "boolean",
+      "description": "true for a mortgage"
+    }
+  },
+  "remove_product_fields": [
+    "minimum_payment",
+    "instalment_amount"
+  ]
+}

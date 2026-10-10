@@ -1,0 +1,887 @@
+{
+  "about": "Promise dates: deadlines, weekends, holidays and days named in words.",
+  "format": "This file is YAML written in its JSON subset, so the harness reads it with the standard library. Edit it as JSON, or install PyYAML and use any YAML syntax.",
+  "category": "dates",
+  "scenarios": [
+    {
+      "id": "EC-DT-01",
+      "title": "Yesterday is refused, today is accepted",
+      "category": "dates",
+      "brief": "A",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "A-19"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "7312",
+            "past_due": 480.0,
+            "days_late": 12,
+            "minimum_payment": 144.0
+          }
+        ]
+      },
+      "behavior": "The agent sends a date in the past, then today.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 480,
+            "date": "2026-10-13"
+          },
+          "expect": "refused",
+          "says": [
+            "is in the past"
+          ]
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 480,
+            "date": "2026-10-14"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "promise"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "Nothing specific."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-DT-02",
+      "title": "A date after the deadline is refused and the deadline right after it is recorded",
+      "category": "dates",
+      "brief": "A",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "A-18",
+        "A-23",
+        "P-05"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "7312",
+            "past_due": 480.0,
+            "days_late": 12,
+            "minimum_payment": 144.0
+          }
+        ]
+      },
+      "behavior": "The customer wants a day after the latest date and then accepts the latest date.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 480,
+            "date": "2026-10-27"
+          },
+          "expect": "refused",
+          "says": [
+            "is after the latest date",
+            "Fri 2026-10-23"
+          ]
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 480,
+            "date": "2026-10-23"
+          },
+          "expect": "ok",
+          "says": [
+            "is now recorded"
+          ],
+          "not_says": [
+            "NOT RECORDED"
+          ]
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "promise"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The agent says the latest date it can record and offers it."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-DT-03",
+      "title": "Early band: the twelfth business day is the last one accepted",
+      "category": "dates",
+      "brief": "A",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "A-18",
+        "A-19"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "5540",
+            "past_due": 260.0,
+            "days_late": 4,
+            "minimum_payment": 78.0
+          }
+        ]
+      },
+      "behavior": "A customer four days late asks for the day after the deadline, then the deadline.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 260,
+            "date": "2026-11-03"
+          },
+          "expect": "refused",
+          "says": [
+            "Mon 2026-11-02"
+          ]
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 260,
+            "date": "2026-11-02"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "promise"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "Nothing specific."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-DT-04",
+      "title": "A Saturday is refused and the next business day is named",
+      "category": "dates",
+      "brief": "A",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "A-19",
+        "A-20"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "7312",
+            "past_due": 480.0,
+            "days_late": 12,
+            "minimum_payment": 144.0
+          }
+        ]
+      },
+      "behavior": "The customer names a Saturday.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 480,
+            "date": "2026-10-17"
+          },
+          "expect": "refused",
+          "says": [
+            "is not a business day",
+            "Offer Mon 2026-10-19"
+          ]
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 480,
+            "date": "2026-10-19"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "promise"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The agent offers the next business day."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-DT-05",
+      "title": "A bank holiday inside the deadline is refused",
+      "category": "dates",
+      "brief": "A",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "A-19",
+        "A-20"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "5540",
+            "past_due": 260.0,
+            "days_late": 4,
+            "minimum_payment": 78.0
+          }
+        ]
+      },
+      "behavior": "The customer names Monday 26 October, a bank holiday.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 260,
+            "date": "2026-10-26"
+          },
+          "expect": "refused",
+          "says": [
+            "is not a business day",
+            "Offer Tue 2026-10-27"
+          ]
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 260,
+            "date": "2026-10-27"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "promise"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The agent offers the next business day."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-DT-06",
+      "title": "A weekend day after the deadline is refused for the deadline, not for the weekend",
+      "category": "dates",
+      "brief": "A",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "A-20",
+        "A-23"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "7312",
+            "past_due": 480.0,
+            "days_late": 12,
+            "minimum_payment": 144.0
+          }
+        ]
+      },
+      "behavior": "The customer names the Saturday after the latest date and refuses everything else.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 480,
+            "date": "2026-10-24"
+          },
+          "expect": "refused",
+          "says": [
+            "is after the latest date",
+            "Fri 2026-10-23"
+          ],
+          "not_says": [
+            "Offer Mon"
+          ]
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "no_promise",
+            "reason": "refused"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The agent offers the deadline, not the Monday after it."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-DT-07",
+      "title": "Dates that are not dates are refused",
+      "category": "dates",
+      "brief": "A",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "A-19",
+        "A-22"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "7312",
+            "past_due": 480.0,
+            "days_late": 12,
+            "minimum_payment": 144.0
+          }
+        ]
+      },
+      "behavior": "The agent sends a weekday in words, a slashed date, an impossible date and nothing.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 480,
+            "date": "next Friday"
+          },
+          "expect": "refused",
+          "says": [
+            "YYYY-MM-DD"
+          ]
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 480,
+            "date": "16/10/2026"
+          },
+          "expect": "refused",
+          "says": [
+            "YYYY-MM-DD"
+          ]
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 480,
+            "date": "2026-13-40"
+          },
+          "expect": "refused",
+          "says": [
+            "YYYY-MM-DD"
+          ]
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 480,
+            "date": ""
+          },
+          "expect": "refused",
+          "says": [
+            "YYYY-MM-DD"
+          ]
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 480,
+            "date": "2026-10-16"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "promise"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "Nothing specific."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-DT-08",
+      "title": "The date of \"this Friday\" and \"Friday next week\" is given, not left to counting",
+      "category": "dates",
+      "brief": "A",
+      "tier": "scripted",
+      "mode": "offline",
+      "requirements": [
+        "A-22"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "7312",
+            "past_due": 480.0,
+            "days_late": 12,
+            "minimum_payment": 144.0
+          }
+        ]
+      },
+      "behavior": "On a Wednesday the customer says \"this Friday\".",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "check": {
+            "prompt_has": [
+              "\"this Friday\", \"on Friday\", \"the coming Friday\" = Friday 16 October = 2026-10-16",
+              "\"Friday next week\", \"Friday week\" = Friday 23 October = 2026-10-23",
+              "tomorrow = Thursday 15 October = 2026-10-15"
+            ],
+            "system_has": [
+              "take its date from the DAY NAMES block"
+            ]
+          }
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 480,
+            "date": "2026-10-16"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "promise"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The agent reads back Friday 16 October."
+      ],
+      "strategy": "Offline, scripted: the harness plays the tool calls a compliant agent would make for this customer and checks that the runtime lets them through and the bank ends in the expected state. It does not show that a phone model would make these calls."
+    },
+    {
+      "id": "EC-DT-09",
+      "title": "On a Friday, \"next Friday\" and the first offer are the Friday of next week",
+      "category": "dates",
+      "brief": "A",
+      "tier": "scripted",
+      "mode": "offline",
+      "requirements": [
+        "A-22",
+        "A-30",
+        "A-18"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "7312",
+            "past_due": 480.0,
+            "days_late": 12,
+            "minimum_payment": 144.0
+          }
+        ],
+        "variables": {
+          "now": "2026-10-16T10:00"
+        }
+      },
+      "behavior": "The call is made on Friday 16 October.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "check": {
+            "prompt_has": [
+              "today, \"this Friday\" = Friday 16 October = 2026-10-16",
+              "\"Friday next week\", \"a week from today\" = Friday 23 October = 2026-10-23",
+              "latest date Wed 2026-10-28",
+              "Fri 2026-10-23 (Friday 23 October)"
+            ]
+          }
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 480,
+            "date": "2026-10-23"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "promise"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The first persuasion offer names Friday 23 October."
+      ],
+      "strategy": "Offline, scripted: the harness plays the tool calls a compliant agent would make for this customer and checks that the runtime lets them through and the bank ends in the expected state. It does not show that a phone model would make these calls."
+    },
+    {
+      "id": "EC-DT-10",
+      "title": "Holidays at the turn of the year",
+      "category": "dates",
+      "brief": "A",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "A-18",
+        "A-19",
+        "A-20"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "7312",
+            "past_due": 480.0,
+            "days_late": 12,
+            "minimum_payment": 144.0
+          }
+        ],
+        "variables": {
+          "now": "2026-12-22T10:00"
+        }
+      },
+      "behavior": "A call three days before Christmas; the customer names Christmas Day, New Year's Day and a day too late.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "check": {
+            "prompt_has": [
+              "latest date Mon 2027-01-04"
+            ]
+          }
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 480,
+            "date": "2026-12-25"
+          },
+          "expect": "refused",
+          "says": [
+            "Offer Mon 2026-12-28"
+          ]
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 480,
+            "date": "2027-01-01"
+          },
+          "expect": "refused",
+          "says": [
+            "Offer Mon 2027-01-04"
+          ]
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 480,
+            "date": "2027-01-05"
+          },
+          "expect": "refused",
+          "says": [
+            "is after the latest date"
+          ]
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 480,
+            "date": "2027-01-04"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "promise"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "Nothing specific."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-DT-11",
+      "title": "A vague period and no exact day leads to the deadline",
+      "category": "dates",
+      "brief": "A",
+      "tier": "live_only",
+      "mode": "live",
+      "requirements": [
+        "A-21"
+      ],
+      "customer": {
+        "public_case": "PUB-01"
+      },
+      "behavior": "The customer says \"at the end of the month\" and gives no day when asked.",
+      "spoken": [
+        "The agent asks once for the exact day.",
+        "The agent then proposes the deadline, Monday 2 November."
+      ],
+      "strategy": "Live only: the behaviour is decided by what the phone model says and understands. Run it on Freya with a simulated customer; score with the ledger and the conversation checks.",
+      "live": {
+        "script": "Verified. Cannot pay today. Says he will pay at the end of the month. When asked for the exact day, says he does not know yet. Accepts the date the agent proposes and confirms."
+      }
+    }
+  ]
+}

@@ -1,0 +1,1052 @@
+{
+  "about": "Scenarios for synthetic Brief E.",
+  "format": "This file is YAML written in its JSON subset, so the harness reads it with the standard library. Edit it as JSON, or install PyYAML and use any YAML syntax.",
+  "category": "brief_e",
+  "scenarios": [
+    {
+      "id": "SE-01",
+      "title": "Friday is not a business day, Sunday is",
+      "category": "brief_e",
+      "brief": "E",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "E-05",
+        "E-06"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1990-12-01",
+          "phone_last4": "5518"
+        },
+        "products": [
+          {
+            "type": "electricity",
+            "past_due": 180.0,
+            "days_late": 12,
+            "vulnerable": false
+          }
+        ],
+        "variables": {
+          "title": "Ms",
+          "first_name": "Noor",
+          "last_name": "Haddad"
+        }
+      },
+      "behavior": "The customer names Friday.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1990-12-01"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "5518"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 180,
+            "date": "2026-10-16"
+          },
+          "expect": "refused",
+          "says": [
+            "is not a business day",
+            "Offer Sun 2026-10-18"
+          ]
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 180,
+            "date": "2026-10-18"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "promise"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The agent offers Sunday 18 October."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "SE-02",
+      "title": "Two deadline rules: the ten-day rule wins mid-month",
+      "category": "brief_e",
+      "brief": "E",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "E-07",
+        "E-08"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1990-12-01",
+          "phone_last4": "5518"
+        },
+        "products": [
+          {
+            "type": "electricity",
+            "past_due": 180.0,
+            "days_late": 12,
+            "vulnerable": false
+          }
+        ],
+        "variables": {
+          "title": "Ms",
+          "first_name": "Noor",
+          "last_name": "Haddad"
+        }
+      },
+      "behavior": "On 14 October the end of the month is later than ten days from today.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1990-12-01"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "5518"
+          },
+          "expect": "ok"
+        },
+        {
+          "check": {
+            "prompt_has": [
+              "latest date Thu 2026-10-22"
+            ]
+          }
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 180,
+            "date": "2026-10-25"
+          },
+          "expect": "refused",
+          "says": [
+            "is after the latest date",
+            "Thu 2026-10-22"
+          ]
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 180,
+            "date": "2026-10-22"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "promise"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "Nothing specific."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "SE-03",
+      "title": "Two deadline rules: the end of the month wins late in the month",
+      "category": "brief_e",
+      "brief": "E",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "E-07",
+        "E-08"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1990-12-01",
+          "phone_last4": "5518"
+        },
+        "products": [
+          {
+            "type": "electricity",
+            "past_due": 180.0,
+            "days_late": 12,
+            "vulnerable": false
+          }
+        ],
+        "variables": {
+          "title": "Ms",
+          "first_name": "Noor",
+          "last_name": "Haddad",
+          "now": "2026-10-25T10:00"
+        }
+      },
+      "behavior": "On 25 October ten days from today is in November.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1990-12-01"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "5518"
+          },
+          "expect": "ok"
+        },
+        {
+          "check": {
+            "prompt_has": [
+              "latest date Thu 2026-10-29"
+            ]
+          }
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 180,
+            "date": "2026-11-01"
+          },
+          "expect": "refused",
+          "says": [
+            "is after the latest date"
+          ]
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 180,
+            "date": "2026-10-29"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "promise"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "Nothing specific."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "SE-04",
+      "title": "More than thirty days late: the next business day, across the weekend",
+      "category": "brief_e",
+      "brief": "E",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "E-09"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1990-12-01",
+          "phone_last4": "5518"
+        },
+        "products": [
+          {
+            "type": "electricity",
+            "past_due": 250.0,
+            "days_late": 45,
+            "vulnerable": false
+          }
+        ],
+        "variables": {
+          "title": "Ms",
+          "first_name": "Noor",
+          "last_name": "Haddad",
+          "now": "2026-10-15T09:00"
+        }
+      },
+      "behavior": "A call on a Thursday for an account forty-five days late.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1990-12-01"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "5518"
+          },
+          "expect": "ok"
+        },
+        {
+          "check": {
+            "prompt_has": [
+              "latest date Sun 2026-10-18"
+            ]
+          }
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 250,
+            "date": "2026-10-19"
+          },
+          "expect": "refused",
+          "says": [
+            "is after the latest date"
+          ]
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 250,
+            "date": "2026-10-18"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "promise"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "Nothing specific."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "SE-05",
+      "title": "The vulnerable floor replaces the product floor",
+      "category": "brief_e",
+      "brief": "E",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "E-11",
+        "E-12"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1990-12-01",
+          "phone_last4": "5518"
+        },
+        "products": [
+          {
+            "type": "electricity",
+            "past_due": 180.0,
+            "days_late": 12,
+            "vulnerable": false
+          },
+          {
+            "type": "gas",
+            "past_due": 400.0,
+            "days_late": 9,
+            "vulnerable": true
+          }
+        ],
+        "variables": {
+          "title": "Ms",
+          "first_name": "Noor",
+          "last_name": "Haddad"
+        }
+      },
+      "behavior": "An electricity account and a gas account marked vulnerable.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1990-12-01"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "5518"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 34.99,
+            "date": "2026-10-15"
+          },
+          "expect": "refused",
+          "says": [
+            "below the lowest amount",
+            "35.00"
+          ]
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p2",
+            "amount": 10,
+            "date": "2026-10-15"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 35,
+            "date": "2026-10-15"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "promise"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "Nothing specific."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "SE-06",
+      "title": "A second transfer is refused",
+      "category": "brief_e",
+      "brief": "E",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "E-16"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1990-12-01",
+          "phone_last4": "5518"
+        },
+        "products": [
+          {
+            "type": "electricity",
+            "past_due": 180.0,
+            "days_late": 12,
+            "vulnerable": false
+          }
+        ],
+        "variables": {
+          "title": "Ms",
+          "first_name": "Noor",
+          "last_name": "Haddad"
+        }
+      },
+      "behavior": "After the transfer to plans the customer also makes a complaint and the agent transfers again.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1990-12-01"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "5518"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "transfer_to_agent",
+          "args": {
+            "queue": "plans"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "transfer_to_agent",
+          "args": {
+            "queue": "complaints"
+          },
+          "expect": "blocked"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "transferred",
+            "reason": "plan"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The agent makes one transfer only."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards.",
+      "known_gap": "Nothing limits the number of transfers. A second transfer is carried out and its queue then decides the closing reason.",
+      "gap_kind": "schema"
+    },
+    {
+      "id": "SE-07",
+      "title": "A confirmed promise may still be recorded after a transfer to plans",
+      "category": "brief_e",
+      "brief": "E",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "E-18",
+        "E-17"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1990-12-01",
+          "phone_last4": "5518"
+        },
+        "products": [
+          {
+            "type": "electricity",
+            "past_due": 180.0,
+            "days_late": 12,
+            "vulnerable": false
+          }
+        ],
+        "variables": {
+          "title": "Ms",
+          "first_name": "Noor",
+          "last_name": "Haddad"
+        }
+      },
+      "behavior": "The promise was read back and confirmed, then the customer asked for a plan for the rest.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1990-12-01"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "5518"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "transfer_to_agent",
+          "args": {
+            "queue": "plans"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 180,
+            "date": "2026-10-15"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "promise"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "Nothing specific."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards.",
+      "known_gap": "promise.forbidden_after_transfer is one switch for every queue. An exception for one queue cannot be written, and the reference spec keeps the general rule.",
+      "gap_kind": "schema"
+    },
+    {
+      "id": "SE-08",
+      "title": "Nothing is recorded after a transfer to welfare",
+      "category": "brief_e",
+      "brief": "E",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "E-17",
+        "E-19"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1990-12-01",
+          "phone_last4": "5518"
+        },
+        "products": [
+          {
+            "type": "electricity",
+            "past_due": 180.0,
+            "days_late": 12,
+            "vulnerable": false
+          }
+        ],
+        "variables": {
+          "title": "Ms",
+          "first_name": "Noor",
+          "last_name": "Haddad"
+        }
+      },
+      "behavior": "After the welfare transfer the agent tries to record a promise.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1990-12-01"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "5518"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "transfer_to_agent",
+          "args": {
+            "queue": "welfare"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 180,
+            "date": "2026-10-15"
+          },
+          "expect": "refused",
+          "says": [
+            "No promise may be recorded after a transfer"
+          ]
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "promise"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "Nothing specific."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "SE-09",
+      "title": "A failed identity check outranks an earlier transfer",
+      "category": "brief_e",
+      "brief": "E",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "E-20",
+        "E-19"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1990-12-01",
+          "phone_last4": "5518"
+        },
+        "products": [
+          {
+            "type": "electricity",
+            "past_due": 180.0,
+            "days_late": 12,
+            "vulnerable": false
+          }
+        ],
+        "variables": {
+          "title": "Ms",
+          "first_name": "Noor",
+          "last_name": "Haddad"
+        }
+      },
+      "behavior": "A complaint is transferred before verification; the security check then fails.",
+      "steps": [
+        {
+          "call": "transfer_to_agent",
+          "args": {
+            "queue": "complaints"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1990-12-02"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1990-12-03"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1990-12-04"
+          },
+          "expect": "ok",
+          "says": [
+            "IDENTITY CHECK FAILED"
+          ]
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "transferred",
+            "reason": "complaint"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The agent states no debt."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "SE-10",
+      "title": "After 16:00 a promise for today is refused",
+      "category": "brief_e",
+      "brief": "E",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "E-10"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1990-12-01",
+          "phone_last4": "5518"
+        },
+        "products": [
+          {
+            "type": "electricity",
+            "past_due": 180.0,
+            "days_late": 12,
+            "vulnerable": false
+          }
+        ],
+        "variables": {
+          "title": "Ms",
+          "first_name": "Noor",
+          "last_name": "Haddad",
+          "now": "2026-10-14T16:30"
+        }
+      },
+      "behavior": "A call at half past four; the customer wants to pay today.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1990-12-01"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "5518"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 180,
+            "date": "2026-10-14"
+          },
+          "expect": "refused"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 180,
+            "date": "2026-10-15"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "promise"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The agent says the earliest day is tomorrow."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards.",
+      "known_gap": "No limit depends on the time of day, and there is no earliest date. The 16:00 rule is rule text only.",
+      "gap_kind": "schema"
+    },
+    {
+      "id": "SE-11",
+      "title": "A callback only on the next business day before noon",
+      "category": "brief_e",
+      "brief": "E",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "E-02"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1990-12-01",
+          "phone_last4": "5518"
+        },
+        "products": [
+          {
+            "type": "electricity",
+            "past_due": 180.0,
+            "days_late": 12,
+            "vulnerable": false
+          }
+        ],
+        "variables": {
+          "title": "Ms",
+          "first_name": "Noor",
+          "last_name": "Haddad"
+        }
+      },
+      "behavior": "A relative offers later today, then tomorrow at twelve.",
+      "steps": [
+        {
+          "call": "schedule_callback",
+          "args": {
+            "date": "2026-10-14",
+            "time": "11:30"
+          },
+          "expect": "detached",
+          "says": [
+            "NOT BOOKED"
+          ]
+        },
+        {
+          "call": "schedule_callback",
+          "args": {
+            "date": "2026-10-15",
+            "time": "12:01"
+          },
+          "expect": "detached",
+          "says": [
+            "NOT BOOKED"
+          ]
+        },
+        {
+          "call": "schedule_callback",
+          "args": {
+            "date": "2026-10-15",
+            "time": "12:00"
+          },
+          "expect": "ok",
+          "says": [
+            "The callback is booked"
+          ]
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "not_reached",
+            "reason": "callback"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "Nothing specific."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "SE-12",
+      "title": "The gas floor is a fifth of the past-due amount",
+      "category": "brief_e",
+      "brief": "E",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "E-11"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1990-12-01",
+          "phone_last4": "5518"
+        },
+        "products": [
+          {
+            "type": "gas",
+            "past_due": 400.0,
+            "days_late": 9,
+            "vulnerable": false
+          }
+        ],
+        "variables": {
+          "title": "Ms",
+          "first_name": "Noor",
+          "last_name": "Haddad"
+        }
+      },
+      "behavior": "A gas account that is not marked vulnerable.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1990-12-01"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "5518"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 79.99,
+            "date": "2026-10-15"
+          },
+          "expect": "refused",
+          "says": [
+            "below the lowest amount",
+            "80.00"
+          ]
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 80,
+            "date": "2026-10-15"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "promise"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "Nothing specific."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "SE-13",
+      "title": "A vulnerable household is offered the floor first, never the full amount",
+      "category": "brief_e",
+      "brief": "E",
+      "tier": "live_only",
+      "mode": "specification",
+      "requirements": [
+        "E-13",
+        "E-14",
+        "E-16"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1990-12-01",
+          "phone_last4": "5518"
+        },
+        "products": [
+          {
+            "type": "gas",
+            "past_due": 400.0,
+            "days_late": 9,
+            "vulnerable": true
+          }
+        ],
+        "variables": {
+          "title": "Ms",
+          "first_name": "Noor",
+          "last_name": "Haddad"
+        }
+      },
+      "behavior": "The customer listens to the first offer and accepts it.",
+      "spoken": [
+        "The first amount the agent proposes is 10.00.",
+        "The full amount is stated as the debt but never proposed as a payment."
+      ],
+      "strategy": "Live only: the behaviour is decided by what the phone model says and understands. Run it on Freya with a simulated customer; score with the ledger and the conversation checks. No bank serves this brief, so it stays a specification until one does."
+    }
+  ]
+}

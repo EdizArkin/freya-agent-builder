@@ -1,0 +1,695 @@
+{
+  "about": "Transfers before and after verification, with the close and with notes.",
+  "format": "This file is YAML written in its JSON subset, so the harness reads it with the standard library. Edit it as JSON, or install PyYAML and use any YAML syntax.",
+  "category": "transfers",
+  "scenarios": [
+    {
+      "id": "EC-TR-01",
+      "title": "A transfer before verification closes as transferred",
+      "category": "transfers",
+      "brief": "A",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "A-42",
+        "A-45",
+        "A-46"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "7312",
+            "past_due": 480.0,
+            "days_late": 12,
+            "minimum_payment": 144.0
+          }
+        ]
+      },
+      "behavior": "Before any security question the customer insists on a human; the agent then closes with a wrong outcome.",
+      "steps": [
+        {
+          "call": "transfer_to_agent",
+          "args": {
+            "queue": "general"
+          },
+          "expect": "ok",
+          "says": [
+            "is done"
+          ]
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "not_reached",
+            "reason": "unclear"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The agent asks once whether it can help first."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-TR-02",
+      "title": "After a transfer the close cannot carry another outcome",
+      "category": "transfers",
+      "brief": "A",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "A-41",
+        "A-46"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "7312",
+            "past_due": 480.0,
+            "days_late": 12,
+            "minimum_payment": 144.0
+          }
+        ]
+      },
+      "behavior": "The customer asks for lower instalments; the agent closes as refused.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "transfer_to_agent",
+          "args": {
+            "queue": "restructuring"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "no_promise",
+            "reason": "refused"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The agent describes no plan of its own."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-TR-03",
+      "title": "Transfer and close in one message, the close arriving first",
+      "category": "transfers",
+      "brief": "A",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "P-02",
+        "A-41",
+        "A-46"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "7312",
+            "past_due": 480.0,
+            "days_late": 12,
+            "minimum_payment": 144.0
+          }
+        ]
+      },
+      "behavior": "The agent sends transfer_to_agent and close_call together.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "together": [
+            {
+              "call": "transfer_to_agent",
+              "args": {
+                "queue": "restructuring"
+              },
+              "expect": "ok",
+              "says": [
+                "is done"
+              ]
+            },
+            {
+              "call": "close_call",
+              "args": {
+                "outcome": "transferred",
+                "reason": "restructuring"
+              },
+              "expect": "detached"
+            }
+          ],
+          "arrival": "reversed"
+        },
+        {
+          "check": {
+            "node": "negotiate"
+          }
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "transferred",
+            "reason": "restructuring"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "Nothing specific."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-TR-04",
+      "title": "A failed transfer is repeated and happens once",
+      "category": "transfers",
+      "brief": "A",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "A-32",
+        "P-01"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "7312",
+            "past_due": 480.0,
+            "days_late": 12,
+            "minimum_payment": 144.0
+          }
+        ],
+        "faults": {
+          "transfer_to_agent": 1
+        }
+      },
+      "behavior": "The customer accepts the support team; the first transfer fails with HTTP 500.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "transfer_to_agent",
+          "args": {
+            "queue": "support"
+          },
+          "expect": "error",
+          "says": [
+            "did NOT work"
+          ]
+        },
+        {
+          "call": "transfer_to_agent",
+          "args": {
+            "queue": "support"
+          },
+          "expect": "ok",
+          "says": [
+            "is done"
+          ]
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "transferred",
+            "reason": "support"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The agent does not say the customer is being connected before the transfer worked."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-TR-05",
+      "title": "A transfer that never works does not force the outcome",
+      "category": "transfers",
+      "brief": "A",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "A-32",
+        "A-46"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "7312",
+            "past_due": 480.0,
+            "days_late": 12,
+            "minimum_payment": 144.0
+          }
+        ],
+        "faults": {
+          "transfer_to_agent": 2
+        }
+      },
+      "behavior": "Both transfer attempts fail; the call ends without a transfer.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "transfer_to_agent",
+          "args": {
+            "queue": "support"
+          },
+          "expect": "error"
+        },
+        {
+          "call": "transfer_to_agent",
+          "args": {
+            "queue": "support"
+          },
+          "expect": "error"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "no_promise",
+            "reason": "hardship"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The agent does not say the customer was transferred."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-TR-06",
+      "title": "No note after a transfer",
+      "category": "transfers",
+      "brief": "B",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "B-10"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "5540",
+            "past_due": 260.0,
+            "days_late": 4,
+            "minimum_payment": 78.0
+          },
+          {
+            "type": "personal_loan",
+            "past_due": 900.0,
+            "days_late": 20,
+            "instalment_amount": 300.0
+          }
+        ]
+      },
+      "behavior": "After the restructuring transfer the agent tries to note the products.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "transfer_to_agent",
+          "args": {
+            "queue": "restructuring"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "add_note",
+          "args": {
+            "product_id": "p1",
+            "reason": "refused"
+          },
+          "expect": "refused",
+          "says": [
+            "No note may be added"
+          ]
+        },
+        {
+          "call": "add_note",
+          "args": {
+            "product_id": "p2",
+            "reason": "refused"
+          },
+          "expect": "refused",
+          "says": [
+            "No note may be added"
+          ]
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "transferred",
+            "reason": "restructuring"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "Nothing specific."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-TR-07",
+      "title": "A promise agreed but not yet recorded is not recorded after the transfer",
+      "category": "transfers",
+      "brief": "B",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "B-10",
+        "B-12"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "5540",
+            "past_due": 260.0,
+            "days_late": 4,
+            "minimum_payment": 78.0
+          },
+          {
+            "type": "personal_loan",
+            "past_due": 900.0,
+            "days_late": 20,
+            "instalment_amount": 300.0
+          }
+        ]
+      },
+      "behavior": "One promise is recorded, then the customer asks for a new plan for the second product.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 260,
+            "date": "2026-10-16"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "transfer_to_agent",
+          "args": {
+            "queue": "restructuring"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p2",
+            "amount": 900,
+            "date": "2026-10-16"
+          },
+          "expect": "refused",
+          "says": [
+            "No promise may be recorded after a transfer"
+          ]
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "promise"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "Nothing specific."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-TR-08",
+      "title": "A transfer after a recorded promise closes as transferred",
+      "category": "transfers",
+      "brief": "A",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "A-46",
+        "A-32"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "7312",
+            "past_due": 480.0,
+            "days_late": 12,
+            "minimum_payment": 144.0
+          }
+        ]
+      },
+      "behavior": "The promise is recorded; the customer then mentions a job loss and accepts the support team.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "date_of_birth",
+            "answer": "1985-06-09"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "phone_last4",
+            "answer": "2040"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 480,
+            "date": "2026-10-16"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "transfer_to_agent",
+          "args": {
+            "queue": "support"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "promise"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "Nothing specific."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "EC-TR-09",
+      "title": "Callback and close in one message, the close arriving first",
+      "category": "transfers",
+      "brief": "A",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "P-02",
+        "A-06"
+      ],
+      "customer": {
+        "identity": {
+          "date_of_birth": "1985-06-09",
+          "phone_last4": "2040"
+        },
+        "products": [
+          {
+            "type": "credit_card",
+            "card_last4": "7312",
+            "past_due": 480.0,
+            "days_late": 12,
+            "minimum_payment": 144.0
+          }
+        ]
+      },
+      "behavior": "With a relative on the line the agent sends schedule_callback and close_call together.",
+      "steps": [
+        {
+          "together": [
+            {
+              "call": "schedule_callback",
+              "args": {
+                "date": "2026-10-15",
+                "time": "11:00"
+              },
+              "expect": "ok",
+              "says": [
+                "The callback is booked"
+              ]
+            },
+            {
+              "call": "close_call",
+              "args": {
+                "outcome": "not_reached",
+                "reason": "callback"
+              },
+              "expect": "detached"
+            }
+          ],
+          "arrival": "reversed"
+        },
+        {
+          "check": {
+            "node": "contact"
+          }
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "not_reached",
+            "reason": "callback"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "Nothing specific."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    }
+  ]
+}

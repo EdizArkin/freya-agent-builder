@@ -1,0 +1,2199 @@
+{
+  "about": "What the bank must hold after each scenario, and which calls may have reached it. ledger: the final records. bank_calls: the exact calls that reached the bank, in order; \"!500\" marks a service failure, \"!refused\" an answer with ok false. permitted_calls: no other tool may reach the bank. forbidden_calls: these tools must not be carried out. ended: whether the call reached its end. \"$p1.past_due\" stands for that field of the first product of the customer.",
+  "format": "This file is YAML written in its JSON subset, so the harness reads it with the standard library. Edit it as JSON, or install PyYAML and use any YAML syntax.",
+  "assertions": {
+    "EC-ID-01": {
+      "ledger": {
+        "outcome": "not_verified",
+        "reason": "declined",
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "bank_calls": [
+        "close_call"
+      ],
+      "forbidden_calls": [
+        "get_account",
+        "create_promise",
+        "add_note"
+      ],
+      "ended": true
+    },
+    "EC-ID-02": {
+      "ledger": {
+        "outcome": "not_verified",
+        "reason": "declined",
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "bank_calls": [
+        "verify_identity",
+        "close_call"
+      ],
+      "forbidden_calls": [
+        "get_account",
+        "create_promise"
+      ],
+      "ended": true
+    },
+    "EC-ID-03": {
+      "ledger": {
+        "outcome": "not_verified",
+        "reason": "failed",
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "forbidden_calls": [
+        "get_account",
+        "create_promise"
+      ],
+      "ended": true
+    },
+    "EC-ID-04": {
+      "ledger": {
+        "outcome": "paid",
+        "reason": null,
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-ID-05": {
+      "ledger": {
+        "outcome": "paid",
+        "reason": null,
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-ID-06": {
+      "ledger": {
+        "outcome": "paid",
+        "reason": null,
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "bank_calls": [
+        "verify_identity!500",
+        "verify_identity",
+        "verify_identity",
+        "get_account",
+        "close_call"
+      ],
+      "ended": true
+    },
+    "EC-ID-07": {
+      "ledger": {
+        "outcome": "not_verified",
+        "reason": "declined",
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "bank_calls": [
+        "close_call"
+      ],
+      "ended": true
+    },
+    "EC-ID-08": {
+      "ledger": {
+        "outcome": "paid",
+        "reason": null,
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-ID-09": {
+      "ledger": {
+        "outcome": "paid",
+        "reason": null,
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-ID-10": {
+      "ledger": {
+        "outcome": "not_verified",
+        "reason": "declined",
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "bank_calls": [
+        "close_call"
+      ],
+      "forbidden_calls": [
+        "verify_identity",
+        "get_account"
+      ],
+      "ended": true
+    },
+    "EC-PR-01": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 144.0,
+            "date": "2026-10-16"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-PR-02": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 480.0,
+            "date": "2026-10-16"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-PR-03": {
+      "ledger": {
+        "outcome": "no_promise",
+        "reason": "refused",
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-PR-04": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 480.0,
+            "date": "2026-10-16"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-PR-05": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 144.0,
+            "date": "2026-10-16"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-PR-06": {
+      "ledger": {
+        "outcome": "no_promise",
+        "reason": "service_error",
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "bank_calls": [
+        "verify_identity",
+        "verify_identity",
+        "get_account!500",
+        "close_call"
+      ],
+      "ended": true
+    },
+    "EC-PR-07": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 480.0,
+            "date": "2026-10-16"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-DT-01": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 480.0,
+            "date": "2026-10-14"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-DT-02": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 480.0,
+            "date": "2026-10-23"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-DT-03": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 260.0,
+            "date": "2026-11-02"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-DT-04": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 480.0,
+            "date": "2026-10-19"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-DT-05": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 260.0,
+            "date": "2026-10-27"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-DT-06": {
+      "ledger": {
+        "outcome": "no_promise",
+        "reason": "refused",
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-DT-07": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 480.0,
+            "date": "2026-10-16"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-DT-08": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 480.0,
+            "date": "2026-10-16"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-DT-09": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 480.0,
+            "date": "2026-10-23"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-DT-10": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 480.0,
+            "date": "2027-01-04"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-DT-11": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": "$p1.past_due",
+            "date": "2026-11-02"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      }
+    },
+    "EC-RT-01": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 480.0,
+            "date": "2026-10-16"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "bank_calls": [
+        "verify_identity",
+        "verify_identity",
+        "get_account",
+        "create_promise!500",
+        "create_promise",
+        "close_call"
+      ],
+      "ended": true
+    },
+    "EC-RT-02": {
+      "ledger": {
+        "outcome": "no_promise",
+        "reason": "service_error",
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-RT-03": {
+      "ledger": {
+        "outcome": "no_promise",
+        "reason": "service_error",
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "bank_calls": [
+        "verify_identity",
+        "verify_identity",
+        "get_account",
+        "create_promise!500",
+        "create_promise!500",
+        "create_promise!refused",
+        "close_call"
+      ],
+      "ended": true
+    },
+    "EC-RT-04": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 480.0,
+            "date": "2026-10-16"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "bank_calls": [
+        "verify_identity",
+        "verify_identity",
+        "get_account",
+        "create_promise",
+        "close_call"
+      ],
+      "ended": true
+    },
+    "EC-RT-05": {
+      "ledger": {
+        "outcome": "no_promise",
+        "reason": "hardship",
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-RT-06": {
+      "ledger": {
+        "outcome": "no_promise",
+        "reason": "hardship",
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-RT-07": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 480.0,
+            "date": "2026-10-16"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-RT-08": {
+      "ledger": {
+        "outcome": "paid",
+        "reason": null,
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "bank_calls": [
+        "verify_identity",
+        "verify_identity",
+        "get_account",
+        "close_call!500",
+        "close_call"
+      ],
+      "ended": true
+    },
+    "EC-RT-09": {
+      "ledger": {
+        "outcome": "not_reached",
+        "reason": "callback",
+        "promises": [],
+        "notes": [],
+        "callbacks": [
+          {
+            "date": "2026-10-15",
+            "time": "11:00"
+          }
+        ],
+        "transfers": []
+      },
+      "forbidden_calls": [
+        "verify_identity",
+        "get_account"
+      ],
+      "ended": true
+    },
+    "EC-RT-10": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 480.0,
+            "date": "2026-10-16"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-TR-01": {
+      "ledger": {
+        "outcome": "transferred",
+        "reason": "human",
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": [
+          {
+            "queue": "general"
+          }
+        ]
+      },
+      "forbidden_calls": [
+        "verify_identity",
+        "get_account"
+      ],
+      "ended": true
+    },
+    "EC-TR-02": {
+      "ledger": {
+        "outcome": "transferred",
+        "reason": "restructuring",
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": [
+          {
+            "queue": "restructuring"
+          }
+        ]
+      },
+      "ended": true
+    },
+    "EC-TR-03": {
+      "ledger": {
+        "outcome": "transferred",
+        "reason": "restructuring",
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": [
+          {
+            "queue": "restructuring"
+          }
+        ]
+      },
+      "bank_calls": [
+        "verify_identity",
+        "verify_identity",
+        "get_account",
+        "transfer_to_agent",
+        "close_call"
+      ],
+      "ended": true
+    },
+    "EC-TR-04": {
+      "ledger": {
+        "outcome": "transferred",
+        "reason": "support",
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": [
+          {
+            "queue": "support"
+          }
+        ]
+      },
+      "ended": true
+    },
+    "EC-TR-05": {
+      "ledger": {
+        "outcome": "no_promise",
+        "reason": "hardship",
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-TR-06": {
+      "ledger": {
+        "outcome": "transferred",
+        "reason": "restructuring",
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": [
+          {
+            "queue": "restructuring"
+          }
+        ]
+      },
+      "ended": true
+    },
+    "EC-TR-07": {
+      "ledger": {
+        "outcome": "transferred",
+        "reason": "restructuring",
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 260.0,
+            "date": "2026-10-16"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": [
+          {
+            "queue": "restructuring"
+          }
+        ]
+      },
+      "ended": true
+    },
+    "EC-TR-08": {
+      "ledger": {
+        "outcome": "transferred",
+        "reason": "support",
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 480.0,
+            "date": "2026-10-16"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": [
+          {
+            "queue": "support"
+          }
+        ]
+      },
+      "ended": true
+    },
+    "EC-TR-09": {
+      "ledger": {
+        "outcome": "not_reached",
+        "reason": "callback",
+        "promises": [],
+        "notes": [],
+        "callbacks": [
+          {
+            "date": "2026-10-15",
+            "time": "11:00"
+          }
+        ],
+        "transfers": []
+      },
+      "bank_calls": [
+        "schedule_callback",
+        "close_call"
+      ],
+      "forbidden_calls": [
+        "verify_identity",
+        "get_account"
+      ],
+      "ended": true
+    },
+    "EC-MP-01": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 260.0,
+            "date": "2026-10-30"
+          },
+          {
+            "product_id": "p2",
+            "amount": 900.0,
+            "date": "2026-10-23"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-MP-02": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 78.0,
+            "date": "2026-10-16"
+          },
+          {
+            "product_id": "p2",
+            "amount": 300.0,
+            "date": "2026-10-16"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-MP-03": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 260.0,
+            "date": "2026-10-16"
+          },
+          {
+            "product_id": "p2",
+            "amount": 900.0,
+            "date": "2026-10-16"
+          },
+          {
+            "product_id": "p3",
+            "amount": 150.0,
+            "date": "2026-10-16"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "bank_calls": [
+        "verify_identity",
+        "verify_identity",
+        "get_account",
+        "create_promise",
+        "create_promise",
+        "create_promise",
+        "close_call"
+      ],
+      "ended": true
+    },
+    "EC-MP-04": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 260.0,
+            "date": "2026-10-16"
+          }
+        ],
+        "notes": [
+          {
+            "product_id": "p2",
+            "reason": "refused"
+          },
+          {
+            "product_id": "p3",
+            "reason": "dispute"
+          }
+        ],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-MP-05": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 260.0,
+            "date": "2026-10-16"
+          },
+          {
+            "product_id": "p3",
+            "amount": 150.0,
+            "date": "2026-10-16"
+          }
+        ],
+        "notes": [
+          {
+            "product_id": "p2",
+            "reason": "service_error"
+          }
+        ],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-MP-06": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 260.0,
+            "date": "2026-10-16"
+          }
+        ],
+        "notes": [
+          {
+            "product_id": "p2",
+            "reason": "refused"
+          },
+          {
+            "product_id": "p3",
+            "reason": "refused"
+          }
+        ],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-MP-07": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p3",
+            "amount": 150.0,
+            "date": "2026-10-16"
+          }
+        ],
+        "notes": [
+          {
+            "product_id": "p1",
+            "reason": "refused"
+          },
+          {
+            "product_id": "p2",
+            "reason": "refused"
+          }
+        ],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-MP-08": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": "$p1.past_due",
+            "date": "2026-10-30"
+          }
+        ],
+        "notes": [
+          {
+            "product_id": "p2",
+            "reason": "refused"
+          }
+        ],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-MP-09": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": "$p1.past_due",
+            "date": "2026-10-23"
+          },
+          {
+            "product_id": "p2",
+            "amount": "$p2.past_due",
+            "date": "2026-10-23"
+          },
+          {
+            "product_id": "p3",
+            "amount": "$p3.past_due",
+            "date": "2026-10-30"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      }
+    },
+    "EC-NT-01": {
+      "ledger": {
+        "outcome": "no_promise",
+        "reason": "refused",
+        "promises": [],
+        "notes": [
+          {
+            "product_id": "p1",
+            "reason": "refused"
+          },
+          {
+            "product_id": "p2",
+            "reason": "refused"
+          }
+        ],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-NT-02": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p2",
+            "amount": 900.0,
+            "date": "2026-10-16"
+          }
+        ],
+        "notes": [
+          {
+            "product_id": "p1",
+            "reason": "dispute"
+          }
+        ],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-NT-03": {
+      "ledger": {
+        "outcome": "paid",
+        "reason": null,
+        "promises": [],
+        "notes": [
+          {
+            "product_id": "p1",
+            "reason": "paid"
+          },
+          {
+            "product_id": "p2",
+            "reason": "paid"
+          }
+        ],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-NT-04": {
+      "ledger": {
+        "outcome": "no_promise",
+        "reason": "refused",
+        "promises": [],
+        "notes": [
+          {
+            "product_id": "p1",
+            "reason": "paid"
+          },
+          {
+            "product_id": "p2",
+            "reason": "refused"
+          }
+        ],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-NT-05": {
+      "ledger": {
+        "outcome": "no_promise",
+        "reason": "dispute",
+        "promises": [],
+        "notes": [
+          {
+            "product_id": "p1",
+            "reason": "paid"
+          },
+          {
+            "product_id": "p2",
+            "reason": "dispute"
+          },
+          {
+            "product_id": "p3",
+            "reason": "refused"
+          }
+        ],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-NT-06": {
+      "ledger": {
+        "outcome": "no_promise",
+        "reason": "service_error",
+        "promises": [],
+        "notes": [
+          {
+            "product_id": "p1",
+            "reason": "service_error"
+          }
+        ],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-NT-07": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p2",
+            "amount": 900.0,
+            "date": "2026-10-16"
+          }
+        ],
+        "notes": [
+          {
+            "product_id": "p1",
+            "reason": "refused"
+          }
+        ],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-NT-08": {
+      "ledger": {
+        "outcome": "no_promise",
+        "reason": "hardship",
+        "promises": [],
+        "notes": [
+          {
+            "product_id": "p1",
+            "reason": "hardship"
+          },
+          {
+            "product_id": "p2",
+            "reason": "hardship"
+          }
+        ],
+        "callbacks": [],
+        "transfers": []
+      },
+      "forbidden_calls": [
+        "create_promise",
+        "transfer_to_agent"
+      ],
+      "ended": true
+    },
+    "EC-NT-09": {
+      "ledger": {
+        "outcome": "no_promise",
+        "reason": "refused",
+        "promises": [],
+        "notes": [
+          {
+            "product_id": "p1",
+            "reason": "refused"
+          },
+          {
+            "product_id": "p2",
+            "reason": "refused"
+          }
+        ],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-NT-10": {
+      "ledger": {
+        "outcome": "no_promise",
+        "reason": "refused",
+        "promises": [],
+        "notes": [
+          {
+            "product_id": "p1",
+            "reason": "refused"
+          },
+          {
+            "product_id": "p2",
+            "reason": "refused"
+          }
+        ],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-CL-01": {
+      "ledger": {
+        "outcome": "paid",
+        "reason": null,
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-CL-02": {
+      "ledger": {
+        "outcome": "no_promise",
+        "reason": "refused",
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-CL-03": {
+      "ledger": {
+        "outcome": "no_promise",
+        "reason": "refused",
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-CL-04": {
+      "ledger": {
+        "outcome": "not_reached",
+        "reason": "callback",
+        "promises": [],
+        "notes": [],
+        "callbacks": [
+          {
+            "date": "2026-10-15",
+            "time": "19:00"
+          }
+        ],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-CL-05": {
+      "ledger": {
+        "outcome": "paid",
+        "reason": null,
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "bank_calls": [
+        "verify_identity",
+        "verify_identity",
+        "get_account",
+        "close_call"
+      ],
+      "ended": true
+    },
+    "EC-CL-06": {
+      "ledger": {
+        "outcome": "not_reached",
+        "reason": "wrong_number",
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "bank_calls": [
+        "close_call"
+      ],
+      "forbidden_calls": [
+        "verify_identity",
+        "get_account",
+        "schedule_callback"
+      ],
+      "ended": true
+    },
+    "EC-CL-07": {
+      "ledger": {
+        "outcome": "no_promise",
+        "reason": "refused",
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "forbidden_calls": [
+        "add_note"
+      ],
+      "ended": true
+    },
+    "EC-CL-08": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 260.0,
+            "date": "2026-10-16"
+          }
+        ],
+        "notes": [
+          {
+            "product_id": "p2",
+            "reason": "paid"
+          }
+        ],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-CV-01": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": "$p1.past_due",
+            "date": "2026-10-16"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "bank_calls": [
+        "verify_identity",
+        "verify_identity",
+        "get_account",
+        "create_promise",
+        "close_call"
+      ],
+      "ended": true
+    },
+    "EC-CV-02": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": "$p1.minimum_payment",
+            "date": "2026-10-15"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "bank_calls": [
+        "verify_identity",
+        "verify_identity",
+        "get_account",
+        "create_promise",
+        "close_call"
+      ],
+      "ended": true
+    },
+    "EC-CV-03": {
+      "ledger": {
+        "outcome": "no_promise",
+        "reason": "refused",
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "forbidden_calls": [
+        "create_promise"
+      ],
+      "ended": true
+    },
+    "EC-CV-04": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": "$p1.minimum_payment",
+            "date": "2026-10-16"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "bank_calls": [
+        "verify_identity",
+        "verify_identity",
+        "get_account",
+        "create_promise",
+        "close_call"
+      ],
+      "ended": true
+    },
+    "EC-CV-05": {
+      "ledger": {
+        "outcome": "no_promise",
+        "reason": "refused",
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      }
+    },
+    "EC-CV-06": {
+      "ledger": {
+        "outcome": "transferred",
+        "reason": "restructuring",
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": [
+          {
+            "queue": "restructuring"
+          }
+        ]
+      }
+    },
+    "EC-CV-07": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": "$p1.past_due",
+            "date": "2026-10-14"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      }
+    },
+    "EC-CV-08": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": "$p1.past_due",
+            "date": "2026-10-16"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "EC-CV-09": {
+      "ledger": {
+        "outcome": "not_reached",
+        "reason": "callback",
+        "promises": [],
+        "notes": [],
+        "callbacks": [
+          {
+            "date": "2026-10-15",
+            "time": "11:00"
+          }
+        ],
+        "transfers": []
+      },
+      "forbidden_calls": [
+        "verify_identity",
+        "get_account"
+      ],
+      "ended": true
+    },
+    "EC-CV-10": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": "$p1.past_due",
+            "date": "2026-10-19"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      }
+    },
+    "EC-CV-11": {
+      "ledger": {
+        "outcome": "not_verified",
+        "reason": "declined",
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      }
+    },
+    "EC-CV-12": {
+      "ledger": {
+        "outcome": "no_promise",
+        "reason": "refused",
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      }
+    },
+    "SC-01": {
+      "ledger": {
+        "outcome": "not_reached",
+        "reason": "no_callback",
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "bank_calls": [
+        "close_call"
+      ],
+      "ended": true
+    },
+    "SC-02": {
+      "ledger": {
+        "outcome": "paid",
+        "reason": null,
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "SC-03": {
+      "ledger": {
+        "outcome": "not_verified",
+        "reason": "failed",
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "forbidden_calls": [
+        "get_account"
+      ],
+      "ended": true
+    },
+    "SC-04": {
+      "ledger": {
+        "outcome": "paid",
+        "reason": null,
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "SC-05": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 120.0,
+            "date": "2026-10-16"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "SC-06": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 300.0,
+            "date": "2026-10-17"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "SC-07": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 300.0,
+            "date": "2026-10-15"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "SC-08": {
+      "ledger": {
+        "outcome": "transferred",
+        "reason": "arrears",
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": [
+          {
+            "queue": "arrears_team"
+          }
+        ]
+      },
+      "ended": true
+    },
+    "SC-09": {
+      "ledger": {
+        "outcome": "no_promise",
+        "reason": "service_error",
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "SC-10": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 200.0,
+            "date": "2026-10-16"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "SC-11": {
+      "ledger": {
+        "outcome": "transferred",
+        "reason": "general",
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": [
+          {
+            "queue": "general"
+          }
+        ]
+      },
+      "forbidden_calls": [
+        "verify_identity",
+        "get_account"
+      ],
+      "ended": true
+    },
+    "SC-12": {
+      "ledger": {
+        "outcome": "not_verified",
+        "reason": "declined",
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      }
+    },
+    "SD-01": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 1500.0,
+            "date": "2026-10-16"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "SD-02": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 1500.0,
+            "date": "2026-10-19"
+          },
+          {
+            "product_id": "p2",
+            "amount": 600.0,
+            "date": "2026-10-21"
+          },
+          {
+            "product_id": "p3",
+            "amount": 200.0,
+            "date": "2026-10-28"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "SD-03": {
+      "ledger": {
+        "outcome": "transferred",
+        "reason": "restructuring",
+        "promises": [],
+        "notes": [
+          {
+            "product_id": "p1",
+            "reason": "deferred"
+          },
+          {
+            "product_id": "p2",
+            "reason": "deferred"
+          }
+        ],
+        "callbacks": [],
+        "transfers": [
+          {
+            "queue": "restructuring"
+          }
+        ]
+      },
+      "ended": true
+    },
+    "SD-04": {
+      "ledger": {
+        "outcome": "transferred",
+        "reason": "restructuring",
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 1500.0,
+            "date": "2026-10-19"
+          }
+        ],
+        "notes": [
+          {
+            "product_id": "p2",
+            "reason": "deferred"
+          }
+        ],
+        "callbacks": [],
+        "transfers": [
+          {
+            "queue": "restructuring"
+          }
+        ]
+      },
+      "ended": true
+    },
+    "SD-05": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 1500.0,
+            "date": "2026-10-19"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "SD-06": {
+      "ledger": {
+        "outcome": "no_promise",
+        "reason": "service_error",
+        "promises": [],
+        "notes": [
+          {
+            "product_id": "p1",
+            "reason": "service_error"
+          }
+        ],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "SD-07": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 1500.0,
+            "date": "2026-10-19"
+          },
+          {
+            "product_id": "p2",
+            "amount": 600.0,
+            "date": "2026-10-16"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "SD-08": {
+      "ledger": {
+        "outcome": "no_promise",
+        "reason": "refused",
+        "promises": [],
+        "notes": [
+          {
+            "product_id": "p1",
+            "reason": "refused"
+          },
+          {
+            "product_id": "p2",
+            "reason": "refused"
+          }
+        ],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "SD-09": {
+      "ledger": {
+        "outcome": "no_promise",
+        "reason": "dispute",
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 1500.0,
+            "date": "2026-10-19"
+          }
+        ],
+        "notes": [
+          {
+            "product_id": "p2",
+            "reason": "dispute"
+          }
+        ],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "SD-10": {
+      "ledger": {
+        "outcome": "no_promise",
+        "reason": "deferred",
+        "promises": [],
+        "notes": [
+          {
+            "product_id": "p1",
+            "reason": "paid"
+          },
+          {
+            "product_id": "p2",
+            "reason": "deferred"
+          }
+        ],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "SD-11": {
+      "ledger": {
+        "outcome": "not_reached",
+        "reason": "callback",
+        "promises": [],
+        "notes": [],
+        "callbacks": [
+          {
+            "date": "2026-10-16",
+            "time": "17:00"
+          }
+        ],
+        "transfers": []
+      },
+      "forbidden_calls": [
+        "verify_identity",
+        "get_account"
+      ],
+      "ended": true
+    },
+    "SD-12": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 1500.0,
+            "date": "2026-10-19"
+          },
+          {
+            "product_id": "p2",
+            "amount": 600.0,
+            "date": "2026-10-21"
+          },
+          {
+            "product_id": "p3",
+            "amount": 200.0,
+            "date": "2026-10-28"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      }
+    },
+    "SE-01": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 180.0,
+            "date": "2026-10-18"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "SE-02": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 180.0,
+            "date": "2026-10-22"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "SE-03": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 180.0,
+            "date": "2026-10-29"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "SE-04": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 250.0,
+            "date": "2026-10-18"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "SE-05": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 35.0,
+            "date": "2026-10-15"
+          },
+          {
+            "product_id": "p2",
+            "amount": 10.0,
+            "date": "2026-10-15"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "SE-06": {
+      "ledger": {
+        "outcome": "transferred",
+        "reason": "plan",
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": [
+          {
+            "queue": "plans"
+          }
+        ]
+      },
+      "ended": true
+    },
+    "SE-07": {
+      "ledger": {
+        "outcome": "transferred",
+        "reason": "plan",
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 180.0,
+            "date": "2026-10-15"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": [
+          {
+            "queue": "plans"
+          }
+        ]
+      },
+      "ended": true
+    },
+    "SE-08": {
+      "ledger": {
+        "outcome": "transferred",
+        "reason": "welfare",
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": [
+          {
+            "queue": "welfare"
+          }
+        ]
+      },
+      "ended": true
+    },
+    "SE-09": {
+      "ledger": {
+        "outcome": "not_verified",
+        "reason": "failed",
+        "promises": [],
+        "notes": [],
+        "callbacks": [],
+        "transfers": [
+          {
+            "queue": "complaints"
+          }
+        ]
+      },
+      "forbidden_calls": [
+        "get_account"
+      ],
+      "ended": true
+    },
+    "SE-10": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 180.0,
+            "date": "2026-10-15"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "SE-11": {
+      "ledger": {
+        "outcome": "not_reached",
+        "reason": "callback",
+        "promises": [],
+        "notes": [],
+        "callbacks": [
+          {
+            "date": "2026-10-15",
+            "time": "12:00"
+          }
+        ],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "SE-12": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 80.0,
+            "date": "2026-10-15"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      },
+      "ended": true
+    },
+    "SE-13": {
+      "ledger": {
+        "outcome": "promise",
+        "reason": null,
+        "promises": [
+          {
+            "product_id": "p1",
+            "amount": 10.0,
+            "date": "2026-10-15"
+          }
+        ],
+        "notes": [],
+        "callbacks": [],
+        "transfers": []
+      }
+    }
+  }
+}

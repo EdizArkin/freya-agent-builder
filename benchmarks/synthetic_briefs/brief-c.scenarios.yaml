@@ -1,0 +1,891 @@
+{
+  "about": "Scenarios for synthetic Brief C.",
+  "format": "This file is YAML written in its JSON subset, so the harness reads it with the standard library. Edit it as JSON, or install PyYAML and use any YAML syntax.",
+  "category": "brief_c",
+  "scenarios": [
+    {
+      "id": "SC-01",
+      "title": "There is no callback tool in this agent",
+      "category": "brief_c",
+      "brief": "C",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "C-02"
+      ],
+      "customer": {
+        "identity": {
+          "postcode": "NW14RT",
+          "birth_year": "1979"
+        },
+        "products": [
+          {
+            "type": "store_card",
+            "card_last4": "6120",
+            "past_due": 300.0,
+            "days_late": 12,
+            "plan_active": false
+          }
+        ],
+        "variables": {
+          "first_name": "Imani",
+          "last_name": "Brandt"
+        }
+      },
+      "behavior": "Someone else answers and offers a time to call back.",
+      "steps": [
+        {
+          "check": {
+            "node": "contact",
+            "tools": [
+              "verify_identity",
+              "transfer_to_agent",
+              "close_call"
+            ]
+          }
+        },
+        {
+          "call": "schedule_callback",
+          "args": {
+            "date": "2026-10-15",
+            "time": "11:00"
+          },
+          "expect": "unavailable"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "not_reached",
+            "reason": "no_callback"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The agent says it will call again and gives no reason."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "SC-02",
+      "title": "Postcode first, then year of birth",
+      "category": "brief_c",
+      "brief": "C",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "C-03",
+        "C-07"
+      ],
+      "customer": {
+        "identity": {
+          "postcode": "NW14RT",
+          "birth_year": "1979"
+        },
+        "products": [
+          {
+            "type": "store_card",
+            "card_last4": "6120",
+            "past_due": 300.0,
+            "days_late": 12,
+            "plan_active": false
+          }
+        ],
+        "variables": {
+          "first_name": "Imani",
+          "last_name": "Brandt"
+        }
+      },
+      "behavior": "The member answers both questions correctly.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "postcode",
+            "answer": "NW14RT"
+          },
+          "expect": "ok",
+          "says": [
+            "That answer is correct",
+            "your year of birth"
+          ]
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "birth_year",
+            "answer": "1979"
+          },
+          "expect": "ok"
+        },
+        {
+          "check": {
+            "node": "negotiate",
+            "prompt_has": [
+              "store card ending 6120"
+            ]
+          }
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "paid"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The product is named \"store card ending 6120\"."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "SC-03",
+      "title": "Two wrong answers end the check",
+      "category": "brief_c",
+      "brief": "C",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "C-05"
+      ],
+      "customer": {
+        "identity": {
+          "postcode": "NW14RT",
+          "birth_year": "1979"
+        },
+        "products": [
+          {
+            "type": "store_card",
+            "card_last4": "6120",
+            "past_due": 300.0,
+            "days_late": 12,
+            "plan_active": false
+          }
+        ],
+        "variables": {
+          "first_name": "Imani",
+          "last_name": "Brandt"
+        }
+      },
+      "behavior": "The member gives two wrong postcodes.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "postcode",
+            "answer": "NW99ZZ"
+          },
+          "expect": "ok",
+          "says": [
+            "That answer is WRONG"
+          ]
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "postcode",
+            "answer": "NW98ZZ"
+          },
+          "expect": "ok",
+          "says": [
+            "IDENTITY CHECK FAILED"
+          ]
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "promise"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The agent tells the member to visit a branch."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "SC-04",
+      "title": "The postcode is sent in capitals without spaces",
+      "category": "brief_c",
+      "brief": "C",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "C-04"
+      ],
+      "customer": {
+        "identity": {
+          "postcode": "NW14RT",
+          "birth_year": "1979"
+        },
+        "products": [
+          {
+            "type": "store_card",
+            "card_last4": "6120",
+            "past_due": 300.0,
+            "days_late": 12,
+            "plan_active": false
+          }
+        ],
+        "variables": {
+          "first_name": "Imani",
+          "last_name": "Brandt"
+        }
+      },
+      "behavior": "The agent passes the postcode the way the member said it.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "postcode",
+            "answer": "nw1 4rt"
+          },
+          "expect": "ok",
+          "says": [
+            "That answer is correct"
+          ]
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "birth_year",
+            "answer": "1979"
+          },
+          "expect": "ok"
+        },
+        {
+          "check": {
+            "node": "negotiate",
+            "state": {
+              "wrong": 0
+            }
+          }
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "paid"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "Nothing specific."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards.",
+      "known_gap": "Answers of format text are only trimmed. The schema has no way to say \"upper case, no spaces\", so the normalisation depends on the model.",
+      "gap_kind": "schema"
+    },
+    {
+      "id": "SC-05",
+      "title": "Floor as a percentage of the past-due amount",
+      "category": "brief_c",
+      "brief": "C",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "C-12"
+      ],
+      "customer": {
+        "identity": {
+          "postcode": "NW14RT",
+          "birth_year": "1979"
+        },
+        "products": [
+          {
+            "type": "store_card",
+            "card_last4": "6120",
+            "past_due": 300.0,
+            "days_late": 12,
+            "plan_active": false
+          }
+        ],
+        "variables": {
+          "first_name": "Imani",
+          "last_name": "Brandt"
+        }
+      },
+      "behavior": "The member offers one cent less than 40 percent, then 40 percent.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "postcode",
+            "answer": "NW14RT"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "birth_year",
+            "answer": "1979"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 119.99,
+            "date": "2026-10-16"
+          },
+          "expect": "refused",
+          "says": [
+            "below the lowest amount",
+            "120.00"
+          ]
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 120,
+            "date": "2026-10-16"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "promise"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "Nothing specific."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "SC-06",
+      "title": "Saturday is a business day and the deadline rolls back over a holiday",
+      "category": "brief_c",
+      "brief": "C",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "C-09",
+        "C-10"
+      ],
+      "customer": {
+        "identity": {
+          "postcode": "NW14RT",
+          "birth_year": "1979"
+        },
+        "products": [
+          {
+            "type": "store_card",
+            "card_last4": "6120",
+            "past_due": 300.0,
+            "days_late": 12,
+            "plan_active": false
+          }
+        ],
+        "variables": {
+          "first_name": "Imani",
+          "last_name": "Brandt"
+        }
+      },
+      "behavior": "The fifth calendar day is a holiday Monday; the day before it is a Sunday.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "postcode",
+            "answer": "NW14RT"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "birth_year",
+            "answer": "1979"
+          },
+          "expect": "ok"
+        },
+        {
+          "check": {
+            "prompt_has": [
+              "latest date Sat 2026-10-17"
+            ]
+          }
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 300,
+            "date": "2026-10-18"
+          },
+          "expect": "refused",
+          "says": [
+            "is after the latest date"
+          ]
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 300,
+            "date": "2026-10-17"
+          },
+          "expect": "ok",
+          "says": [
+            "is now recorded"
+          ]
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "promise"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "Nothing specific."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "SC-07",
+      "title": "A promise for today is refused",
+      "category": "brief_c",
+      "brief": "C",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "C-11"
+      ],
+      "customer": {
+        "identity": {
+          "postcode": "NW14RT",
+          "birth_year": "1979"
+        },
+        "products": [
+          {
+            "type": "store_card",
+            "card_last4": "6120",
+            "past_due": 300.0,
+            "days_late": 12,
+            "plan_active": false
+          }
+        ],
+        "variables": {
+          "first_name": "Imani",
+          "last_name": "Brandt"
+        }
+      },
+      "behavior": "The member wants to pay today.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "postcode",
+            "answer": "NW14RT"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "birth_year",
+            "answer": "1979"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 300,
+            "date": "2026-10-14"
+          },
+          "expect": "refused"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 300,
+            "date": "2026-10-15"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "promise"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The agent says the earliest day is tomorrow."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards.",
+      "known_gap": "The schema has a latest date per product but no earliest date. \"Tomorrow or later\" lives in the rule text only.",
+      "gap_kind": "schema"
+    },
+    {
+      "id": "SC-08",
+      "title": "No promise on an account that is already on a plan",
+      "category": "brief_c",
+      "brief": "C",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "C-08"
+      ],
+      "customer": {
+        "identity": {
+          "postcode": "NW14RT",
+          "birth_year": "1979"
+        },
+        "products": [
+          {
+            "type": "member_loan",
+            "past_due": 500.0,
+            "days_late": 20,
+            "plan_active": true
+          }
+        ],
+        "variables": {
+          "first_name": "Imani",
+          "last_name": "Brandt"
+        }
+      },
+      "behavior": "The account has plan_active true; the agent tries to record a promise before transferring.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "postcode",
+            "answer": "NW14RT"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "birth_year",
+            "answer": "1979"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 500,
+            "date": "2026-10-16"
+          },
+          "expect": "blocked"
+        },
+        {
+          "call": "transfer_to_agent",
+          "args": {
+            "queue": "arrears_team"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "transferred",
+            "reason": "arrears"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The agent says the arrears team will handle the account."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards.",
+      "known_gap": "The schema cannot say that a product is not eligible for a promise. Limits are an amount range and a latest date; a condition on other fields is rule text only.",
+      "gap_kind": "schema"
+    },
+    {
+      "id": "SC-09",
+      "title": "No retry after a failed promise",
+      "category": "brief_c",
+      "brief": "C",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "C-15"
+      ],
+      "customer": {
+        "identity": {
+          "postcode": "NW14RT",
+          "birth_year": "1979"
+        },
+        "products": [
+          {
+            "type": "store_card",
+            "card_last4": "6120",
+            "past_due": 300.0,
+            "days_late": 12,
+            "plan_active": false
+          }
+        ],
+        "variables": {
+          "first_name": "Imani",
+          "last_name": "Brandt"
+        },
+        "faults": {
+          "create_promise": 1
+        }
+      },
+      "behavior": "The promise service fails once; the agent tries again although this brief allows no retry.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "postcode",
+            "answer": "NW14RT"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "birth_year",
+            "answer": "1979"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 300,
+            "date": "2026-10-16"
+          },
+          "expect": "error",
+          "says": [
+            "Do not try again for this product"
+          ]
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 300,
+            "date": "2026-10-16"
+          },
+          "expect": "refused",
+          "says": [
+            "Do not try again for this product"
+          ]
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "no_promise",
+            "reason": "service_error"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The agent says it could not record the promise."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "SC-10",
+      "title": "More than thirty days late: two calendar days, a quarter as the floor",
+      "category": "brief_c",
+      "brief": "C",
+      "tier": "runtime",
+      "mode": "offline",
+      "requirements": [
+        "C-10",
+        "C-12"
+      ],
+      "customer": {
+        "identity": {
+          "postcode": "NW14RT",
+          "birth_year": "1979"
+        },
+        "products": [
+          {
+            "type": "member_loan",
+            "past_due": 800.0,
+            "days_late": 40,
+            "plan_active": false
+          }
+        ],
+        "variables": {
+          "first_name": "Imani",
+          "last_name": "Brandt"
+        }
+      },
+      "behavior": "A member loan forty days late.",
+      "steps": [
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "postcode",
+            "answer": "NW14RT"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "verify_identity",
+          "args": {
+            "field": "birth_year",
+            "answer": "1979"
+          },
+          "expect": "ok"
+        },
+        {
+          "check": {
+            "prompt_has": [
+              "latest date Fri 2026-10-16"
+            ]
+          }
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 199,
+            "date": "2026-10-16"
+          },
+          "expect": "refused",
+          "says": [
+            "below the lowest amount"
+          ]
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 200,
+            "date": "2026-10-17"
+          },
+          "expect": "refused",
+          "says": [
+            "is after the latest date"
+          ]
+        },
+        {
+          "call": "create_promise",
+          "args": {
+            "product_id": "p1",
+            "amount": 200,
+            "date": "2026-10-16"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "promise"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "Nothing specific."
+      ],
+      "strategy": "Offline, deterministic: the harness plays these tool calls against the generated workflow and checks how each ends, what the model is told and what the bank holds afterwards."
+    },
+    {
+      "id": "SC-11",
+      "title": "A request for a person before verification",
+      "category": "brief_c",
+      "brief": "C",
+      "tier": "scripted",
+      "mode": "offline",
+      "requirements": [
+        "C-18"
+      ],
+      "customer": {
+        "identity": {
+          "postcode": "NW14RT",
+          "birth_year": "1979"
+        },
+        "products": [
+          {
+            "type": "store_card",
+            "card_last4": "6120",
+            "past_due": 300.0,
+            "days_late": 12,
+            "plan_active": false
+          }
+        ],
+        "variables": {
+          "first_name": "Imani",
+          "last_name": "Brandt"
+        }
+      },
+      "behavior": "The member asks for a person straight away.",
+      "steps": [
+        {
+          "call": "transfer_to_agent",
+          "args": {
+            "queue": "general"
+          },
+          "expect": "ok"
+        },
+        {
+          "call": "close_call",
+          "args": {
+            "outcome": "transferred",
+            "reason": "general"
+          },
+          "expect": "ok"
+        }
+      ],
+      "spoken": [
+        "The agent does not ask whether it can help first."
+      ],
+      "strategy": "Offline, scripted: the harness plays the tool calls a compliant agent would make for this customer and checks that the runtime lets them through and the bank ends in the expected state. It does not show that a phone model would make these calls."
+    },
+    {
+      "id": "SC-12",
+      "title": "Declines the first security question",
+      "category": "brief_c",
+      "brief": "C",
+      "tier": "live_only",
+      "mode": "specification",
+      "requirements": [
+        "C-01",
+        "C-06"
+      ],
+      "customer": {
+        "identity": {
+          "postcode": "NW14RT",
+          "birth_year": "1979"
+        },
+        "products": [
+          {
+            "type": "store_card",
+            "card_last4": "6120",
+            "past_due": 300.0,
+            "days_late": 12,
+            "plan_active": false
+          }
+        ],
+        "variables": {
+          "first_name": "Imani",
+          "last_name": "Brandt"
+        }
+      },
+      "behavior": "The member confirms her name and refuses to give her postcode.",
+      "spoken": [
+        "The agent addresses the member by first name.",
+        "The call is closed at once, without a second explanation."
+      ],
+      "strategy": "Live only: the behaviour is decided by what the phone model says and understands. Run it on Freya with a simulated customer; score with the ledger and the conversation checks. No bank serves this brief, so it stays a specification until one does."
+    }
+  ]
+}

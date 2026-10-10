@@ -1,0 +1,271 @@
+{
+  "spec_version": "agent-spec/1",
+  "language": "English",
+  "now_variable": "now",
+  "ok_field": "ok",
+  "call_variables": [
+    "customer_id",
+    "first_name",
+    "last_name",
+    "title",
+    "now"
+  ],
+  "test_variables": {
+    "first_name": "Noor",
+    "last_name": "Haddad",
+    "title": "Ms",
+    "now": "2026-10-14T11:00"
+  },
+  "opening_line": "Hello, I am the digital assistant of Meridian Energy, and this call is recorded. Am I speaking with {{title}} {{last_name}}?",
+  "calendar": {
+    "business_weekdays": [
+      6,
+      0,
+      1,
+      2,
+      3
+    ],
+    "week_start": 6,
+    "holidays": [
+      "2026-10-20",
+      "2026-12-24"
+    ]
+  },
+  "identity": {
+    "field_param": "field",
+    "answer_param": "answer",
+    "max_wrong": 3,
+    "questions": [
+      {
+        "field": "date_of_birth",
+        "ask": "your date of birth",
+        "format": "date",
+        "numeric_order": "DMY"
+      },
+      {
+        "field": "phone_last4",
+        "ask": "the last four digits of the phone number on file",
+        "format": "digits"
+      }
+    ],
+    "response": {
+      "verified": "verified",
+      "all_verified": "all_verified",
+      "wrong_left": "wrong_answers_left",
+      "hint": "hint"
+    },
+    "hints": [
+      {
+        "value": "day_month_swapped",
+        "counts_as_wrong": false,
+        "instruction": "Ask the customer to say the month as a word."
+      }
+    ]
+  },
+  "account": {
+    "products_path": "products",
+    "id_field": "product_id",
+    "limits": {
+      "min_amount": "floor",
+      "max_amount": "full",
+      "latest_date": "deadline"
+    },
+    "values": [
+      {
+        "name": "label",
+        "expr": {
+          "kind": "by",
+          "cases": [
+            {
+              "when": {
+                "type": "electricity"
+              },
+              "expr": {
+                "kind": "const",
+                "value": "electricity account"
+              }
+            },
+            {
+              "when": {},
+              "expr": {
+                "kind": "const",
+                "value": "gas account"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "full",
+        "label": "FULL past-due amount",
+        "expr": {
+          "kind": "field",
+          "field": "past_due"
+        }
+      },
+      {
+        "name": "floor",
+        "label": "FLOOR (lowest amount that can be recorded)",
+        "expr": {
+          "kind": "by",
+          "cases": [
+            {
+              "when": {
+                "vulnerable": true
+              },
+              "expr": {
+                "kind": "fixed_amount",
+                "value": 10
+              }
+            },
+            {
+              "when": {
+                "type": "electricity"
+              },
+              "expr": {
+                "kind": "fixed_amount",
+                "value": 35
+              }
+            },
+            {
+              "when": {},
+              "expr": {
+                "kind": "percent",
+                "of": {
+                  "kind": "field",
+                  "field": "past_due"
+                },
+                "percent": 20
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "deadline",
+        "label": "DEADLINE (latest date that can be recorded)",
+        "expr": {
+          "kind": "by",
+          "cases": [
+            {
+              "when": {
+                "days_late": {
+                  "min": 31
+                }
+              },
+              "expr": {
+                "kind": "next_business_day"
+              }
+            },
+            {
+              "when": {},
+              "expr": {
+                "kind": "earliest",
+                "of": [
+                  {
+                    "kind": "end_of_month",
+                    "roll": "previous_business"
+                  },
+                  {
+                    "kind": "calendar_days_after",
+                    "n": 10,
+                    "roll": "previous_business"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "promise": {
+    "product_param": "product_id",
+    "amount_param": "amount",
+    "date_param": "date",
+    "max_attempts": 2,
+    "business_day_only": true
+  },
+  "callback": {
+    "date_param": "date",
+    "time_param": "time",
+    "include_today": false,
+    "next_business_days": 1,
+    "start": "08:00",
+    "end": "12:00",
+    "after_now": true
+  },
+  "transfer": {
+    "queue_param": "queue"
+  },
+  "close": {
+    "outcome_param": "outcome",
+    "reason_param": "reason",
+    "outcomes": {
+      "promise": [],
+      "paid": [],
+      "transferred": [
+        "welfare",
+        "complaint",
+        "plan"
+      ],
+      "no_promise": [
+        "refused",
+        "service_error"
+      ],
+      "not_verified": [
+        "failed",
+        "declined"
+      ],
+      "not_reached": [
+        "callback",
+        "no_callback",
+        "wrong_number"
+      ]
+    },
+    "queue_reasons": {
+      "welfare": "welfare",
+      "complaints": "complaint",
+      "plans": "plan"
+    },
+    "forced": [
+      {
+        "if": "identity_failed",
+        "outcome": "not_verified",
+        "reason": "failed"
+      },
+      {
+        "if": "transferred",
+        "outcome": "transferred",
+        "reason_from": "last_transfer_queue"
+      },
+      {
+        "if": "promise_recorded",
+        "outcome": "promise"
+      },
+      {
+        "if": "callback_booked",
+        "outcome": "not_reached",
+        "reason": "callback"
+      }
+    ]
+  },
+  "guidance": {
+    "promise.failed_final": "Say you could not record it, then call close_call with outcome no_promise, reason service_error.",
+    "transfer.done": "Make no second transfer. Say goodbye and call close_call with outcome transferred and the reason of that queue.",
+    "callback.booked": "Thank the person, say goodbye and call close_call with outcome not_reached, reason callback."
+  },
+  "tool_descriptions": {
+    "verify_identity": "Check one security answer. CALL it every time the customer in person gives a complete answer to a security question.",
+    "transfer_to_agent": "Hand the call to a person. CALL it whenever your instructions name a queue.",
+    "create_promise": "Record a payment promise. CALL it once per product, only after the customer clearly confirmed the read-back.",
+    "close_call": "End the call. CALL it exactly once, as the very last tool call, after saying goodbye.",
+    "schedule_callback": "Book a callback. CALL it when someone else gives a time inside the callback slots."
+  },
+  "rules": {
+    "always": "You are the digital assistant of Meridian Energy on an outbound call. Address the customer as {{title}} {{last_name}}.\n- ESCALATIONS, one transfer per call at most. If several apply, only the highest: 1. the household depends on medical equipment or asks for welfare help: queue welfare. 2. a formal complaint: queue complaints. 3. a request for a payment plan: queue plans.\n- If the identity check failed, close as not_verified / failed even after a transfer.",
+    "before_verification": "You have said the opening sentence. Say nothing about any account before identity is verified.\n- Someone else answers: a callback is only possible on the next business day inside the callback slots, never today. Otherwise close_call not_reached / no_callback. Wrong number: not_reached / wrong_number.\n- Ask the security questions one at a time. Three wrong answers end the check: close_call not_verified / failed.",
+    "after_verification": "State each account with its past-due amount and days late.\n- Propose the FULL amount first. EXCEPTION that replaces this: for an account marked vulnerable never propose the FULL amount; start with the FLOOR.\n- A promise date is today or later, a business day, not after the DEADLINE. After 16:00 a promise for today cannot be recorded: the earliest day is the next business day.\n- Read back, get a clear yes, call create_promise. One retry if it fails; then close_call no_promise / service_error.\n- After a transfer nothing more is recorded. EXCEPTION that replaces this for the plans queue only: a promise that was already read back and confirmed may still be recorded after a transfer to plans."
+  },
+  "unsupported": []
+}
