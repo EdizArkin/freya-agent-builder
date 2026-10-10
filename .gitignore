@@ -243,8 +243,11 @@ cookies.json
 session.json
 
 # Third-party reference materials must remain local, even in a private repo
-/local_freya/
-/examples/freya_bank_collections_base.json
+local_freya/
+.env
+.env.*
+env.sh
+.env.sh
 
 # Local caches and model artifacts (no GPU assets belong in this repository)
 cache/

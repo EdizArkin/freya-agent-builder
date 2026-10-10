@@ -8,12 +8,124 @@ import os
 from pathlib import Path
 import re
 from urllib.parse import urlparse
+from urllib.error import HTTPError, URLError
+
+
+HINTS = {
+    'environment_parsing': 'Check the indicated .env.sh line for simple export syntax; no shell expansion is supported.',
+    'environment_file': 'Check project-root .env.sh read permissions and UTF-8 encoding.',
+    'client_missing': 'Restore the trusted official freya.py file or select its correct local path.',
+    'client_initialization': 'Check trusted client compatibility and configuration types, including FREYA_SIM_CONCURRENCY.',
+    'workflow_missing': 'Select an existing readable local workflow JSON file.',
+    'workflow_configuration': 'Check local workflow JSON syntax, graph, tools and phone-agent configuration.',
+    'configuration': 'Check process environment, trusted client path, local workflow and explicit operation permissions.',
+    'authentication': 'Check key validity, workspace permissions and access restrictions; do not print the key.',
+    'endpoint_missing': 'Check FREYA_API_URL against the official base URL and toolkit route.',
+    'validation': 'Review workflow schema, null fields and agent configuration against the toolkit locally.',
+    'rate_limit': 'Wait before an explicitly authorized retry; avoid parallel requests.',
+    'server': 'Freya or its gateway failed; retry the dry-run later if authorized.',
+    'network': 'Check DNS, proxy, TLS trust and connectivity to the authorized Freya host.',
+    'timeout': 'The request timed out; check connectivity and retry the dry-run later if authorized.',
+    'http': 'Check the official API contract for this HTTP status.',
+    'response': 'The response was rejected or unreadable; check endpoint and toolkit compatibility.',
+    'unknown': 'Failure could not be classified safely; inspect the adapter configuration locally.',
+}
+
+
+def safe_endpoint(path):
+    # Use route templates, never response URLs, query strings or supplied identifiers.
+    if path == '/api/v2/workflow':
+        return path
+    if re.fullmatch(r'/api/v2/workflow/[^/?]+', path):
+        return '/api/v2/workflow/{workflowId}'
+    if re.fullmatch(r'/api/v2/versions/workflow/[^/?]+(?:/publish)?', path):
+        return '/api/v2/versions/workflow/{workflowId}' + ('/publish' if path.endswith('/publish') else '')
+    return None
+
+
+def safe_validation_details(text):
+    """Untrusted JSON only: no arbitrary messages, values or field names escape."""
+    if len(text) > 16384:
+        return []
+    try:
+        value = json.loads(text)
+    except (ValueError, RecursionError):
+        return []
+    codes = {'invalid_type', 'invalid_value', 'invalid_enum_value', 'unrecognized_keys',
+             'too_small', 'too_big', 'invalid_string', 'required', 'missing', 'type_error'}
+    fields = {'workflow', 'name', 'nodes', 'global_nodes', 'initial_node', 'tools',
+              'function', 'parameters', 'properties', 'required', 'config', 'node_type',
+              'max_turn_transition', 'passthrough_default_transition', 'agent_config',
+              'llmConfig', 'provider', 'model', 'transitions', 'target_node', 'condition',
+              'on_enter', 'type', 'handler', 'default', 'body', 'headers', 'url', 'method'}
+    details = []
+    def visit(item, depth=0):
+        if depth > 5 or len(details) >= 20:
+            return
+        if isinstance(item, dict):
+            path, code = item.get('path'), item.get('code')
+            if isinstance(path, list) and len(path) <= 20 and isinstance(code, str) and code in codes:
+                clean = [p if isinstance(p, str) and p in fields else '*' for p in path]
+                if clean:
+                    details.append({'path': clean, 'code': code})
+            for key in ('data', 'error', 'errors', 'issues', 'details'):
+                if key in item:
+                    visit(item[key], depth + 1)
+        elif isinstance(item, list):
+            for child in item[:40]:
+                visit(child, depth + 1)
+    visit(value)
+    return details
 
 from builder.compiler.validate import parse_workflow, validate_workflow
+from builder.freya.environment import EnvironmentConfigError, load_project_environment
 
 
 class IntegrationError(ValueError):
     """Messages never include API responses, credentials or workflow content."""
+
+    def __init__(self, message='', *, category='configuration', http_status=None, endpoint=None, reason=None, line=None):
+        self.diagnostic = {'category': category, 'http_status': http_status,
+                           'endpoint': endpoint, 'hint': HINTS[category]}
+        if reason is not None:
+            self.diagnostic['reason'] = reason
+        if line is not None:
+            self.diagnostic['line'] = line
+        super().__init__(json.dumps(self.diagnostic, sort_keys=True))
+
+
+def classify_failure(exc, method, path):
+    status = None
+    details = []
+    if isinstance(exc, HTTPError):
+        status = exc.code
+    elif type(exc) is RuntimeError:
+        # Official api() discards HTTPError and embeds status in a fixed prefix.
+        # Read only that prefix; never parse body text or use it as a diagnostic.
+        match = re.match(r'^' + re.escape(method + ' ' + path) + r' -> ([1-5][0-9]{2}):', str(exc))
+        if match:
+            status = int(match[1])
+            if status in (400, 422):
+                details = safe_validation_details(str(exc)[match.end():].strip())
+    if status is not None:
+        category = ('authentication' if status in (401, 403) else
+                    'endpoint_missing' if status == 404 else
+                    'validation' if status in (400, 422) else
+                    'rate_limit' if status == 429 else
+                    'server' if 500 <= status <= 599 else 'http')
+    elif isinstance(exc, TimeoutError) or (isinstance(exc, URLError) and isinstance(exc.reason, TimeoutError)):
+        category = 'timeout'
+    elif isinstance(exc, (URLError, ConnectionError, OSError)):
+        category = 'network'
+    elif isinstance(exc, ValueError):
+        category = 'response'
+    else:
+        category = 'unknown'
+    error = IntegrationError(category=category, http_status=status, endpoint=safe_endpoint(path))
+    if details:
+        error.diagnostic['validation_details'] = details
+        error.args = (json.dumps(error.diagnostic, sort_keys=True),)
+    return error
 
 
 def load_workflow(path):
@@ -22,24 +134,38 @@ def load_workflow(path):
         if not validate_workflow(workflow).valid:
             raise ValueError()
         return workflow
-    except (OSError, ValueError, RecursionError):
-        raise IntegrationError('Local workflow validation failed.') from None
+    except OSError:
+        raise IntegrationError(category='workflow_missing') from None
+    except (UnicodeError, ValueError, RecursionError, TypeError):
+        raise IntegrationError(category='workflow_configuration') from None
 
 
 def official_client(path):
     """Import only when an external operation was explicitly requested."""
-    if not os.environ.get('FREYA_API_KEY'):
+    try:
+        load_project_environment()
+    except EnvironmentConfigError as exc:
+        raise IntegrationError(category='environment_file' if exc.reason == 'file_read' else 'environment_parsing',
+                               reason=exc.reason, line=exc.line) from None
+    if not os.environ.get('FREYA_API_KEY', '').strip():
         raise IntegrationError('FREYA_API_KEY is required.')
-    url = urlparse(os.environ.get('FREYA_API_URL', 'https://staging-app.freyavoice.ai'))
-    if url.scheme != 'https' or not url.hostname or url.username or url.password:
+    try:
+        url = urlparse(os.environ.get('FREYA_API_URL', 'https://staging-app.freyavoice.ai'))
+        valid_url = (url.scheme == 'https' and url.hostname and not url.username and not url.password
+                     and url.path in ('', '/') and not url.query and not url.fragment and url.port != 0)
+    except ValueError:
+        valid_url = False
+    if not valid_url:
         raise IntegrationError('FREYA_API_URL must be an HTTPS origin without credentials.')
+    if not Path(path).is_file():
+        raise IntegrationError(category='client_missing')
     try:
         spec = importlib.util.spec_from_file_location('_official_freya', Path(path))
         client = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(client)
         return client
     except Exception:
-        raise IntegrationError('Cannot load the trusted local official client.') from None
+        raise IntegrationError(category='client_initialization') from None
 
 
 def identifier(value):
@@ -84,9 +210,10 @@ class FreyaAdapter:
             result = self.client.api(method, path, body, **params)
             if isinstance(result, dict) and result.get('success') is False:
                 raise ValueError()
-        except Exception:
-            self.events.append({'operation': method, 'status': 'failed'})
-            raise IntegrationError('Freya operation failed; response content suppressed.') from None
+        except Exception as exc:
+            error = classify_failure(exc, method, path)
+            self.events.append({'operation': method, 'status': 'failed', 'diagnostic': error.diagnostic})
+            raise error from None
         self.events.append({'operation': method, 'status': 'completed'})
         return result
 
@@ -96,16 +223,16 @@ class FreyaAdapter:
 
     def _prepared(self, workflow):
         if not validate_workflow(workflow).valid:
-            raise IntegrationError('Local workflow validation failed.')
+            raise IntegrationError(category='workflow_configuration')
         value = deepcopy(workflow)
         model = self.client.AGENT_LLM
-        config = value.setdefault('agent_config', {})
-        if not isinstance(config, dict) or not isinstance(config.get('llmConfig', {}), dict):
-            raise IntegrationError('Invalid agent configuration.')
-        llm = config.setdefault('llmConfig', {})
-        if any(k in llm and llm[k] != model[k] for k in ('provider', 'model')):
-            raise IntegrationError('Workflow conflicts with organizer phone-agent model.')
-        llm.update(model)
+        if 'agent_config' in value:
+            config = value['agent_config']
+            if not isinstance(config, dict) or not isinstance(config.get('llmConfig', {}), dict):
+                raise IntegrationError(category='workflow_configuration')
+            llm = config.get('llmConfig', {})
+            if any(k in llm and llm[k] != model[k] for k in ('provider', 'model')):
+                raise IntegrationError(category='workflow_configuration')
         self._no_credentials(value)
         return value
 
@@ -132,8 +259,12 @@ class FreyaAdapter:
                     raise IntegrationError('URLs must not contain credentials.')
         check(value)
 
-    def dry_run(self, workflow, name='builder validation'):
-        self._call('POST', '/api/v2/workflow', {'name': name, 'workflow': self._prepared(workflow)}, dryRun='true')
+    def dry_run(self, workflow, name='builder validation', *, omit_injected_agent_config=False):
+        value = self._prepared(workflow)
+        # Legacy comparison option is now a no-op; retain its dry-run restriction.
+        if omit_injected_agent_config and not self.dry_run_only:
+            raise IntegrationError('Comparison requires dry-run-only mode.')
+        self._call('POST', '/api/v2/workflow', {'name': name, 'workflow': value}, dryRun='true')
         # The dry-run payload is undocumented; never print or persist it.
 
     def _get(self, workflow_id):
@@ -216,6 +347,8 @@ def main(argv=None):
     parser.add_argument('--client', default='local_freya/starter_kit/freya.py')
     parser.add_argument('--allow-external', action='store_true')
     parser.add_argument('--approve-publish', action='store_true')
+    parser.add_argument('--omit-injected-agent-config', action='store_true',
+                        help='Legacy dry-run-only no-op; configuration is now always preserved')
     parser.add_argument('--workflow-id')
     parser.add_argument('--agent-id')
     parser.add_argument('--version-id')
@@ -225,6 +358,8 @@ def main(argv=None):
     args = parser.parse_args(argv)
     adapter = None
     try:
+        if args.omit_injected_agent_config and args.operation != 'dry-run':
+            raise IntegrationError('Comparison option is restricted to dry-run.')
         workflow = load_workflow(args.workflow) if args.operation in ('local', 'dry-run', 'save') else None
         if args.operation == 'local':
             print('PASS: local structural validation only.')
@@ -235,7 +370,7 @@ def main(argv=None):
             raise IntegrationError('Publication requires --approve-publish after approval.')
         adapter = FreyaAdapter(official_client(args.client), allow_external=True, dry_run_only=args.operation == 'dry-run')
         if args.operation == 'dry-run':
-            adapter.dry_run(workflow)
+            adapter.dry_run(workflow, omit_injected_agent_config=args.omit_injected_agent_config)
         elif args.operation == 'save':
             print(json.dumps(asdict(adapter.save(workflow, workflow_id=args.workflow_id))))
         elif args.operation == 'publish':
@@ -246,8 +381,9 @@ def main(argv=None):
             adapter.export(args.workflow_id, args.output)
         print('Freya operation completed; no response content logged.')
         return 0
-    except Exception:
-        print('Operation failed; private exception content suppressed. Check configuration, local validation and version selection.')
+    except Exception as exc:
+        error = exc if isinstance(exc, IntegrationError) else IntegrationError(category='unknown')
+        print(json.dumps(error.diagnostic, sort_keys=True))
         return 1
     finally:
         if adapter and args.trace:
