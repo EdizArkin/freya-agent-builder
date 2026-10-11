@@ -97,12 +97,18 @@ explanations is the prompt in `extraction/claude.py`.
 | Calendar | `calendar.business_weekdays`, `holidays`, `week_start` | runtime |
 | Identity | `identity.questions` (field, wording, format, `normalize`), `max_wrong`, response field names, `hints` | runtime |
 | Products | `account.values`: named expressions per product; `account.limits`: which values bound a promise (`min_amount`, `max_amount`, `latest_date`, `earliest_date`, `promise_allowed`) | runtime |
-| Tools | `promise`, `note`, `callback`, `transfer`, `close`: field names, callback window, outcome table, `close.forced`; `promise.resolve_first`, `promise.min_total`, `promise.allowed_after_transfer_to`, `transfer.max_transfers` | runtime, compiler |
+| Tools | `promise`, `note`, `callback`, `transfer`, `close`: field names, callback window, outcome table, `close.forced`; `promise.resolve_first`, `promise.min_total`, `promise.allowed_after_transfer_to`, `transfer.max_transfers`; since M16 `promise.amount_step` (with `amount_step_except_max`), `promise.min_amount_by_date`, `promise.same_date`, `callback.closed` | runtime, compiler |
 | Guidance | `guidance`: the brief's instruction for a moment after a tool result | runtime |
 | Rule text | `rules.always`, `rules.before_verification`, `rules.after_verification`, `tool_descriptions` | phone model |
 | Escape hatch | `unsupported`: policy the extractor could not express | validation |
 
-Every field added in M15 is optional; a spec without it compiles to the behaviour it had.
+Every field added in M15 and M16 is optional; a spec without it compiles to the behaviour it had.
+
+The four M16 fields are checked by validation, compiled and enforced by the runtime, but **the
+extraction prompt does not describe them**: the prompt was frozen for the M15 evaluation and has
+not been changed since. An extraction therefore still reports such a rule under `unsupported`.
+Until the prompt names them, they reach a build only through a spec that is edited by hand and
+passed with `--spec`.
 
 Two names are not in the spec at all, because the tool API states them: the true/false field that
 every answer carries (the success flag) and the body fields that are filled from call variables
@@ -300,7 +306,7 @@ that the model puts into one message are not run in the order written.
 
 | Situation | What the runtime does | How the model learns of it |
 | --- | --- | --- |
-| A call breaks a rule | The pre-hook detaches the request from the call; the bank answers with an HTTP error and records nothing | `LAST REJECTED TOOL CALL` in the live state, and the fixed failure rules in the prompt |
+| A call breaks a rule | The pre-hook detaches the request from the call; the bank answers with an HTTP error and records nothing | `LAST REJECTED TOOL CALL` in the live state, followed by a line that says the call was stopped by the policy check, is not a service failure and recorded nothing; and the fixed failure rules in the prompt. Whether the model reads it so is not verified live |
 | The service fails (HTTP error) | Every `create_promise` request that goes out leaves a variable of its own. Requests for a product that has no recorded promise have failed, with or without an answer, and are counted | The fixed failure rules in the prompt, per tool, with the spec's own guidance; the live state repeats them while the mark is there |
 | More promise attempts than the spec allows | `pre_promise` blocks the call | As in the first row |
 | A pre-hook's own code fails | The wrapper detaches the request | The model sees a failed call; there is no reason to give |
@@ -316,13 +322,16 @@ Enforced by the runtime or by the graph, whatever the phone model does:
 | State supplied by the caller is discarded | `setup` |
 | Wrong answers counted across questions; hints and unreadable answers not counted; the lower of the brief's and the service's limit ends the check; a failed check stays failed whatever the service answers | `pre_identity`, `post_identity` |
 | Promise amount within the limits; date not past, not before the earliest date, not after the latest date, a business day | `pre_promise` |
+| Promise amount a whole multiple of a step, counted in cents; a promise dated on or before a given date needs a given lowest amount | `pre_promise` |
+| All promises of a call on one date: a later promise takes the date already recorded or is refused, and the first promise goes to the first open product, so that two first promises sent in one message cannot record two dates. **Partial:** the date of the first promise cannot be changed afterwards; if a later product cannot take it, that product gets no promise | `pre_promise` |
+| No promise for a product whose limits the bank's data did not let the runtime work out (a limit that is missing is not read as no limit) | `product_facts`, `pre_promise` |
 | One promise per product; known product only; none after a transfer (except to a queue the spec names); none without a loaded account; none for a product the spec excludes; none while a product that comes first is open | `pre_promise` |
 | A promise is refused once the required total of all promises can no longer be reached. **Partial:** a promise already recorded cannot be taken back, so "all or none" is not enforced | `pre_promise` |
 | No transfer beyond the number the spec allows | `pre_transfer` |
 | A text answer to a security question is sent in the form the spec prescribes | `pre_identity` |
 | Every request has the fields, types and allowed values of the tool API | `send` |
 | One note per product; none for a promised product; none after a transfer when the spec says so; only a reason the tool API lists | `pre_note` |
-| Callback only inside the computed slots; only one | `pre_callback` |
+| Callback only inside the computed slots, outside every closed period of the day; only one | `pre_callback` |
 | Retry-or-stop after a failed `create_promise`, by attempt count; no attempt beyond the limit | `pre_promise`, `post_promise` |
 | A record made by one call of a message survives the other calls of that message | one variable per record; `load_state` |
 | A close with open products (when the brief uses notes), without the reason its outcome needs, or with an unknown outcome is refused, once per kind of problem | `pre_close` |

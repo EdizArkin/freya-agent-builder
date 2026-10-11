@@ -129,6 +129,21 @@ def fill(template, obj):
     return text
 
 
+def clock_in(w, clock):
+    """Whether a time of day meets every test of `w`: `from` and `until` include their time, `after` and `before` do not."""
+    if not isinstance(w, dict):
+        return True
+    if w.get('from') is not None and clock < str(w['from']):
+        return False
+    if w.get('after') is not None and clock <= str(w['after']):
+        return False
+    if w.get('until') is not None and clock > str(w['until']):
+        return False
+    if w.get('before') is not None and clock >= str(w['before']):
+        return False
+    return True
+
+
 def evaluate(expr, today, cal, product, named):
     """Evaluate one configured expression to a date, a number or a string."""
     if not isinstance(expr, dict):
@@ -143,14 +158,7 @@ def evaluate(expr, today, cal, product, named):
     if kind == 'by_time':
         clock = str(cal.get('clock') or '00:00')
         for case in expr.get('cases', []):
-            w = case.get('when') or dict()
-            if w.get('from') is not None and clock < str(w['from']):
-                continue
-            if w.get('after') is not None and clock <= str(w['after']):
-                continue
-            if w.get('until') is not None and clock > str(w['until']):
-                continue
-            if w.get('before') is not None and clock >= str(w['before']):
+            if not clock_in(case.get('when') or dict(), clock):
                 continue
             return evaluate(case.get('expr'), today, cal, product, named)
         raise ValueError('no case matched')
@@ -298,6 +306,22 @@ def callback_slots(cfg, now):
     return slots
 
 
+def closed_text(w):
+    """A closed period in words, with the same reading of its limits as `clock_in`."""
+    if not isinstance(w, dict):
+        return 'at any time'
+    parts = []
+    if w.get('from') is not None:
+        parts.append('from ' + str(w['from']))
+    if w.get('after') is not None:
+        parts.append('later than ' + str(w['after']))
+    if w.get('until') is not None:
+        parts.append('up to and including ' + str(w['until']))
+    if w.get('before') is not None:
+        parts.append('earlier than ' + str(w['before']))
+    return ' '.join(parts) or 'at any time'
+
+
 def callback_text(cfg, now):
     slots = callback_slots(cfg, now)
     if not cfg.get('callback'):
@@ -307,7 +331,11 @@ def callback_text(cfg, now):
     rows = []
     for s in slots:
         rows.append('  ' + say_date(to_date(s[0])) + ': ' + ('later than ' if s[3] else 'from ') + s[1] + ' up to and including ' + s[2])
-    return 'The current time is ' + now.strftime('%H:%M') + '. A callback may ONLY be booked in one of these slots (24-hour clock):\n' + '\n'.join(rows) + '\nAny other day or time is outside the window.'
+    text = 'The current time is ' + now.strftime('%H:%M') + '. A callback may ONLY be booked in one of these slots (24-hour clock):\n' + '\n'.join(rows) + '\nAny other day or time is outside the window.'
+    closed = (cfg.get('callback') or dict()).get('closed') or []
+    if closed:
+        text += '\nOn every day NO callback can be booked ' + '; or '.join([closed_text(w) for w in closed]) + '. The bank refuses a time in such a period: offer a time just outside it.'
+    return text
 
 
 def check_callback(cfg, now, date, time):
@@ -321,6 +349,9 @@ def check_callback(cfg, now, date, time):
         return 'the date must be YYYY-MM-DD and the time HH:MM'
     for s in callback_slots(cfg, now):
         if s[0] == day and hhmm <= s[2] and (hhmm > s[1] if s[3] else hhmm >= s[1]):
+            for w in (cfg.get('callback') or dict()).get('closed') or []:
+                if clock_in(w, hhmm):
+                    return hhmm + ' is in a period in which no callback can be booked (' + closed_text(w) + ')'
             return ''
     return 'that day or time is outside the allowed callback window'
 
@@ -460,6 +491,23 @@ def product_facts(cfg, products, today, clock=None):
             value = named.get(limits.get(key)) if limits.get(key) else None
             fact[key] = value.isoformat() if is_date(value) else value
         fact['promise_allowed'] = allowed(named.get(limits.get('promise_allowed'))) if limits.get('promise_allowed') else True
+        # A limit the spec names and the bank's data gave no value for is not "no limit". The product is marked,
+        # and no promise is recorded for it: a check that could not be made is not a check that passed.
+        broken = [key for key in ('min_amount', 'max_amount') if limits.get(key) and number(fact[key]) is None]
+        broken += [key for key in ('latest_date', 'earliest_date') if limits.get(key) and not is_date(named.get(limits.get(key)))]
+        if limits.get('promise_allowed') and named.get(limits.get('promise_allowed')) is None:
+            broken.append('promise_allowed')
+        floors = []
+        for item in rule.get('min_amount_by_date') or []:
+            when = item.get('on_or_before') if isinstance(item, dict) else None
+            day = today if when == 'today' else named.get(when)
+            least = number(named.get(item.get('min_amount'))) if isinstance(item, dict) else None
+            if is_date(day) and least is not None:
+                floors.append([day.isoformat(), least])
+            else:
+                broken.append('min_amount_by_date')
+        fact['floors'] = floors
+        fact['broken'] = broken
         groups = rule.get('resolve_first') or []
         fact['rank'] = len(groups)
         for i in range(len(groups)):
@@ -492,7 +540,14 @@ def account_text(cfg, facts):
             limits.append('earliest date ' + say_date(to_date(f['earliest_date'])) + ' (no earlier date can be recorded)')
         if f.get('latest_date'):
             limits.append('latest date ' + say_date(to_date(f['latest_date'])) + ' (no later date can be recorded, whatever the person asks for)')
-        if f.get('promise_allowed') is False:
+        step = number((cfg.get('promise') or dict()).get('amount_step'))
+        if step is not None:
+            limits.append('the amount a whole multiple of ' + money(step) + (' (the highest amount itself is also accepted)' if (cfg.get('promise') or dict()).get('amount_step_except_max') else ''))
+        for floor in f.get('floors') or []:
+            limits.append('a promise dated ' + say_date(to_date(floor[0])) + ' or earlier needs at least ' + money(floor[1]))
+        if f.get('broken'):
+            rows.append('  NO PROMISE CAN BE RECORDED for this product: the bank could not work out its limits. Follow your instructions for a promise that cannot be recorded.')
+        elif f.get('promise_allowed') is False:
             rows.append('  NO PROMISE CAN BE RECORDED for this product. Follow your instructions for this case.')
         elif limits:
             rows.append('  LIMITS THE BANK CHECKS ON EVERY PROMISE for this product: ' + '; '.join(limits))
@@ -523,6 +578,8 @@ def live_text(cfg, st):
         rows.append('Transfer done to queue: ' + ', '.join(st['transfers']))
     if st.get('last_block'):
         rows.append('LAST REJECTED TOOL CALL: ' + st['last_block'])
+        # A stopped call comes back to the model as an error of the tool. Without this line a live call took it for an outage.
+        rows.append('THAT CALL WAS STOPPED BY THE BANK POLICY CHECK. It is NOT a service failure and NOTHING was recorded: do not say the system has a problem, do not say it was recorded, and do not send the same call again unchanged.')
     mark = st.get('open')
     if isinstance(mark, list) and len(mark) > 2 and mark[2]:
         rows.append('IF YOUR LAST TOOL CALL GAVE AN ERROR INSTEAD OF A RESULT: ' + str(mark[2]))
@@ -600,6 +657,15 @@ def load_account(cfg, vars):
             st['products'][i]['promise_allowed'] = False
         if (cfg.get('promise') or dict()).get('resolve_first'):
             st['products'][i]['rank'] = f['rank']
+        if f.get('floors'):
+            st['products'][i]['floors'] = f['floors']
+        if f.get('broken'):
+            st['products'][i]['broken'] = f['broken']
+    if (cfg.get('promise') or dict()).get('same_date') and len(facts) > 1:
+        ends = [f['latest_date'] for f in facts if f.get('latest_date') and f.get('promise_allowed') is not False and not f.get('broken')]
+        text += '\nALL PROMISES OF THIS CALL MUST CARRY ONE AND THE SAME DATE. The bank refuses a promise with another date than a promise already recorded, and a recorded promise cannot be changed. Agree the one date before the first promise is recorded. Promises are recorded one at a time, in the order of the list above.'
+        if ends:
+            text += ' The latest date every product accepts is ' + say_date(to_date(min(ends))) + '.'
     total = (cfg.get('promise') or dict()).get('min_total')
     if total and facts:
         need = number(total.get('amount'))
@@ -936,10 +1002,30 @@ def pre_promise(cfg, vars, config):
             return block(cfg, vars, config, st, 'promise', 'The call has been transferred. No promise may be recorded after a transfer.', soft)
     if prod.get('promise_allowed') is False:
         return block(cfg, vars, config, st, 'promise', guide(cfg, 'promise.not_allowed', 'NOT RECORDED: no promise can be recorded for ' + prod['label'] + '. Follow your instructions for this case.'), soft)
+    if prod.get('broken'):
+        return block(cfg, vars, config, st, 'promise', 'NOT RECORDED: the bank could not work out the limits for ' + prod['label'] + ', so no promise can be recorded for it. Follow your instructions for a promise that cannot be recorded.', soft)
     first = [p for p in pending(st) if p['id'] != pid and number(p.get('rank')) is not None and number(prod.get('rank')) is not None and p['rank'] < prod['rank']]
     if first:
         return block(cfg, vars, config, st, 'promise', 'NOT RECORDED: ' + prod['label'] + ' has to wait. First record a promise or a note for: '
                      + ', '.join([p['id'] + ' "' + p['label'] + '"' for p in first]) + '.', soft)
+    if pc.get('same_date') and not st['promises']:
+        # The first promise of a call fixes the date of all of them. Calls of one message run side by side and
+        # cannot see each other, so two first promises with two dates could both pass. Only the first open
+        # product of the list may therefore take the first promise: of two such calls, one is refused.
+        # "First" follows the order the spec gives (products that come first), then the order of the list.
+        ahead, seen, mine = [], False, number(prod.get('rank')) or 0
+        for p in pending(st):
+            if p['id'] == pid:
+                seen = True
+                continue
+            if p.get('promise_allowed') is False or p.get('broken'):
+                continue
+            rank = number(p.get('rank')) or 0
+            if rank < mine or (rank == mine and not seen):
+                ahead.append(p)
+        if ahead:
+            return block(cfg, vars, config, st, 'promise', 'NOT RECORDED: all promises of this call carry one date, so they are recorded one at a time in the order of the list. First record a promise or a note for: '
+                         + ', '.join([p['id'] + ' "' + p['label'] + '"' for p in ahead]) + '.', soft)
     # Every request that went out for this product and did not end in a recorded promise has failed,
     # with or without an answer.
     failures = attempts(vars, st, pid)
@@ -954,6 +1040,21 @@ def pre_promise(cfg, vars, config):
         return block(cfg, vars, config, st, 'promise', 'NOT RECORDED: ' + money(amount) + ' is below the lowest amount that can be recorded for ' + prod['label'] + ', which is ' + money(lo) + '. Follow the amount rules of your instructions.', soft)
     if hi is not None and amount > hi + 0.004:
         return block(cfg, vars, config, st, 'promise', 'NOT RECORDED: ' + money(amount) + ' is more than the amount due for ' + prod['label'] + ', which is ' + money(hi) + '. Read back the correct amount and get a new confirmation.', soft)
+    if pc.get('amount_step') is not None:
+        step = number(pc.get('amount_step'))
+        unit = int(round(step * 100)) if step is not None else 0
+        if unit <= 0:
+            return block(cfg, vars, config, st, 'promise', 'NOT RECORDED: the amount rule of this bank could not be read, so no promise can be recorded.', soft)
+        cents = int(round(amount * 100))
+        full = pc.get('amount_step_except_max') and hi is not None and abs(amount - hi) <= 0.004
+        if cents % unit != 0 and not full:
+            below = (cents // unit) * unit / 100.0
+            near = [v for v in (below, below + unit / 100.0) if v > 0 and (lo is None or v >= lo - 0.004) and (hi is None or v <= hi + 0.004)]
+            if pc.get('amount_step_except_max') and hi is not None and hi not in near:
+                near.append(hi)
+            return block(cfg, vars, config, st, 'promise', 'NOT RECORDED: ' + money(amount) + ' is not a whole multiple of ' + money(step) + ', and amounts for ' + prod['label'] + ' are recorded only in such steps.'
+                         + (' The nearest amounts that can be recorded are ' + ' and '.join([money(v) for v in near]) + '.' if near else '')
+                         + ' Agree one of them with the person, read it back and get a clear yes before calling create_promise again.', soft)
     need = number(st.get('min_total'))
     if need is not None:
         # The most this call can still reach: what is recorded, this amount, and the full amount of every
@@ -977,6 +1078,15 @@ def pre_promise(cfg, vars, config):
     if day < today:
         return block(cfg, vars, config, st, 'promise', 'NOT RECORDED: ' + say_date(day) + ' is in the past. Today is ' + say_date(today) + '.', soft)
     early = to_date(prod['earliest_date']) if prod.get('earliest_date') else None
+    if pc.get('same_date') and st['promises']:
+        fixed = min([str(st['promises'][k].get('date')) for k in st['promises']])
+        if day.isoformat() != fixed:
+            one = to_date(fixed)
+            if (latest and one > latest) or (early and one < early):
+                return block(cfg, vars, config, st, 'promise', 'NOT RECORDED: all promises of this call carry the date already recorded, ' + say_date(one) + ', and that date cannot be recorded for '
+                             + prod['label'] + '. No promise can be recorded for it in this call. Follow your instructions for a promise that cannot be recorded.', soft)
+            return block(cfg, vars, config, st, 'promise', 'NOT RECORDED: all promises of this call carry one date, and ' + say_date(one) + ' is already recorded. The promise for ' + prod['label']
+                         + ' can only be recorded for ' + say_date(one) + '. Explain that one date applies to all, read it back and get a clear yes before calling create_promise again.', soft)
     if early and day < early:
         return block(cfg, vars, config, st, 'promise', 'NOT RECORDED: ' + say_date(day) + ' is before the earliest date that can be recorded for ' + prod['label'] + ', which is ' + say_date(early) + '. Offer that date, read it back and get a clear yes before calling create_promise again.', soft)
     if latest and day > latest:
@@ -986,6 +1096,11 @@ def pre_promise(cfg, vars, config):
         if latest and alt > latest:
             alt = latest
         return block(cfg, vars, config, st, 'promise', 'NOT RECORDED: ' + say_date(day) + ' is not a business day. Offer ' + say_date(alt) + ' instead, read it back and get a clear yes before calling create_promise again.', soft)
+    for floor in prod.get('floors') or []:
+        limit = to_date(floor[0])
+        if day <= limit and amount < number(floor[1]) - 0.004:
+            return block(cfg, vars, config, st, 'promise', 'NOT RECORDED: a promise for ' + prod['label'] + ' dated ' + say_date(day) + ' needs at least ' + money(floor[1]) + ', and ' + money(amount)
+                         + ' is less. Either the amount is ' + money(floor[1]) + ' or more, or the date is later than ' + say_date(limit) + '. Agree one of the two with the person, read it back and get a clear yes before calling create_promise again.', soft)
     body[pc['date_param']] = day.isoformat()
     vars[rec(st, 'try', pid + '_' + str(failures + 1))] = 'sent'
     send(cfg, vars, config, st, 'promise', pid, promise_failure(cfg, prod['label'], failures + 1))

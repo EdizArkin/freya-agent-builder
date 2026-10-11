@@ -80,6 +80,16 @@ SITES = [
     ('promise that leaves the required total out of reach', changed(promise__min_total={'percent': 90, 'of': 'full'}), {},
      [V, ('add_note', dict(product_id='p2', reason='refused'))], ('create_promise', PROMISE)),
     ('second transfer', changed(transfer__max_transfers=1), {}, [('transfer_to_agent', dict(queue='support'))], ('transfer_to_agent', dict(queue='general'))),
+    # the rule kinds added in M16
+    ('promise that is not a multiple of the step', changed(promise__amount_step=50), {}, [V], ('create_promise', dict(product_id='p1', amount=120, date='2026-10-15'))),
+    ('promise for today below the amount today needs', changed(promise__min_amount_by_date=[{'on_or_before': 'today', 'min_amount': 'full'}]), {}, [V],
+     ('create_promise', dict(product_id='p1', amount=400, date='2026-10-14'))),
+    ('first promise for a product further down the list', changed(promise__same_date=True), {}, [V], ('create_promise', dict(product_id='p2', amount=900, date='2026-10-15'))),
+    ('promise with another date than the one recorded', changed(promise__same_date=True), {}, [V, ('create_promise', PROMISE)],
+     ('create_promise', dict(product_id='p2', amount=900, date='2026-10-16'))),
+    ('promise when the recorded date is too late for this product', changed(promise__same_date=True), {},
+     [V, ('create_promise', dict(product_id='p1', amount=500, date='2026-10-27'))], ('create_promise', dict(product_id='p2', amount=900, date='2026-10-22'))),
+    ('callback in a closed period', changed(callback__closed=[{'from': '12:30', 'until': '13:30'}]), {}, [], ('schedule_callback', dict(date='2026-10-14', time='12:45'))),
 ]
 
 
@@ -106,7 +116,7 @@ def play(variant, site, bank):
 
 class Blocks(unittest.TestCase):
     def test_no_blocked_call_changes_anything_at_either_bank(self):
-        self.assertEqual((len(SITES), len(VARIANTS)), (27, 8))
+        self.assertEqual((len(SITES), len(VARIANTS)), (33, 8))
         played = 0
         for bank in (MappedBank, PermissiveBank):
             for variant in VARIANTS:
@@ -117,7 +127,7 @@ class Blocks(unittest.TestCase):
                     self.assertEqual(how, 'detached', (bank.__name__, variant, site[0]))
                     self.assertNotIn(CALL, json.dumps(request), 'no value of the call is left in a blocked request')
                     self.assertEqual(data, {}, 'a blocked call has no answer of the bank to pass on')
-        self.assertEqual(played, 2 * 8 * 27)
+        self.assertEqual(played, 2 * 8 * 33)
 
     def test_the_reason_of_every_block_is_in_front_of_the_model_without_asking_the_bank(self):
         for site in SITES:
@@ -140,8 +150,10 @@ class Blocks(unittest.TestCase):
         with open(rt.__file__, encoding='utf-8') as source:
             tree = ast.parse(source.read())
         sites = [n for n in ast.walk(tree) if isinstance(n, ast.Call) and isinstance(n.func, ast.Name) and n.func.id in ('block', 'refuse_close')]
-        # 30 calls of block or refuse_close in the runtime. A new one needs a site above; then raise this number.
-        self.assertEqual(len(sites), 30, 'a block was added to or removed from the runtime: add or remove its safety test')
+        # 37 calls of block or refuse_close in the runtime. A new one needs a site above; then raise this number.
+        # Two of them have no site above because no valid spec and no listed product reaches them: a product whose
+        # limits cannot be worked out, and an amount step that cannot be read. tests/test_enforcement_m16.py plays both.
+        self.assertEqual(len(sites), 37, 'a block was added to or removed from the runtime: add or remove its safety test')
 
     def test_two_fields_that_tie_a_request_to_the_call_are_both_replaced(self):
         api = Renamed({'customer_id': 'caller_ref'}, {}, second_call_field=True)

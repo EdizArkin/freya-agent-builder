@@ -1,6 +1,7 @@
 """Is a spec executable against this tool API? Every problem is reported; none is guessed away."""
 import datetime
 import itertools
+import math
 import re
 
 from builder.runtime import runtime as rt
@@ -200,12 +201,45 @@ def validate(spec, api, best_effort=False):
                 need(type(total.get('percent')) in (int, float) and 0 < total['percent'] <= 100 and total.get('of') in names,
                      'promise.min_total needs a percent from 0 to 100 and "of", the name of an amount value')
 
+        step = rule.get('amount_step')
+        need(step is None or (type(step) in (int, float) and step > 0 and abs(step * 100 - round(step * 100)) < 1e-9), 'promise.amount_step must be a positive amount in whole cents')
+        for key in ('amount_step_except_max', 'same_date'):
+            need(type(rule.get(key, False)) is bool, 'promise.%s must be true or false' % key)
+        need(not rule.get('amount_step_except_max') or (step is not None and limits.get('max_amount')), 'promise.amount_step_except_max needs promise.amount_step and account.limits.max_amount')
+        floors = rule.get('min_amount_by_date')
+        if floors is not None and need(isinstance(floors, list) and all(isinstance(f, dict) for f in floors), 'promise.min_amount_by_date must be a list of objects'):
+            for floor in floors:
+                need(floor.get('on_or_before') == 'today' or floor.get('on_or_before') in names, 'promise.min_amount_by_date: "on_or_before" is "today" or the name of a date value, got %r' % (floor.get('on_or_before'),))
+                need(floor.get('min_amount') in names, 'promise.min_amount_by_date: "min_amount" is the name of an amount value, got %r' % (floor.get('min_amount'),))
+        if not bad and (floors or step is not None):
+            # The same computation the deployed runtime makes, on every kind of product: a limit that cannot be
+            # worked out here would make the runtime refuse every promise for such a product.
+            cfg = {'calendar': {'business_weekdays': days, 'holidays': cal.get('holidays') or [], 'week_start': cal.get('week_start', 0)}, 'account': account, 'promise': rule}
+            for product in sample_products(spec, api):
+                fact = (rt.product_facts(cfg, [product], datetime.date(2030, 1, 9), '09:00') or [{}])[0]
+                if 'min_amount_by_date' in (fact.get('broken') or []):
+                    bad.append('promise.min_amount_by_date needs a date and an amount for a product like %s' % ({k: product[k] for k in list(product)[:4]},))
+                    break
+                lo, hi = fact.get('min_amount'), fact.get('max_amount')
+                if step is not None and isinstance(lo, float) and isinstance(hi, float) and not rule.get('amount_step_except_max'):
+                    if math.floor(hi / step + 1e-9) * step < lo - 0.004:
+                        warn.append('for a product like %s no multiple of %s lies between the lowest amount %s and the highest %s: no promise can be recorded' % (
+                            {k: product[k] for k in list(product)[:4]}, step, lo, hi))
+
     params('promise', 'create_promise', ('product_param', 'amount_param', 'date_param'))
     params('note', 'add_note', ('product_param', 'reason_param'), optional=True)
     callback = params('callback', 'schedule_callback', ('date_param', 'time_param'), optional=True)
     if callback:
         for key in ('start', 'end'):
             need(re.fullmatch(r'\d\d:\d\d', str(callback.get(key, ''))), 'callback.%s must be HH:MM' % key)
+        closed = callback.get('closed')
+        if closed is not None and need(isinstance(closed, list) and all(isinstance(w, dict) and w for w in closed), 'callback.closed must be a list of periods, each with at least one of: ' + ', '.join(TIME_TESTS)):
+            for w in closed:
+                for test, clock in w.items():
+                    need(test in TIME_TESTS and re.fullmatch(r'\d\d:\d\d', str(clock)), 'callback.closed: a period tests %s with HH:MM, got %r: %r' % (', '.join(TIME_TESTS), test, clock))
+            minutes = ['%02d:%02d' % (m // 60, m % 60) for m in range(24 * 60)]
+            if not bad and all(any(rt.clock_in(w, t) for w in closed) for t in minutes if str(callback['start']) <= t <= str(callback['end'])):
+                warn.append('callback.closed covers the whole callback window: no callback can be booked')
     transfer = params('transfer', 'transfer_to_agent', ('queue_param',))
     if transfer:
         limit = transfer.get('max_transfers')
@@ -263,6 +297,10 @@ def digest(spec, api, other=None):
             [[q.get('field'), q.get('format'), q.get('numeric_order'), q.get('normalize')] for q in idc.get('questions') or [] if isinstance(q, dict)],
         'wrong answers that end the check': idc.get('max_wrong'),
         'callback': {k: callback.get(k) for k in ('include_today', 'next_business_days', 'start', 'end', 'after_now')} if callback else 'never used',
+        'times of day at which no callback can be booked': (callback or {}).get('closed') or 'none',
+        'promise amounts': ('whole multiples of %s' % promise['amount_step'] + (', or the highest amount' if promise.get('amount_step_except_max') else '')) if promise.get('amount_step') is not None else 'any amount inside the limits',
+        'lowest amount that depends on the promise date': promise.get('min_amount_by_date') or 'none',
+        'all promises of one call on one date': bool(promise.get('same_date')),
         'promise attempts per product': promise.get('max_attempts', 2),
         'promise only on a business day': promise.get('business_day_only', True),
         'promise after a transfer': 'never' if not promise.get('allowed_after_transfer_to') else 'only after a transfer to ' + ', '.join(sorted(promise['allowed_after_transfer_to'])),
