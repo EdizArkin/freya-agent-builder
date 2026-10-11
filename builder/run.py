@@ -48,6 +48,7 @@ import contextlib
 import hashlib
 import importlib
 import json
+import re
 import sys
 import threading
 import time
@@ -56,7 +57,7 @@ from pathlib import Path
 from builder import pipeline
 from builder.artifacts import store
 from builder.config import settings
-from builder.extraction import claude, coverage, spend
+from builder.extraction import claude, coverage, documents, spend
 from builder.freya import client as freya_client
 from builder.freya import deployment, versioning
 from builder.optimization import loop, policy
@@ -207,8 +208,9 @@ def arguments(argv=None, provider=None):
     named = first.parse_known_args(argv)[0].evaluation
     provider = provider or importlib.import_module(named)
     p = argparse.ArgumentParser(prog='python builder/build.py', description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument('brief', help='the brief: one Markdown file')
-    p.add_argument('tool_api', help="the brief's tool API file (OpenAPI)")
+    p.add_argument('brief', help='the brief: one file (Markdown, text, .docx, .xlsx or .pdf), or the folder of a case: every such file under it is a document, in the order of its path')
+    p.add_argument('tool_api', nargs='?', help="the brief's tool API file (OpenAPI, JSON). With a case folder it may be left out if the folder holds exactly one, "
+                   'and an https address in its place is taken as --mock-url')
     p.add_argument('--mock-url', help='the address of the bank for this run, in place of the server the tool API file names (https). Default: the file\'s own')
     p.add_argument('--amend', action='append', default=[], help='a later document that amends the brief (Brief B on Brief A); repeat, in order')
     p.add_argument('--slot', help='the name of the agent: its workflow on Freya and its folder under --out. Default: the file name of the brief')
@@ -246,6 +248,8 @@ def arguments(argv=None, provider=None):
     if hasattr(provider, 'add_arguments'):
         provider.add_arguments(p)
     args = p.parse_args(argv)
+    if args.tool_api and re.match(r'(?i)https?://', args.tool_api):          # python3 builder/build.py {case_folder} {mock_url}
+        args.mock_url, args.tool_api = args.mock_url or args.tool_api, None
     args.slot = store.build_id(args.slot or '-plus-'.join(Path(b).stem for b in [args.brief] + args.amend)).lower()
     args.run = args.slot                    # the evaluation keeps its records in the folder of the slot: one track, one folder
     args.run_id = store.build_id(args.run_id or '%s-%s' % (time.strftime('%Y%m%d-%H%M%S'), args.slot))
@@ -310,6 +314,49 @@ def report(result):
                                                        row['source'].replace('\n', ' ')[:300]) for row in audit['rows'] if row['status'] != coverage.COVERED] or ['None.']
         out += ['']
     return '\n'.join(out)
+
+
+def inputs(args, log):
+    """What a run is built from: (the documents as (name, text), the files they were read from, the tool API file).
+
+    A single brief is read as before, with every --amend document after it. A folder is a case: every file
+    under it that can be read is a document, in the order of its path, and the tool API is the file that was
+    named or, if none was, the one OpenAPI file in the folder. Nothing is guessed: a folder without documents,
+    or without exactly one tool API when none was named, ends the run with that said."""
+    def one(path):
+        if Path(path).suffix.lower() in documents.WORD + documents.EXCEL + documents.PDF:
+            text, warnings = documents.read(path)
+            for warning in warnings:
+                log('inputs | WARNING | %s: %s' % (path, warning))
+            if not text.strip():
+                raise Incomplete('%s holds no text that could be read' % path)
+            return text
+        return text_of(path, log)
+
+    if not Path(args.brief).is_dir():
+        if not args.tool_api:
+            raise Incomplete('no tool API file was given: a single brief needs its OpenAPI file as the second argument')
+        files = [args.brief] + args.amend
+        return [(Path(b).name, one(b)) for b in files], files, args.tool_api
+    case = documents.folder(args.brief)
+    for warning in case['warnings']:
+        log('inputs | WARNING | %s' % warning)
+    if case['skipped']:
+        log('inputs | not read (no document format): %s' % ', '.join(case['skipped']))
+    if not case['documents']:
+        raise Incomplete('the case folder %s holds no document that could be read (%s)' % (args.brief, ', '.join(documents.SUPPORTED)))
+    tool_api = args.tool_api
+    if not tool_api:
+        if len(case['tool_apis']) != 1:
+            raise Incomplete('the case folder %s holds %s; name the tool API file as the second argument (an OpenAPI document in JSON). Nothing is guessed about the tools of the bank' % (
+                args.brief, 'no OpenAPI file in JSON' if not case['tool_apis'] else 'more than one OpenAPI file: ' + ', '.join(str(f) for f in case['tool_apis'])))
+        tool_api = str(case['tool_apis'][0])
+    briefs = [(name, text) for name, text, _ in case['documents']] + [(Path(b).name, one(b)) for b in args.amend]
+    log('inputs | case folder %s | %d document(s), in this order: %s | tool API %s' % (args.brief, len(briefs), ', '.join(name for name, _ in briefs), tool_api))
+    if len(briefs) > 1:
+        log('inputs | the documents are given to the extraction in that order, each whole and under its name. The extraction reads a later document as amending an earlier one '
+            'where they conflict: the order is the order of the file paths, not a judgement of which document holds')
+    return briefs, [str(file) for _, _, file in case['documents']] + args.amend, tool_api
 
 
 def sha256(path):
@@ -437,14 +484,14 @@ def main(argv=None, client=None, platform=None, evaluation=None, registry=versio
     try:
         # 1. configuration and inputs
         settings.load_env(settings.env_files(args.env_file, args.kit))
-        briefs = [(Path(b).name, text_of(b, log)) for b in [args.brief] + args.amend]
+        briefs, sources, args.tool_api = inputs(args, log)
         document = json.loads(text_of(args.tool_api, log))
         if args.mock_url:
             # The bank of this run is at another address than the tool API file names: the tools are compiled for it.
             was = [server.get('url') for server in document.get('servers') or [] if isinstance(server, dict)]
             document['servers'] = [{'url': args.mock_url.rstrip('/')}]
             log('inputs | --mock-url: the tools are compiled for %s (the tool API file names %s)' % (args.mock_url.rstrip('/'), ', '.join(str(url) for url in was) or 'no server'))
-        result['provenance'] = {'briefs': [{'file': str(b), 'sha256': sha256(b), 'bytes': Path(b).stat().st_size} for b in [args.brief] + args.amend],
+        result['provenance'] = {'briefs': [{'file': str(b), 'sha256': sha256(b), 'bytes': Path(b).stat().st_size} for b in sources],
                                 'tool_api': {'file': str(args.tool_api), 'sha256': sha256(args.tool_api), 'bytes': Path(args.tool_api).stat().st_size}}
         for number, brief in enumerate(result['provenance']['briefs'], 1):
             log('provenance | brief %d of %d | %s | sha256 %s | %d bytes' % (number, len(briefs), brief['file'], brief['sha256'], brief['bytes']))

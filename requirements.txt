@@ -3,3 +3,5 @@
 anthropic
 # Only for benchmarks/harness/optimize_prompt.py. The builder itself does not import it.
 gepa==0.1.4
+# Only to read a brief that is a PDF (builder/extraction/documents.py). Word and Excel files need nothing.
+pypdf

@@ -106,7 +106,26 @@ or `1,500.00`. Input files are read as UTF-8, with or without a byte order mark;
 UTF-8 is read as Windows-1254 and the trace says so. This is tested offline only
 (`tests/test_turkish.py`): no call was made in Turkish on the platform, an amount spoken in words
 ("bin beş yüz") is not read as a number, and the messages the runtime gives the phone model are in
-English. The brief is one Markdown or text file; a folder, DOCX, XLSX or PDF is not read.
+English.
+
+A case folder. The first argument may be a folder, and an https address in place of the tool API
+file is taken as `--mock-url`:
+
+```text
+python3 builder/build.py {case_folder} {mock_url}
+python3 builder/build.py cases/final-1 https://bank.example/v1 --export submission/final-1.workflow.json --trace traces/final-1.log
+```
+
+Every `.md`, `.txt`, `.docx`, `.xlsx` and `.pdf` file under the folder is a document, in the order of
+its path, each whole and under its own name (`builder/extraction/documents.py`). Word tables come
+out row by row, Excel sheets with sheet name, row number, column heading and cell (a formula as its
+formula and stored value, never computed), PDF pages under their page number. Nothing is summarised
+or translated, and two documents that disagree are both handed to the extraction as written; the
+extraction reads a later document as amending an earlier one, and "later" here is the order of the
+file paths. A file that cannot be read, a PDF without a text layer (no OCR) and a `.doc`, `.xls` or
+YAML file are `inputs | WARNING` lines in the trace, never a silent gap. The tool API is the file
+named as second argument or, if none is, the one OpenAPI document in JSON in the folder; with none or
+several the run ends `incomplete` and guesses nothing. PDF needs `pip install pypdf`.
 
 The two demonstration runs are in [demo/README.md](demo/README.md).
 
