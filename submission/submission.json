@@ -2,7 +2,7 @@
   "team": "EdizArkin",
   "members": [{ "name": "Ediz Arkın Kobak", "email": "arkinediz@gmail.com" }],
   "repo": "https://github.com/EdizArkin/freya-agent-builder",
-  "commit": "9064612108b3fe8611ca65f904d883a7979c050e",
+  "commit": "bab618b43e5de50dbc7927ae130b1db8bfdc6f7f",
   "run_command": ".venv/Scripts/python.exe -u builder/build.py final_case https://freya-bank-mock.edizarkin.workers.dev --slot final_case_r2 --new --export submission/final-r2.workflow.json --trace traces/final-r2.log --model-call-seconds 420 --max-dollars 15 --deadline-minutes 28 --max-tokens 48000 --coverage off",
   "workflow": "submission/final.workflow.json",
   "trace": "submission/final.log",
