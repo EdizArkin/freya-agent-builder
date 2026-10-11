@@ -62,8 +62,11 @@ def times(expr):
 
 def fixed(about):
     """The one value the tool API allows for a request field that is not the model's to fill (a header), or None:
-    its only allowed value, else the default the tool API gives it."""
+    its only allowed value, else the default the tool API gives it. A header that carries a credential has
+    none: whatever a document shows for it is a placeholder or a secret, and a build holds neither."""
     schema = about.get('schema') or {}
+    if about.get('in') == 'header' and about.get('credential'):
+        return None
     allowed = schema.get('enum') or []
     return allowed[0] if len(allowed) == 1 else schema.get('default')
 

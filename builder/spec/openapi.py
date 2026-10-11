@@ -4,6 +4,7 @@ import re
 from builder.spec.models import TOOLS
 
 METHODS = ('post', 'put', 'patch', 'get', 'delete')
+CREDENTIALS = ('authorization', 'proxyauthorization', 'cookie', 'apikey', 'xapikey', 'accesstoken', 'token', 'password', 'secret')       # names of values no build carries
 
 
 def resolve(document, schema):
@@ -59,7 +60,8 @@ class Api:
             if param.get('name') and param['name'] not in out:
                 schema = dict(self._resolve(param.get('schema') or {}))
                 schema.setdefault('description', str(param.get('description') or ''))
-                out[param['name']] = {'in': str(param.get('in') or 'query'), 'schema': schema, 'required': bool(param.get('required')) or param.get('in') == 'path'}
+                out[param['name']] = {'in': str(param.get('in') or 'query'), 'schema': schema, 'required': bool(param.get('required')) or param.get('in') == 'path',
+                                      'credential': re.sub(r'[^a-z]', '', str(param['name']).lower()) in CREDENTIALS}
         for name in re.findall(r'\{([^{}/]+)\}', entry['path']):
             out.setdefault(name, {'in': 'path', 'schema': {'type': 'string'}, 'required': True})
         props, required = self.body(tool)

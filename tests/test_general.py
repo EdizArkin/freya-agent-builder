@@ -300,6 +300,11 @@ class RequestsWithObjectsInside(unittest.TestCase):
         self.assertEqual(body['properties']['channel'], {'type': 'string', 'default': 'phone'}, 'one allowed value: sent, and not the model\'s to fill')
         self.assertEqual(body['required'], ['itemCode'])
         self.assertNotIn('Authorization', tools['shelf_lookup']['function']['parameters']['properties']['headers']['properties'])
+        shown = wrapped()
+        for item in shown['paths'].values():
+            item['post']['parameters'][0]['schema'] = {'type': 'string', 'default': 'Bearer <token>', 'enum': ['Bearer <token>']}
+        again, _ = build_workflow(copy.deepcopy(self.spec), shown)
+        self.assertNotIn('Authorization', json.dumps(again), 'a value a document shows for a credential header is never built in')
         config = {'url': 'https://depot.example.test/desk/v2/shelf.reserve', 'body': {'itemCode': 'K-12', 'days': '3', 'channel': 'phone', 'lang': '{' + '{lang}' + '}'}}
         run_hook(tools['shelf_reserve']['pre_process_code'], config=config)
         self.assertEqual(config['body'], {'payload': {'itemCode': 'K-12', 'days': 3}, 'meta': {'channel': 'phone'}})
