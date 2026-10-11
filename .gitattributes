@@ -1,0 +1,3 @@
+# The final deliverables are kept byte for byte as the builder wrote them: no line-ending conversion.
+/submission/final-r2.workflow.json -text
+/traces/final-r2.log -text

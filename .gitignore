@@ -297,9 +297,13 @@ temp/
 /demo/*/combined-brief.md
 # The trace of a real run and the workflow it exported are handed in by e-mail. They are written from the case
 # documents (rule text, tool addresses, what the documents disagree on) and stay out of the repository.
-/traces/
+/traces/*
 /submission/*
 !/submission/.gitkeep
+# The two final deliverables that submission.json names by their paths in this repository: the workflow the builder
+# exported and the trace of that run. Nothing else under these folders is published.
+!/submission/final-r2.workflow.json
+!/traces/final-r2.log
 
 # Freya workflow ids of deployed agents (written by --deploy)
 .freya-agents.json
