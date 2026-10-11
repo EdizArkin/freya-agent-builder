@@ -53,6 +53,7 @@ import sys
 import threading
 import time
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from builder import pipeline
 from builder.artifacts import store
@@ -403,6 +404,18 @@ def derived(args, briefs, sources, model, files, log, evidence):
     return document, str(kept)
 
 
+def rebased(mock, server):
+    """The address the tools are compiled for when --mock-url replaces the server of the tool API.
+
+    An address given with a path of its own is taken as it is. An address that is only a host stands in for the
+    host of the documented server: the path that server has is kept, so that every operation is called under
+    the same path as the documents give it."""
+    mock = str(mock).rstrip('/')
+    if urlsplit(mock).path.strip('/'):
+        return mock
+    return mock + urlsplit(str(server or '')).path.rstrip('/')
+
+
 def sha256(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
@@ -547,8 +560,10 @@ def main(argv=None, client=None, platform=None, evaluation=None, registry=versio
         if args.mock_url:
             # The bank of this run is at another address than the tool API file names: the tools are compiled for it.
             was = [server.get('url') for server in document.get('servers') or [] if isinstance(server, dict)]
-            document['servers'] = [{'url': args.mock_url.rstrip('/')}]
-            log('inputs | --mock-url: the tools are compiled for %s (the tool API file names %s)' % (args.mock_url.rstrip('/'), ', '.join(str(url) for url in was) or 'no server'))
+            now = rebased(args.mock_url, was[0] if was else '')
+            document['servers'] = [{'url': now}]
+            log('inputs | --mock-url: the tools are compiled for %s (the tool API file names %s)%s' % (
+                now, ', '.join(str(url) for url in was) or 'no server', '' if now == args.mock_url.rstrip('/') else ' | the path of the documented server is kept under the address given'))
         result['provenance'] = {'briefs': [{'file': str(b), 'sha256': sha256(b), 'bytes': Path(b).stat().st_size} for b in sources],
                                 'tool_api': {'file': str(args.tool_api), 'sha256': sha256(args.tool_api), 'bytes': Path(args.tool_api).stat().st_size}}
         for number, brief in enumerate(result['provenance']['briefs'], 1):
