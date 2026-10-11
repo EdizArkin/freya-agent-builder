@@ -6,7 +6,7 @@ import math
 from pathlib import Path
 
 from builder.runtime import runtime
-from builder.spec.models import GENERAL, TOOLS, carried, exprs, fixed, mapped
+from builder.spec.models import GENERAL, TOOLS, carried, exprs, field_of, fixed, mapped
 
 # The runtime module is embedded as source text, so it is located as a file, not used as an import.
 RUNTIME_SOURCE = Path(runtime.__file__)
@@ -437,13 +437,15 @@ HOW YOU WORK
 - After every tool result you must speak to the person or call the next tool. Never end a turn with nothing.
 - When a rule says to use a tool, CALL the tool. Saying it in words is not enough.
 - ONE tool call per message, never two. Tool calls sent together do not run in the order you wrote them. When two tools are needed, call the first, wait for its result, then call the second in a new message.
+- Your turn ends when you speak: the person answers next, and you cannot speak, call a tool and go on speaking in one turn. So before you speak, make every tool call (one after the other) that what you are about to say needs, including the question or offer your instructions put right after it. Then say it all in one turn. Never stop after a statement when your instructions go straight on to a question or an offer.
 - Say only what a tool result or your instructions give you. Never make up an amount, a date, a name, a number or an address, and never fill a gap from memory. Never say that something is done, sent, changed or recorded unless a tool result said so; when a call failed or was refused, nothing was done: tell the truth.
 - What the system knows at the start of the call is listed under CALL DATA. It is sent to the tools by the system. Never ask the person for any of it.
 - Never use your own idea of today's date or of the time. Today is what TODAY says, and the date of a day the person names in words (tomorrow, a weekday, next week) is in DAY NAMES. Never count days in your head. Compare two dates by their YYYY-MM-DD form: a date is later only if its YYYY-MM-DD is greater.
 - Send every value to a tool in the form the tool asks for. To the person, say amounts, dates and numbers the way a person says them aloud in {language}.
+- Fill a tool argument only with a value that comes from the person, from a tool result or from your instructions. If you have no such value for an argument that is not required, leave it out. Never make up a value to fill an argument.
 - People talk like people. They give a number or a date in two parts, correct themselves, mention unrelated things, or ask a question back. Wait until a value is complete before using it, always use the corrected value, never treat an unrelated remark as an answer, and after answering a question go back to the question you were asking.
 - Finish every sentence you start. When the person talks over you, or says they did not hear or understand you, answer them and then say the part they missed once more in one short sentence.
-- The call ends only through one of the ending tools listed under HOW THE CALL ENDS. Such a tool is always the last tool call of the call and always alone: first get the result of every other tool call, then say your last words and call it in the same message.
+- The call ends only through one of the ending tools listed under HOW THE CALL ENDS. Such a tool is always the last tool call of the call and always alone, after the result of every other tool call. When you have just told the person a result, a refusal or a limit, say the closing sentence your instructions give for it, but do not call the ending tool in that same turn: the person may still want something. Call it in your next turn, after their reply; if that reply is a new request, deal with it first as your instructions say. This holds also where a tool result or an instruction says "then end": then means after the person's reply. Call the ending tool in the same turn as your words only when the person has just said that they want nothing more, thanked you or said goodbye, or when the call ends because the person is silent or cannot be understood.
 
 """
 
@@ -460,6 +462,8 @@ def general_tool(entry, spec, api):
     name = entry['operation']
     fields, call_vars = api.fields(name), list(spec.get('call_variables') or [])
     filled = mapped(entry, fields, call_vars)
+    # Optional fields that nothing gives a value for (the spec's `omit`): not part of the tool, so that nothing can be made up for them.
+    omitted = {field_of(key, fields) for key in entry.get('omit') or [] if isinstance(key, str)}
     url, query = api.url(name), []
     body, required, headers, moved = {}, [], {'Content-Type': {'type': 'string', 'default': 'application/json'}}, {'path': [], 'query': []}
     for field, about in fields.items():
@@ -474,6 +478,8 @@ def general_tool(entry, spec, api):
                 headers[field] = {'type': 'string', 'default': hole}
             elif place == 'body':
                 body[field] = {'type': schema.get('type', 'string'), 'default': hole}
+            continue
+        if field in omitted and not about['required']:
             continue
         if place not in ('body', 'path', 'query'):
             if place == 'header' and carried(field, about) and fixed(about) is not None:
@@ -545,7 +551,7 @@ def compile_general(spec, api):
         words = str(ending.get('last_words') or '').strip()
         closing.append('- transition_to_' + ending['name'] + ': ' + ending['when'].strip().rstrip('.') + '. '
                        + ('Its closing sentence is spoken by the system when you call it: do not say a goodbye of your own before it.' if words
-                          else 'Say your last words to the person in the same message in which you call it.'))
+                          else 'You say the closing sentence of the case yourself; HOW YOU WORK says in which turn to call this tool after it.'))
     task = (rules['conversation'].strip()
             + '\n\nTOOLS IN THIS CALL: ' + (', '.join(names) + '. No other tool exists.' if names else 'none. You cannot look anything up or record anything.')
             + '\n\nCALL DATA (known to the system from the start of the call and sent to the tools by it; never ask the person for it): ' + (', '.join(call_vars) or 'none')

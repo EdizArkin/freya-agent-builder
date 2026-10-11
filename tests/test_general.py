@@ -233,6 +233,37 @@ class TheWorkflow(unittest.TestCase):
         self.assertEqual(self.workflow['nodes']['done']['terminal']['function']['parameters']['properties'], {'message_mode': {'type': 'string', 'default': 'none'}})
         self.assertIn('- transition_to_to_agent: The member asks for a person.', self.talk['task_message'])
 
+    def test_the_rules_say_that_speech_ends_a_turn_that_an_ending_waits_for_the_reply_and_that_no_argument_is_made_up(self):
+        rules = self.workflow['system_prompt']
+        for part in ('Your turn ends when you speak', 'make every tool call (one after the other) that what you are about to say needs, including the question or offer your instructions put right after it',
+                     'do not call the ending tool in that same turn: the person may still want something', 'if that reply is a new request, deal with it first',
+                     'only when the person has just said that they want nothing more, thanked you or said goodbye', 'Never make up a value to fill an argument.'):
+            self.assertIn(part, rules)
+        self.assertNotIn('call it in the same message', rules)
+        self.assertNotIn('in the same message in which you call it', self.talk['task_message'])
+        guidance = claude.general_prompt()
+        for part in ('your rules must have the model call that tool BEFORE it starts speaking and say both parts in one turn', 'state the limit, then ask or offer exactly that, and wait for the answer',
+                     'Never give the agent an alternative the documents do not give.', '"omit": ["<request field>"]'):
+            self.assertIn(part, guidance)
+
+    def test_an_optional_field_nothing_gives_a_value_for_is_left_out_and_a_required_one_never(self):
+        spec = copy.deepcopy(SPEC)
+        spec['tools'][1]['omit'] = ['notify']
+        workflow, _ = build_workflow(spec, copy.deepcopy(DERIVED))
+        tool = next(t for t in workflow['nodes']['talk']['tools'] if t['function']['name'] == 'change_delivery_day')
+        body = tool['function']['parameters']['properties']['body']
+        self.assertEqual(sorted(body['properties']), ['newDate', 'parcelId', 'recipientNo'], 'the model is not offered the field, so it cannot make a value up for it')
+        self.assertNotIn('notify', tool['pre_process_code'])
+        self.assertEqual(contract.check_general(workflow, api()), [])
+        self.assertIn('notify', self.body('change_delivery_day')['properties'], 'without `omit` the optional field stays the model\'s to fill')
+        for key, message in (('newDate', 'omit names newDate, which the tool API requires: a required field is never left out'), ('weight', "omit names 'weight', which is no request field"),
+                             ('recipientNo', 'omit names recipientNo, which is filled from a call variable')):
+            spec = copy.deepcopy(SPEC)
+            spec['tools'][1]['omit'] = [key]
+            with self.assertRaises(SpecError) as raised:
+                validate(spec, api())
+            self.assertIn(message, ' | '.join(raised.exception.problems))
+
     def test_nothing_of_a_collections_call_is_in_it(self):
         text = json.dumps(self.workflow)
         for name in ('verify_identity', 'get_account', 'create_promise', 'check_promise', 'close_call', 'rt_identity', 'rt_calendar'):
@@ -299,6 +330,10 @@ class RequestsWithObjectsInside(unittest.TestCase):
         self.assertEqual(body['properties']['memberNo'], {'type': 'string', 'default': '{{memberNumber}}'})
         self.assertEqual(body['properties']['channel'], {'type': 'string', 'default': 'phone'}, 'one allowed value: sent, and not the model\'s to fill')
         self.assertEqual(body['required'], ['itemCode'])
+        self.assertIn('lang', body['properties'])
+        without = copy.deepcopy(self.spec)
+        without['tools'][0]['omit'] = ['meta.lang']
+        self.assertNotIn('lang', build_workflow(without, wrapped())[0]['nodes']['talk']['tools'][0]['function']['parameters']['properties']['body']['properties'], 'a field inside an object is left out by its path')
         self.assertNotIn('Authorization', tools['shelf_lookup']['function']['parameters']['properties']['headers']['properties'])
         shown = wrapped()
         for item in shown['paths'].values():

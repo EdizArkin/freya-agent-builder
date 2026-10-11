@@ -62,6 +62,13 @@ def validate_general(spec, api, best_effort=False):
                         name, field, name, ', '.join('.'.join(about.get('path') or [key]) for key, about in fields.items()) or 'none'))
                     need(var in call_vars, 'tools: %s.variables fills %s from %r, which is no call variable' % (name, field, var))
                 filled = mapped(entry, fields, call_vars)
+            omitted = entry.get('omit', [])
+            if need(isinstance(omitted, list) and all(isinstance(key, str) for key in omitted), 'tools: %s.omit must be a list of request fields' % name):
+                for key in omitted:
+                    field = field_of(key, fields)
+                    if need(field, 'tools: %s.omit names %r, which is no request field of %s' % (name, key, name)):
+                        need(not fields[field]['required'], 'tools: %s.omit names %s, which the tool API requires: a required field is never left out' % (name, key))
+                        need(field not in filled, 'tools: %s.omit names %s, which is filled from a call variable' % (name, key))
             for field, about in fields.items():
                 if about['in'] not in ('body', 'path', 'query') and field not in filled and carried(field, about) and fixed(about) is None:
                     # A credential is the usual case. The builder holds none and sends none: said, and not a reason to build nothing.
