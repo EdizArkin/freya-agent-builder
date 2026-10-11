@@ -4,12 +4,14 @@
 
 Nothing is implemented here. Phase 2 does that, after approval.
 
+**Correction, added after two live probes.** This report said that speech reaches no code. That was read from the engine's routing table and is wrong for hooks: a pre-hook's variables include `system.conversation`. When this correction was first due, its contents and reliability were not established; what one probe then showed, and what it did not, is in `m18-phase2-conversation-probe.md`. The probes also verified that a pre-hook reads the customer-turn counter and can remove body fields. The passages below are corrected where they said otherwise; the design of section 5 stands and gains a condition.
+
 ## Verdict in short
 
 | Question | Answer |
 | --- | --- |
 | Why was the read-back skipped? | The rule exists only as text for the phone model, the customer gave a direct order against it, and nothing in the runtime can see whether a read-back took place. One request, sent in the turn after the customer's order, recorded the promise |
-| Can a hook prove that the customer said yes to a read-back? | **No.** A hook sees the request and the workflow variables. The variables of the failing call were inspected one by one: none holds what was said. Speech reaches no code |
+| Can a hook prove that the customer said yes to a read-back? | **Not prove.** Corrected: a pre-hook's variables include `system.conversation`, which the routing table of the failing call did not show. A hook can therefore look at what was said; whether that is reliable enough to count as evidence is the subject of the phase 2 probe report |
 | What can be enforced deterministically? | The order of events and the exact values: a promise is recorded only if the same product, amount and date were registered beforehand through a step whose answer hands the model the read-back. This uses only mechanisms that were seen working live |
 | Can "the customer answered after the read-back" be enforced? | Probably, not yet verified. The engine keeps a counter of customer turns in the same table the hooks write to. Whether a hook can read it has to be probed in one live call before it is relied on |
 | Recommendation | A registered read-back: a step `check_promise` that validates and registers the values and returns what to read back, and a `create_promise` that is refused unless its values equal a registration, with the turn counter as a second condition where it is readable. Section 5 |
@@ -66,13 +68,13 @@ Verified means: seen in a live call of this project. Where a line says documente
 | The body of the request the model sent | What the model claims. Never proof of anything said | Verified |
 | Variables a hook wrote in an earlier turn | Trustworthy: only hooks write them. Persist across turns, also when the call that wrote them was then blocked | Verified (M13, M14, M17: the close guard and the refused callback both relied on it) |
 | Variables written by another call of the same message | Not visible to a pre-hook; for one variable the last writer wins | Verified (M14.3). Consequence: two calls sent together can never satisfy a two-step rule, which is the safe direction |
-| What the customer or the agent said | **Not available.** The variable table just before the failing request was read entry by entry: call variables, the runtime's own `rt_` variables, tool results, turn counters, clock values. No transcript. `{{system.conversation}}` is a template for prompts, not a variable | Verified absent in the table |
+| What the customer or the agent said | Corrected: **exposed to a pre-hook as `system.conversation`.** The routing table just before the failing request, read entry by entry, has no transcript, and this report concluded from it that none reaches code. A probe showed the key in a hook's `vars`. Contents and reliability: see `m18-phase2-conversation-probe.md` | Absent in the routing table; present in a hook |
 | A transcript or a counter passed through a templated request field | Not usable. A `{{var}}` default is resolved once, when the node is entered | Documented |
-| `negotiate.total_turns`: customer turns in the node | Written by the engine, not by the model. It was 1 in the table between the customer's order and the request | Present in the engine's table: verified. **Readable inside a pre-hook: not verified.** One earlier observation is negative for a different engine-written key: in M14.3 the arguments of a call were in the table but not in the `vars` of its post-hook |
+| `negotiate.total_turns`: customer turns in the node | Written by the engine, not by the model. It was 1 in the table between the customer's order and the request | Present in the engine's table: verified. **Readable inside a pre-hook: verified by the first probe**, after this report was written; the text that follows was the state before it. One earlier observation is negative for a different engine-written key: in M14.3 the arguments of a call were in the table but not in the `vars` of its post-hook |
 | A second model reading the customer's turn (an extraction schema on the node) | A model's judgment, not deterministic; adds a model call to every turn | Documented, never used in this project |
 | Wall-clock time in a hook | Available. Useless: in M17 a refused request was repeated after 7 s without a customer turn, a real confirmation took 3 s | Verified |
 
-**Feasibility.** A gate that proves the customer's acceptance is not possible: no trustworthy evidence of speech reaches the code. What is possible is a gate on what the runtime itself witnessed:
+**Feasibility.** A gate that proves the customer's acceptance is not possible. (Corrected: speech does reach a pre-hook, through `system.conversation`; a hook can check words, which is evidence and not proof.) What is possible is a gate on what the runtime itself witnessed:
 
 - **Exactness and order, from verified evidence alone.** A promise is recorded only for values that were registered beforehand, to the cent and to the day, for that product.
 - **An intervening customer turn**, if a hook can read the engine's counter. That turns "registered beforehand" into "registered, then the customer spoke, then recorded".
