@@ -28,12 +28,12 @@ builder/
   validation/contract.py   does a request, or a compiled tool, agree with the tool API?
   compiler/compiler.py     spec + API -> workflow; embeds the runtime
   runtime/runtime.py       the deterministic runtime, embedded as source
-  freya/client.py          loads the starter kit's freya.py
+  freya/client.py          loads the starter kit's freya.py and its case runner
   freya/deployment.py      dry run, save and publish, export
-  freya/versioning.py      slot registry and deployment record
-  evaluation/simulation.py the kit's practice customers on Freya
+  freya/versioning.py      slot registry, deployment record, version ids
+  evaluation/simulation.py named simulations on Freya; transcript checks
   tracing/trace.py         the build trace, with redaction
-  artifacts/store.py       outputs/<build-id>/ and its file names
+  artifacts/store.py       outputs/<build-id>/, its file names, the version archive
 tests/                     offline tests, one file per area
 outputs/                   build artifacts (git-ignored)
 local_freya/               the official starter kit (git-ignored)
@@ -83,8 +83,9 @@ Arrows read "imports". `pipeline` imports everything and nothing imports `pipeli
 | `freya/deployment` | `freya/versioning` |
 
 Only three modules can leave the process: `extraction/claude` (the Anthropic SDK, imported
-inside the call), `freya/client` (loads the kit client) and `evaluation/simulation`
-(starts the kit's test script).
+inside the call), `freya/client` (loads the kit client and the kit's case runner) and
+`evaluation/simulation` (starts simulations through the modules it is handed; it opens no
+connection of its own).
 
 ## agent-spec/1
 
@@ -104,11 +105,13 @@ explanations is the prompt in `extraction/claude.py`.
 
 Every field added in M15 and M16 is optional; a spec without it compiles to the behaviour it had.
 
-The four M16 fields are checked by validation, compiled and enforced by the runtime, but **the
-extraction prompt does not describe them**: the prompt was frozen for the M15 evaluation and has
-not been changed since. An extraction therefore still reports such a rule under `unsupported`.
-Until the prompt names them, they reach a build only through a spec that is edited by hand and
-passed with `--spec`.
+The extraction prompt exists in versions (`extraction/claude.py`, `PROMPT_VERSIONS`). `v1` is the
+prompt of M15, kept word for word: its digest `083c66052cdf131b` is the one in the M15 exposure
+log, and a test holds it there. `v2`, the default since M17, describes the four M16 fields and
+changes nothing else; the three sections a prompt optimisation may replace are the same in both.
+A build records the version and the digest it used in `build.json` and in its trace;
+`--prompt-version v1` asks for the old one. What was verified with `v2`, and what was not, is in
+`benchmarks/reports/m17-closure.md`.
 
 Two names are not in the spec at all, because the tool API states them: the true/false field that
 every answer carries (the success flag) and the body fields that are filled from call variables
@@ -356,7 +359,7 @@ adding a note for each product without a promise before closing.
 | Tool API contract | `validation/contract.py`, on every build as trace lines, never a reason to fail; on every request the benchmarks play | Compiled tools and outgoing requests have the URL, method, fields, types and allowed values of the tool API. A keyword of the document it does not implement is reported as not checked |
 | Platform dry run | `freya/deployment.py`, with `--deploy` | The platform accepts the workflow |
 | Offline tests | `tests/`, with `tests/freya_sim.py` standing in for the engine and the bank | The runtime does the right thing when given a tool call |
-| Real evaluation | `evaluation/simulation.py`, with `--test` | A phone agent on Freya handles the practice customers |
+| Real evaluation | `evaluation/simulation.py`, with `--test`; `benchmarks/harness/live.py` for single scenarios | A phone agent on Freya handles the practice customers. Every simulation is named by `simulation_name` (run, brief, scenario, expected result, version); a case passes when the bank's ledger and the platform's judge both pass, by the kit's scoring. A simulation is a text chat and shows nothing about audio |
 
 The offline tests play the phone model's tool calls by hand. They say nothing about what
 the phone model will actually do.
@@ -387,10 +390,18 @@ outputs/<build-id>/
   spec.json                 the agent-spec/1 used
   workflow.json             the compiled, locally validated workflow
   trace.txt                 the run: start, end, each model call, platform actions, tests
+  build.json                the version id of this build and where its spec came from
   deployment.json           with --deploy
   exported.workflow.json    with --deploy; the file to submit
   evaluation.json           with --test
+  versions/<version-id>/    spec.json, workflow.json, build.json of one version; written once
 ```
+
+The files at the top of the folder belong to the latest build of the slot and are replaced by the
+next one. A version id (`wf-` and twelve hex digits) is the hash of the compiled workflow, so the
+same spec compiled by the same builder has the same id everywhere. `versions/<version-id>/` is
+never rewritten: it is what a later build is compared with, and what can be deployed again
+(`--spec outputs/<slot>/versions/<version-id>/spec.json`). Nothing in the builder rolls back.
 
 ## Verified and not verified
 
@@ -420,6 +431,15 @@ Not yet verified live:
 Not verified live after M15: any workflow built with the code of this milestone. The runtime and the
 hook wrappers changed, and the workflows are larger (Brief A about 232 KB, Brief A+B about 258 KB;
 the largest accepted so far was about 231 KB).
+
+Verified in live calls on 2026-10-11 (M17), with the code of M16 and prompt `v2`: three agents
+extracted, compiled, stored unchanged by Freya (up to 277 KB) and simulated in 28 calls; the four
+rule fields of M16 extracted from a document; a callback inside a closed period refused by its
+pre-hook with nothing recorded at the bank; no forbidden record in any call. Not verified there:
+audio, the pre-hook refusal for the other three fields (the phone model never sent the forbidden
+value), and any workflow of packages C to G in a call. One prompt-only rule was broken live: a
+customer asked to skip the read-back and the promise was recorded without it. The full account is
+`benchmarks/reports/m17-closure.md`.
 
 Other limits: the tests and `--deploy` need the git-ignored starter kit; persuasion
 counting and other conversational rules are prompt-dependent; the tool names are assumed

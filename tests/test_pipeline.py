@@ -11,11 +11,17 @@ from builder import pipeline
 from builder.config import settings
 from builder.extraction import claude
 from builder.freya import client as freya_client
+from builder.freya import versioning
 from tests.fixture_spec import spec as fixture
 from tests.support import KIT
 
 FLAGS = ('--brief', '--tool-spec', '--slot', '--out', '--spec', '--live-extract', '--model', '--max-tokens',
-         '--best-effort', '--deploy', '--test', '--kit', '--env-file')
+         '--best-effort', '--deploy', '--test', '--kit', '--env-file', '--strategy', '--prompt-version')
+
+
+def top(files):
+    """The files of a build without its archived versions."""
+    return sorted(f for f in files if '/versions/' not in f)
 
 
 class Build(unittest.TestCase):
@@ -33,8 +39,15 @@ class Build(unittest.TestCase):
     def test_offline_build_writes_spec_workflow_and_trace(self):
         code, files = self.run_build('--spec', 'SPEC')
         self.assertEqual(code, 0)
-        self.assertEqual(sorted(files), ['brief-b/spec.json', 'brief-b/trace.txt', 'brief-b/workflow.json', 'in.json'])
+        self.assertEqual(top(files), ['brief-b/build.json', 'brief-b/spec.json', 'brief-b/trace.txt', 'brief-b/workflow.json', 'in.json'])
         workflow = json.loads(files['brief-b/workflow.json'])
+        # The build is archived under its version id: the same three files, kept apart from the next build of the slot.
+        built = json.loads(files['brief-b/build.json'])
+        self.assertEqual(built['version_id'], versioning.version_id(workflow))
+        self.assertEqual(built['source']['kind'], 'reused spec')
+        kept = 'brief-b/versions/%s/' % built['version_id']
+        self.assertEqual(sorted(f for f in files if '/versions/' in f), [kept + 'build.json', kept + 'spec.json', kept + 'workflow.json'])
+        self.assertEqual(files[kept + 'workflow.json'], files['brief-b/workflow.json'])
         self.assertEqual(workflow['initial_node'], 'setup')
         self.assertIn('add_note', [t['function']['name'] for t in workflow['nodes']['negotiate']['tools']])
         self.assertEqual(json.loads(files['brief-b/spec.json']), fixture(True))
@@ -70,10 +83,15 @@ class Build(unittest.TestCase):
         self.assertEqual((code, calls), (0, ['dry', 'save', 'export']))
         for part in ('model call: replay', 'saved and published workflow w1 | agent a1'):
             self.assertIn(part, files['brief-b/trace.txt'])
-        self.assertEqual(sorted(files), ['brief-b/deployment.json', 'brief-b/exported.workflow.json', 'brief-b/spec.json',
-                                         'brief-b/trace.txt', 'brief-b/workflow.json', 'in.json'])
+        self.assertEqual(top(files), ['brief-b/build.json', 'brief-b/deployment.json', 'brief-b/exported.workflow.json', 'brief-b/spec.json',
+                                      'brief-b/trace.txt', 'brief-b/workflow.json', 'in.json'])
         record = json.loads(files['brief-b/deployment.json'])
         self.assertEqual((record['slot'], record['workflow_id'], record['agent_id']), ('brief-b', 'w1', 'a1'))
+        built = json.loads(files['brief-b/build.json'])
+        self.assertEqual(record['version_id'], built['version_id'])
+        self.assertEqual(built['source'], {'kind': 'extraction', 'strategy': 'single', 'prompt_version': claude.PROMPT_VERSION,
+                                           'prompt_digest': claude.prompt_digest(), 'model': settings.DEFAULT_MODEL})
+        self.assertIn('extraction strategy: single | prompt %s (digest %s)' % (claude.PROMPT_VERSION, claude.prompt_digest()), files['brief-b/trace.txt'])
 
     def test_failures_set_the_exit_code_and_name_the_stage(self):
         broken = fixture(True)
@@ -133,7 +151,7 @@ class CommandLine(unittest.TestCase):
                                   capture_output=True, text=True)
             self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
             self.assertIn('build end | ok', done.stdout)
-            self.assertEqual(sorted(p.name for p in (Path(tmp) / 'cli').iterdir()), ['spec.json', 'trace.txt', 'workflow.json'])
+            self.assertEqual(sorted(p.name for p in (Path(tmp) / 'cli').iterdir()), ['build.json', 'spec.json', 'trace.txt', 'versions', 'workflow.json'])
 
 
 if __name__ == '__main__':

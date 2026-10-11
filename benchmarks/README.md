@@ -2,7 +2,7 @@
 
 An independent set of adversarial scenarios for the Freya agent builder, with a harness that runs them offline. It adds to the official practice cases of the starter kit and changes none of them.
 
-Nothing here calls Anthropic, Freya or the bank. Nothing here changes the builder.
+Nothing here calls Anthropic, Freya or the bank unless a command is given `--live` (the extraction experiments and `harness/live.py`). Nothing here changes the builder.
 
 ## What a result means
 
@@ -25,11 +25,14 @@ benchmarks/
     brief-*.api.yaml                         what each assumes of the tool API, as changes to the shared file
     brief-*.spec.yaml                        a hand-written reference spec for each
     brief-*.scenarios.yaml                   37 scenarios
+    m16-rules.memo.md                        a memo that amends Brief A and B with the four rule kinds of M16
   expected/ledger_assertions.yaml     what the bank must hold after each scenario
+  live/m17.scenarios.json             scenarios for a live run on Freya, on the accounts of practice cases
   harness/
     scenarios.py                      loads and checks the definitions, builds the simulated call
     assertions.py                     what can be asserted and how
     run_benchmarks.py                 the command
+    live.py                           builds behind a spending limit, named simulations on Freya, records
   reports/latest.md, latest.json      written by the last run
 ```
 
@@ -146,9 +149,26 @@ Their reference specs are written by hand. They show what the schema can hold fo
 
 ## Running scenarios on Freya
 
-Not done by this harness, and not done so far.
+`harness/live.py` does this since M17. It calls nothing without `--live`.
 
-The bank creates a practice session from a case id only, so a live scenario has to use the account of one of the kit's thirteen practice cases. Sixteen scenarios do. For them
+```
+python benchmarks/harness/live.py plan      --scenarios benchmarks/live/m17.scenarios.json     the simulations and their names; calls nothing
+python benchmarks/harness/live.py build     --slot S --brief B.md --tool-spec API.json --max-dollars 2 --live [--deploy]
+python benchmarks/harness/live.py dev       --packages c d e --max-dollars 2 --live              development packages only
+python benchmarks/harness/live.py dry-run   --slot S --spec SPEC.json --tool-spec API.json --live  the platform validates, nothing is stored
+python benchmarks/harness/live.py inspect   --slot S --live                                     what Freya stored against what was sent
+python benchmarks/harness/live.py simulate  --slot S --public A --live                          the practice cases of a brief as one named simulation
+python benchmarks/harness/live.py simulate  --slot S --scenarios FILE --agent m16 --live
+python benchmarks/harness/live.py summary                                                       per workflow version, from the index
+```
+
+- **Names and grouping.** One simulation per agent and suite, named by `builder.evaluation.simulation.suite_name`: `M17 | A | Regression | v1`, `M17 | M16 | Safety | v1` (run, brief, suite, version of the workflow). Every scenario of the suite is one persona of that simulation, named by its id and title, with its own bank session, call, tool trace, ledger and verdict; a simulation is refused before it starts if two of its scenarios would share a bank customer or a persona. `--each` runs one simulation per scenario instead, named `M17 | A | Happy Path | Success | v1` (`simulation_name`). A suite run again is `... | v1 r2`. Simulations of earlier runs keep the names they have.
+- **Records.** `outputs/<run>/index.jsonl` has one line per simulation: its id, its name, the workflow id, the version id and the result of each scenario. The transcript, every tool call with its request, the bank's ledger and both verdicts are in `outputs/<run>/simulations/<simulation id>.json`. The same index lines are kept with the version they tested, in `outputs/<slot>/versions/<version id>/results.jsonl`.
+- **Money.** `build` and `dev` put the extraction model behind one limit for the whole run: every call is written to `outputs/<run>/spend.json` and counted by the next command, a call is made only if the limit covers it at its most, and there is no model fallback.
+- **Scenarios** of `benchmarks/live/` borrow the bank account of a practice case (`bank_case`), because the bank opens a session only for one. The file holds no account data of the kit: amounts are placeholders that are filled from the local kit when a scenario runs.
+- **What a pass means.** The bank's ledger holds exactly the expected records and the platform's judge found every check true in the transcript: the kit's rule. A simulation is a text chat. It shows nothing about audio.
+
+The older export for the kit's own runner still exists. The bank creates a practice session from a case id only, so a live scenario has to use the account of one of the kit's thirteen practice cases. Sixteen scenarios of the offline suite do. For them
 
 ```
 python benchmarks/harness/run_benchmarks.py --export-live outputs/benchmarks/live

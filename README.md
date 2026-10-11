@@ -20,7 +20,7 @@ python -m venv .venv
 ```
 
 Put the official starter kit in `local_freya/starter_kit/` (git-ignored). The builder uses its
-`freya.py` to deploy and its `tools/run_cases.py` to test. Put keys in `.env.sh` at the repo
+`freya.py` to deploy, and the customer text and ledger scoring of its `tools/run_cases.py` to test. Put keys in `.env.sh` at the repo
 root, using the names in [.env.example](.env.example). Keys are read from there or from the
 process environment and are never printed or written to an artifact.
 
@@ -37,7 +37,9 @@ Nothing leaves the machine unless a flag allows it:
 | `--live-extract` | Permit the Anthropic API call that produces the spec |
 | `--spec FILE` | Reuse an already extracted spec instead (no model call) |
 | `--deploy` | Permit Freya: dry-run validation, save **and publish**, export |
-| `--test A` | After `--deploy`, run the kit's practice customers for that brief letter |
+| `--test A` | After `--deploy`, run the kit's practice customers for that brief letter as one simulation, named after the slot, the brief and the version |
+| `--strategy single\|audit\|double` | How the spec is extracted. Default `single`; `audit` is the configuration selected in M15 |
+| `--prompt-version v1\|v2` | Version of the extraction prompt. Default `v2`, which describes the four rule fields of M16; `v1` is the prompt of M15 |
 | `--slot NAME` | Name of the agent and of the build folder. Default: last brief's file name |
 | `--model ID` | Extraction model. Default `BUILDER_LLM_MODEL`, else `claude-sonnet-5-5` |
 | `--best-effort` | Compile even if the extractor reports policy it could not express |
@@ -63,7 +65,9 @@ One folder per build, in `outputs/` (git-ignored). A file exists only if its sta
 | `outputs/<slot>/spec.json` | The agent-spec/1 the build used |
 | `outputs/<slot>/workflow.json` | The compiled, locally validated Freya workflow |
 | `outputs/<slot>/trace.txt` | The run's trace: start and end, each model call, what was done on Freya, tests |
-| `outputs/<slot>/deployment.json` | Workflow id, agent id, created or updated, platform version, hash of the local workflow |
+| `outputs/<slot>/build.json` | The version id of the build (the hash of the workflow), and where the spec came from: a reused file, or the strategy, prompt version and model of the extraction |
+| `outputs/<slot>/versions/<version-id>/` | The spec, workflow and build record of one version. Written once and never changed |
+| `outputs/<slot>/deployment.json` | Workflow id, agent id, created or updated, version id, platform version, hash of the local workflow |
 | `outputs/<slot>/exported.workflow.json` | The workflow as stored on Freya. This is the file to submit |
 | `outputs/<slot>/evaluation.json` | Practice-customer results, with `--test` |
 

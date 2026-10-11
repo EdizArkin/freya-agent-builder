@@ -4,7 +4,8 @@
 
 Without flags nothing leaves this machine. --live-extract permits the Anthropic
 call, --deploy permits creating/updating the workflow on Freya, --test runs the
-kit's practice customers against it. Every run writes outputs/<slot>/trace.txt.
+kit's practice customers against it as one named simulation. Every run writes
+outputs/<slot>/trace.txt and archives its spec and workflow under their version id.
 """
 import argparse
 import json
@@ -17,7 +18,7 @@ from builder.config import settings
 from builder.evaluation import simulation
 from builder.extraction import claude
 from builder.freya import client as freya_client
-from builder.freya import deployment
+from builder.freya import deployment, versioning
 from builder.spec.models import SpecError
 from builder.spec.openapi import Api
 from builder.tracing.trace import Trace
@@ -56,6 +57,7 @@ def arguments(argv=None):
     p.add_argument('--spec', help='reuse an already extracted spec file instead of calling the model')
     p.add_argument('--live-extract', action='store_true', help='permit the Anthropic API call')
     p.add_argument('--strategy', choices=claude.STRATEGIES, default='single', help='how the spec is extracted: one call (single), one call and a targeted audit, or two calls and an adjudication (double)')
+    p.add_argument('--prompt-version', choices=sorted(claude.PROMPT_VERSIONS), default=claude.PROMPT_VERSION, help='version of the extraction prompt')
     p.add_argument('--model', help='extraction model; default BUILDER_LLM_MODEL or ' + settings.DEFAULT_MODEL)
     p.add_argument('--max-tokens', type=int, default=settings.MAX_TOKENS)
     p.add_argument('--best-effort', action='store_true', help='compile even if the extractor reports policy it could not express')
@@ -66,7 +68,8 @@ def arguments(argv=None):
     return p.parse_args(argv)
 
 
-def main(argv=None):
+def main(argv=None, client=None):
+    """`client` replaces the extraction model client, for a run behind a spending limit or a replay."""
     a = arguments(argv)
     slot = a.slot or Path(a.brief[-1]).stem
     files = store.BuildStore(a.out, slot)
@@ -84,13 +87,16 @@ def main(argv=None):
         # 2. the spec: reused, or extracted by the model and repaired until it validates
         if a.spec:
             spec = json.loads(Path(a.spec).read_text(encoding='utf-8'))
+            source = {'kind': 'reused spec', 'file': str(a.spec)}
             trace('spec: reused from %s (no model call)' % a.spec)
         elif a.live_extract:
-            model = claude.AnthropicClient(a.model, a.max_tokens)
+            model = client or claude.AnthropicClient(a.model, a.max_tokens)
             check = lambda candidate: validate(candidate, api, a.best_effort)
-            trace('extraction strategy: ' + a.strategy)
+            source = {'kind': 'extraction', 'strategy': a.strategy, 'prompt_version': a.prompt_version,
+                      'prompt_digest': claude.prompt_digest(version=a.prompt_version), 'model': model.model}
+            trace('extraction strategy: %s | prompt %s (digest %s)' % (a.strategy, a.prompt_version, source['prompt_digest']))
             spec = claude.run(a.strategy, briefs, json.dumps(document, separators=(',', ':')), model, check, trace,
-                              digest=lambda one, other=None: digest(one, api, other))
+                              digest=lambda one, other=None: digest(one, api, other), system=claude.system_prompt(version=a.prompt_version))
         else:
             raise SystemExit('No spec source: pass --live-extract to call the model, or --spec FILE to reuse one.')
         if leaks(spec):
@@ -105,13 +111,18 @@ def main(argv=None):
         for line in report['contract']:
             trace('tool API contract: ' + line)
         trace('compiled and locally validated: %s | %d bytes | nodes %s' % (workflow_path, report['bytes'], ', '.join(report['nodes'])))
+        built = versioning.build_record(slot, spec, workflow, source)
+        files.write_json(store.BUILD, built)
+        trace('version %s archived: %s' % (built['version_id'], files.archive(built['version_id'], spec, workflow, built)))
 
         # 4. the platform, only when asked
         if a.deploy:
             record = deployment.deploy(freya_client.load(a.kit), slot, workflow, files.path(store.EXPORT), trace)
             files.write_json(store.DEPLOYMENT, record)
             if a.test:
-                simulation.run_practice_cases(a.kit, record['agent_id'], a.test, files.path(store.EVALUATION), trace)
+                cases = json.loads((Path(a.kit) / 'public-test-set.json').read_text(encoding='utf-8'))
+                simulation.run_practice_cases(freya_client.load_runner(a.kit), record['agent_id'], a.test, cases, files.path(store.EVALUATION), trace,
+                                              label=slot, version=built['version_id'])
         elif a.test:
             raise SystemExit('--test needs --deploy')
         code = 0

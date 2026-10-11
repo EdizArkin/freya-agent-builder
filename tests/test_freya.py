@@ -1,13 +1,11 @@
 """builder/freya and builder/evaluation with a fake platform client. No test here reaches Freya."""
 import json
-import subprocess
 import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
 
 from builder.artifacts import store
-from builder.evaluation import simulation
 from builder.freya import client, deployment, versioning
 
 
@@ -70,8 +68,9 @@ class Deployment(unittest.TestCase):
                 self.assertIsNone(versioning.known('s', path))
         self.assertEqual(versioning.REGISTRY.name, '.freya-agents.json')
         record = versioning.deployment_record('s', {'workflow_id': 'w', 'agent_id': 'a', 'version': 4}, {'b': 1, 'a': 2}, False)
-        self.assertEqual(sorted(record), ['agent_id', 'deployed_at', 'local_workflow_sha256', 'operation', 'platform_version', 'slot', 'workflow_id'])
+        self.assertEqual(sorted(record), ['agent_id', 'deployed_at', 'local_workflow_sha256', 'operation', 'platform_version', 'slot', 'version_id', 'workflow_id'])
         self.assertEqual(record['local_workflow_sha256'], versioning.workflow_hash({'a': 2, 'b': 1}))
+        self.assertEqual(record['version_id'], 'wf-' + record['local_workflow_sha256'][:12])
 
     def test_the_client_is_the_kit_module_loaded_from_the_given_folder(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -83,16 +82,14 @@ class Deployment(unittest.TestCase):
 
 
 class Evaluation(unittest.TestCase):
-    def test_practice_cases_run_through_the_kit_and_land_in_the_trace(self):
-        lines = []
-        done = mock.Mock(returncode=0, stdout='PASS PUB-01\n9 / 10 passed\n', stderr='warning: slow\n')
-        with mock.patch.object(subprocess, 'run', return_value=done) as run:
-            code = simulation.run_practice_cases('kit/folder', 'agent-1', 'A', Path('out') / 'evaluation.json', lines.append)
-        cmd, kwargs = run.call_args[0][0], run.call_args[1]
-        self.assertEqual(cmd[1:], ['tools/run_cases.py', 'agent-1', '--brief', 'A', '--out', str(Path('out') / 'evaluation.json')])
-        self.assertEqual((code, kwargs['cwd']), (0, 'kit/folder'))
-        self.assertEqual(lines, ['test: tools/run_cases.py agent-1 --brief A --out ' + str(Path('out') / 'evaluation.json'),
-                                 'test| PASS PUB-01', 'test| 9 / 10 passed', 'test| warning: slow'])
+    def test_the_runner_is_the_kit_module_and_is_loaded_without_running_it(self):
+        # What a simulation does with the runner, and how it is named, is in tests/test_m17.py.
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / 'tools').mkdir()
+            (Path(tmp) / 'tools' / 'run_cases.py').write_text(
+                'RAN = []\ndef persona_for(case, ident, style=None):\n    return case["id"]\nif __name__ == "__main__":\n    RAN.append(1)\n')
+            runner = client.load_runner(tmp)
+        self.assertEqual((runner.persona_for({'id': 'PUB-01'}, {}), runner.RAN), ('PUB-01', []))
 
 
 class Artifacts(unittest.TestCase):

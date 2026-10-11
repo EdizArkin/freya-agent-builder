@@ -154,12 +154,13 @@ def reference_for(pid, reference='latest'):
     return packages.references(pid)[-1] if reference == 'latest' else reference
 
 
-def extract_one(pid, strategy, client, sections=None, purpose=None, config=None, candidates=None, relabel=None):
+def extract_one(pid, strategy, client, sections=None, purpose=None, config=None, candidates=None, relabel=None, version=None):
     """One extraction of one package. Reads the inputs of the package and nothing of its key."""
     problems = packages.verify(pid)
     if problems:
         raise RuntimeError('package %s differs from the frozen manifest: %s' % (pid, '; '.join(problems)))
-    config = dict(config or {}, strategy=strategy, prompt=claude_hash(sections))
+    version = version or claude.PROMPT_VERSION
+    config = dict(config or {}, strategy=strategy, prompt=claude_hash(sections, version), prompt_version=version)
     # A selection or final package is on the record, or refused, before any model sees it.
     rules.expose(pid, purpose, config, relabel, candidates)
     documents, document = packages.inputs(pid)
@@ -167,13 +168,13 @@ def extract_one(pid, strategy, client, sections=None, purpose=None, config=None,
     started, at = time.perf_counter(), time.strftime('%Y-%m-%dT%H:%M:%S%z')
     try:
         spec = claude.run(strategy, documents, json.dumps(document, separators=(',', ':')), client, lambda s: validate(s, api, True), lines.append,
-                          digest=lambda one, other=None: digest(one, api, other), system=claude.system_prompt(sections), usage=usage)
+                          digest=lambda one, other=None: digest(one, api, other), system=claude.system_prompt(sections, version), usage=usage)
         failure = None
     except SpecError as exc:
         spec, failure = None, 'no valid spec after the repair turns: ' + '; '.join(exc.problems)[:600]
     seconds = round(time.perf_counter() - started, 2)
     waits = [float(u.get('seconds') or 0.0) for u in usage]
-    return {'package': pid, 'tier': packages.tier(pid), 'strategy': strategy, 'prompt': config['prompt'], 'started_at': at, 'spec': spec, 'failure': failure,
+    return {'package': pid, 'tier': packages.tier(pid), 'strategy': strategy, 'prompt': config['prompt'], 'prompt_version': version, 'started_at': at, 'spec': spec, 'failure': failure,
             'usage': usage, 'trace': lines, 'model': getattr(client, 'model', None),
             # Wall clock of the whole extraction, as a builder run would wait for it; the part spent waiting for
             # the model; and the slowest single call.
@@ -187,6 +188,7 @@ def judge(done, reference='latest', label=''):
     started = time.perf_counter()
     report = rules.evaluate(pid, spec, version) if spec is not None else None
     row = dict({'package': pid, 'tier': done['tier'], 'reference': version, 'strategy': done['strategy'], 'label': label, 'prompt': done['prompt'],
+                'prompt_version': done.get('prompt_version'),
                 'valid': spec is not None, 'failure': done['failure'],
                 'calls': len(usage), 'repair_turns': sum('repair the spec' in str(u.get('purpose')) for u in usage),
                 'input_tokens': sum(u.get('input_tokens') or 0 for u in usage), 'output_tokens': sum(u.get('output_tokens') or 0 for u in usage),
@@ -213,9 +215,9 @@ def save(folder, done, row=None, report=None):
         (folder / 'rules.json').write_text(json.dumps(report, indent=1, default=str), encoding='utf-8')
 
 
-def run_one(pid, strategy, client, sections=None, purpose=None, config=None, candidates=None, relabel=None, out=None, label='', reference='latest'):
+def run_one(pid, strategy, client, sections=None, purpose=None, config=None, candidates=None, relabel=None, out=None, label='', reference='latest', version=None):
     """Extract one package with one strategy and evaluate it. Returns the row of the result table and the report."""
-    done = extract_one(pid, strategy, client, sections, purpose, config, candidates, relabel)
+    done = extract_one(pid, strategy, client, sections, purpose, config, candidates, relabel, version)
     row, report = judge(done, reference, label)      # the key is read only now
     if out:
         save(Path(out) / ('%s-%s%s' % (pid, strategy, ('-' + label) if label else '')), done, row, report)
@@ -314,9 +316,10 @@ def run_batch(pid, candidates, client, purpose, out, commit, relabel=None, resum
     return rows, summary
 
 
-def claude_hash(sections=None):
-    import hashlib
-    return hashlib.sha256(claude.system_prompt(sections).encode('utf-8')).hexdigest()[:16]
+def claude_hash(sections=None, version=None):
+    """The digest that names a prompt in every record. Without a version it is the prompt a build uses today;
+    the records of M15 carry the digest of version v1."""
+    return claude.prompt_digest(sections, version)
 
 
 def summarise(rows, by='strategy'):
@@ -382,6 +385,7 @@ def main(argv=None):
     ap.add_argument('--repeat', type=int, default=1)
     ap.add_argument('--sections', help='JSON file with replacement prompt sections (reading, rules_writing, structuring)')
     ap.add_argument('--model')
+    ap.add_argument('--prompt-version', choices=sorted(claude.PROMPT_VERSIONS), default=claude.PROMPT_VERSION, help='version of the extraction prompt (development packages only)')
     ap.add_argument('--plan', action='store_true', help='print planned calls and cost and call nothing')
     ap.add_argument('--live', action='store_true', help='permit the paid Anthropic calls')
     ap.add_argument('--max-dollars', type=float, help='stop before the call that would start above this')
@@ -408,6 +412,7 @@ def main(argv=None):
         print('  %-7s %2d run(s): %5.1f / %3d calls, $%.2f / $%.2f' % (r['strategy'], r['runs'], r['calls'], r['calls_max'], r['dollars'], r['dollars_max']))
     print('  total: %.1f / %d calls, $%.2f / $%.2f' % (totals['calls'], totals['calls_max'], totals['dollars'], totals['dollars_max']))
     print('  judged against reference: %s' % ', '.join('%s %s' % (pid, reference_for(pid, args.reference)) for pid in args.packages))
+    print('  extraction prompt: %s (digest %s)' % (args.prompt_version, claude_hash(None, args.prompt_version)))
     if args.max_dollars is not None:
         one = dollars([{'input_tokens': TYPICAL['extract'][0] * 2, 'output_tokens': WORST_OUT}], model)
         typical = dollars([{'input_tokens': TYPICAL['extract'][0], 'output_tokens': TYPICAL['extract'][1]}], model)
@@ -432,7 +437,8 @@ def main(argv=None):
         for pid in args.packages:
             for strategy in args.strategies:
                 for n in range(args.repeat):
-                    row, _ = run_one(pid, strategy, client, sections, None, {'model': client.model}, out=args.out, label='r%d' % (n + 1), reference=args.reference)
+                    row, _ = run_one(pid, strategy, client, sections, None, {'model': client.model}, out=args.out, label='r%d' % (n + 1), reference=args.reference,
+                                     version=args.prompt_version)
                     results.append(row)
                     print('%s %-7s r%d  valid %-5s score %.3f  critical %.3f  calls %d  %.0f s (model %.0f s)  $%.2f%s' % (
                         pid, strategy, n + 1, row['valid'], row['score'], row['critical_recall'], row['calls'], row['seconds'], row['model_seconds'], row['dollars'],

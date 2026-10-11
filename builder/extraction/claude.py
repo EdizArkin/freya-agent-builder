@@ -5,6 +5,7 @@ targeted check of the high-risk content and at most one revision) and `double` (
 their differences adjudicated, at most one revision). All three return the same agent-spec/1 and pass the same
 `check`; none of them can return a spec that `check` refused.
 """
+import hashlib
 import json
 import re
 import time
@@ -131,19 +132,71 @@ STRUCTURING = """Every rule of the documents goes to exactly one of three places
 # implement. It is fixed. The three sections after it are guidance on how to read and write, and are the only
 # parts a prompt optimisation may change.
 MUTABLE = ('rules_writing', 'structuring', 'reading')
-FIXED, _rest = _PROMPT.split('## rules\n\n', 1)
+_FIXED_V1, _rest = _PROMPT.split('## rules\n\n', 1)
 _rules_writing, _reading = _rest.split('# Reading the documents\n\n', 1)
 SECTIONS = {'rules_writing': _rules_writing.strip(), 'structuring': STRUCTURING, 'reading': _reading.strip()}
 
+# The prompt exists in versions. 'v1' is the prompt of M15, word for word: the one its selection and holdout
+# figures were measured with (digest 083c66052cdf131b). 'v2' describes the four rule kinds the schema has since
+# M16 and changes nothing else: each entry of _V2_EDITS replaces one passage of the fixed part of v1 with the
+# same passage extended. The three mutable sections are the same in every version.
+_V2_FIELDS = """## Promise and callback rules with their own field
 
-def system_prompt(sections=None):
-    """The system prompt with some of its mutable sections replaced."""
+Four kinds of rule are checked by the runtime on every call when you write their field. Write a field only when a document states that rule, with the number, day or time the document gives. Never derive a step, an amount, a date or a time that no document states, and leave the field out when the documents do not have the rule.
+- `promise.amount_step`: the documents accept amounts only in whole multiples of a stated amount. Write that amount as a positive number with at most two decimals. The lowest and the highest amount of the product still apply. `amount_step_except_max` is true only when the documents say that the full amount is accepted although it is no such multiple; it needs `limits.max_amount`.
+- `promise.min_amount_by_date`: the documents make the lowest acceptable amount depend on the date of the promise: a promise dated up to and including a certain day needs at least a certain amount, and a lower amount is accepted only with a later date. `on_or_before` is "today" or the name of a date value of `account.values`; `min_amount` is the name of an amount value of `account.values`. Add a value to `account.values` when the day or the amount has none yet. One entry per rule. The ordinary lowest amount stays in `limits.min_amount`.
+- `promise.same_date`: true only when the documents require every promise of one call to carry the same date. The runtime then takes the first promise for the first open product of the list (after `resolve_first`) and refuses a later promise with another date, so say in the rule text that one date for all products is fixed with the person before the first promise is recorded. Leave it out when each product may have its own date.
+- `callback.closed`: the documents name a period of the day in which no callback can be booked although it lies between `start` and `end`. Each period is a TIME as for by_time and must test at least one limit: "from" and "until" include their minute, "after" and "before" do not; choose by the wording of the documents. A period holds on every allowed day.
+A rule of one of these kinds that its field cannot carry as described (a step that differs by product, a closed period on some weekdays only, one date for some of the products only) is not written into the field: name it under `unsupported`. Every rule you write into one of these fields also goes into the rule text, with the labels of the values it uses, so that the phone model proposes what the runtime accepts.
+
+"""
+_V2_EDITS = (
+    ('with `transfer.max_transfers` it rejects a further transfer. It rejects a schedule_callback outside the slots.',
+     'with `transfer.max_transfers` it rejects a further transfer. With `promise.amount_step` it rejects an amount that is not a whole multiple of the step; '
+     'with `promise.min_amount_by_date` an amount below what the date of the promise requires; with `promise.same_date` a promise whose date differs from the date '
+     'already recorded in the call. It rejects a schedule_callback outside the slots or inside a `callback.closed` period.'),
+    ('             "allowed_after_transfer_to": ["<queue>"]}, // queues after which a promise may still be recorded although promises after a transfer are forbidden\n',
+     '             "allowed_after_transfer_to": ["<queue>"],  // queues after which a promise may still be recorded although promises after a transfer are forbidden\n'
+     '             // The next four only when a document states such a rule; see "Promise and callback rules with their own field":\n'
+     '             "amount_step": <number>,                   // amounts are recorded only in whole multiples of this amount\n'
+     '             "amount_step_except_max": true,            // only with amount_step: the highest amount is accepted although it is no such multiple\n'
+     '             "min_amount_by_date": [{"on_or_before": "today" | "<date value name>", "min_amount": "<amount value name>"}],  // a promise dated on or before that day needs at least that amount\n'
+     '             "same_date": true},                        // all promises of one call carry one and the same date\n'),
+    ('              "after_now": true},                                                 // must be later than the current time\n',
+     '              "after_now": true,                                                  // must be later than the current time\n'
+     '              "closed": [TIME, ...]},                                             // only when a document names times of day inside the window at which no callback can be booked\n'),
+    ('## FLAG (for close.forced)\n', _V2_FIELDS + '## FLAG (for close.forced)\n'),
+)
+
+
+def _extended(text, edits):
+    for old, new in edits:
+        if text.count(old) != 1:
+            raise ValueError('a prompt version replaces a passage that is not in the prompt exactly once: ' + old[:60])
+        text = text.replace(old, new)
+    return text
+
+
+PROMPT_VERSIONS = {'v1': _FIXED_V1, 'v2': _extended(_FIXED_V1, _V2_EDITS)}
+PROMPT_VERSION = 'v2'               # what a build uses unless it asks for another
+FIXED = PROMPT_VERSIONS[PROMPT_VERSION]
+
+
+def system_prompt(sections=None, version=None):
+    """The system prompt of one version, with some of its mutable sections replaced."""
     unknown = [name for name in (sections or {}) if name not in MUTABLE]
     if unknown:
         raise ValueError('only these sections of the prompt may be replaced: %s; got %s' % (', '.join(MUTABLE), ', '.join(unknown)))
+    if (version or PROMPT_VERSION) not in PROMPT_VERSIONS:
+        raise ValueError('unknown prompt version %r; one of %s' % (version, ', '.join(PROMPT_VERSIONS)))
     text = dict(SECTIONS, **(sections or {}))
-    return (FIXED + '## rules\n\n' + text['rules_writing'].strip() + '\n\n## Where a rule goes\n\n' + text['structuring'].strip()
+    return (PROMPT_VERSIONS[version or PROMPT_VERSION] + '## rules\n\n' + text['rules_writing'].strip() + '\n\n## Where a rule goes\n\n' + text['structuring'].strip()
             + '\n\n# Reading the documents\n\n' + text['reading'].strip() + '\n')
+
+
+def prompt_digest(sections=None, version=None):
+    """The name of a prompt in traces, records and reports: the first 16 hex digits of its SHA-256."""
+    return hashlib.sha256(system_prompt(sections, version).encode('utf-8')).hexdigest()[:16]
 
 
 SYSTEM = system_prompt()

@@ -1,6 +1,6 @@
 # Benchmark report
 
-Run at 2026-10-11 06:41:33, offline. Nothing in this report measures what a phone model says or which tools it chooses; it reports what the generated runtime does with the tool calls each scenario plays.
+Run at 2026-10-11 08:03:32, offline. Nothing in this report measures what a phone model says or which tools it chooses; it reports what the generated runtime does with the tool calls each scenario plays.
 
 Specs used: A = tests/fixture_spec.py (hand-written); B = tests/fixture_spec.py (hand-written); C = benchmarks/synthetic_briefs/brief-c.spec.yaml (hand-written reference); D = benchmarks/synthetic_briefs/brief-d.spec.yaml (hand-written reference); E = benchmarks/synthetic_briefs/brief-e.spec.yaml (hand-written reference)
 

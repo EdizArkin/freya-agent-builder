@@ -301,7 +301,9 @@ def digest(spec, api, other=None):
         'promise amounts': ('whole multiples of %s' % promise['amount_step'] + (', or the highest amount' if promise.get('amount_step_except_max') else '')) if promise.get('amount_step') is not None else 'any amount inside the limits',
         'lowest amount that depends on the promise date': promise.get('min_amount_by_date') or 'none',
         'all promises of one call on one date': bool(promise.get('same_date')),
-        'promise attempts per product': promise.get('max_attempts', 2),
+        # Named by what it counts. As "promise attempts per product" a live audit took it for the number of times
+        # the agent may try to persuade, and reported a defect that was none.
+        'create_promise calls per product before giving up on a failing service': promise.get('max_attempts', 2),
         'promise only on a business day': promise.get('business_day_only', True),
         'promise after a transfer': 'never' if not promise.get('allowed_after_transfer_to') else 'only after a transfer to ' + ', '.join(sorted(promise['allowed_after_transfer_to'])),
         'products that come first': promise.get('resolve_first') or 'no order',
