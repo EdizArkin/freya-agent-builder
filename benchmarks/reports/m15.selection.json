@@ -1,0 +1,26 @@
+{
+ "decided_on": "2026-10-11",
+ "decided_before": "any extraction of package g",
+ "from": "the one selection batch on package f: batch 113a4a9252ba at commit cc2b6881663bf440d4da8f3cad92a8909ecf9f41, model claude-sonnet-5-5, reference v1",
+ "label": "model-selection evidence",
+ "results_on_f": [
+  {"candidate": "single", "valid": true, "score": 0.9714, "critical_recall": 0.9412, "incorrect_policy_rate": 0.0, "rules_judged_correct": "34 of 34",
+   "unsupported_rules_declared": "0 of 2", "calls": 1, "repair_turns": 0, "input_tokens": 9732, "output_tokens": 9159, "seconds": 62.36, "dollars": 0.1111},
+  {"candidate": "audit", "valid": true, "score": 1.0, "critical_recall": 1.0, "incorrect_policy_rate": 0.0, "rules_judged_correct": "34 of 34",
+   "unsupported_rules_declared": "2 of 2", "calls": 3, "repair_turns": 1, "input_tokens": 34227, "output_tokens": 13874, "seconds": 86.61, "dollars": 0.2072},
+  {"candidate": "double", "valid": true, "score": 1.0, "critical_recall": 1.0, "incorrect_policy_rate": 0.0, "rules_judged_correct": "34 of 34",
+   "unsupported_rules_declared": "2 of 2", "calls": 3, "repair_turns": 0, "input_tokens": 24587, "output_tokens": 18079, "seconds": 120.93, "dollars": 0.23}
+ ],
+ "rule_applied": [
+  "1. All three produced a valid spec.",
+  "2. Critical-rule recall: audit 1.0 and double 1.0 are above single 0.9412.",
+  "3 and 4. audit and double are equal on score and on incorrect-policy rate.",
+  "5. Equivalent quality: audit costs less (0.2072 against 0.23 dollars) and is faster (87 against 121 seconds)."
+ ],
+ "selected": "audit",
+ "what_the_difference_was": "All three encoded every one of the 34 judged rules correctly. The only difference is two critical rules that agent-spec/1 cannot carry (F-18, F-19): the single extraction wrote them into the rule text without reporting them under unsupported; the first extraction of the audit run and both extractions of the double run reported them.",
+ "caution": "The audit step itself found nothing on f (0 findings). The audit candidate scored higher because its own first extraction reported the two rules, which the single candidate's extraction did not. That is one sample per candidate of a difference between independent extractions with the same prompt; it is not evidence that the audit step causes it. The rule fixed before f is applied as written and nothing is changed in response to f.",
+ "candidates": [
+  {"name": "audit", "strategy": "audit", "repeat": 1}
+ ]
+}
