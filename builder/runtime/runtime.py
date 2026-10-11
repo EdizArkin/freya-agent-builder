@@ -980,35 +980,37 @@ def promise_failure(cfg, label, failures):
     return guide(cfg, 'promise.failed_final', 'NOT RECORDED: the service failed again for ' + label + '. Do not try again for this product. Tell the customer honestly that you could not record the promise.')
 
 
-def pre_promise(cfg, vars, config):
+def fail(pid, message):
+    return [pid, None, None, 0, message]
+
+
+def promise_problem(cfg, vars, st, body, order=True):
+    """Every check a promise has to pass, for a read-back and for a record alike. Returns [product id, amount, day, failed attempts, reason]."""
+    # The reason is empty when the values pass. `order` adds the rules on which product may be recorded first:
+    # they concern the moment of recording, not what may be read back.
     pc = cfg['promise']
     cal = cfg['calendar']
-    st = load_state(vars)
-    body = body_of(config)
-    soft = pc['product_param']
-    keep_args(vars, 'promise', config)
     if st['identity'] != 'verified' or not st['products']:
-        return block(cfg, vars, config, st, 'promise', 'A promise cannot be recorded before identity is verified and the account is loaded.')
+        return ['', None, None, 0, 'A promise cannot be recorded before identity is verified and the account is loaded.']
     pid = resolve_product(st, body.get(pc['product_param']))
     if not pid:
-        return block(cfg, vars, config, st, 'promise', 'Unknown product. Use one of these product ids exactly: ' + ', '.join([p['id'] + ' = ' + p['label'] for p in st['products']]) + '.', soft)
-    body[pc['product_param']] = pid
+        return fail('', 'Unknown product. Use one of these product ids exactly: ' + ', '.join([p['id'] + ' = ' + p['label'] for p in st['products']]) + '.')
     prod = [p for p in st['products'] if p['id'] == pid][0]
     if pid in st['promises']:
-        return block(cfg, vars, config, st, 'promise', 'A promise is already recorded for ' + prod['label'] + '. It cannot be recorded again or changed. Do not call create_promise for this product again.', soft)
+        return fail(pid, 'A promise is already recorded for ' + prod['label'] + '. It cannot be recorded again or changed. Do not call create_promise for this product again.')
     if st['transfers'] and pc.get('forbidden_after_transfer', True):
         still = pc.get('allowed_after_transfer_to') or []
         if [q for q in st['transfers'] if q not in still]:
-            return block(cfg, vars, config, st, 'promise', 'The call has been transferred. No promise may be recorded after a transfer.', soft)
+            return fail(pid, 'The call has been transferred. No promise may be recorded after a transfer.')
     if prod.get('promise_allowed') is False:
-        return block(cfg, vars, config, st, 'promise', guide(cfg, 'promise.not_allowed', 'NOT RECORDED: no promise can be recorded for ' + prod['label'] + '. Follow your instructions for this case.'), soft)
+        return fail(pid, guide(cfg, 'promise.not_allowed', 'NOT RECORDED: no promise can be recorded for ' + prod['label'] + '. Follow your instructions for this case.'))
     if prod.get('broken'):
-        return block(cfg, vars, config, st, 'promise', 'NOT RECORDED: the bank could not work out the limits for ' + prod['label'] + ', so no promise can be recorded for it. Follow your instructions for a promise that cannot be recorded.', soft)
-    first = [p for p in pending(st) if p['id'] != pid and number(p.get('rank')) is not None and number(prod.get('rank')) is not None and p['rank'] < prod['rank']]
+        return fail(pid, 'NOT RECORDED: the bank could not work out the limits for ' + prod['label'] + ', so no promise can be recorded for it. Follow your instructions for a promise that cannot be recorded.')
+    first = [] if not order else [p for p in pending(st) if p['id'] != pid and number(p.get('rank')) is not None and number(prod.get('rank')) is not None and p['rank'] < prod['rank']]
     if first:
-        return block(cfg, vars, config, st, 'promise', 'NOT RECORDED: ' + prod['label'] + ' has to wait. First record a promise or a note for: '
-                     + ', '.join([p['id'] + ' "' + p['label'] + '"' for p in first]) + '.', soft)
-    if pc.get('same_date') and not st['promises']:
+        return fail(pid, 'NOT RECORDED: ' + prod['label'] + ' has to wait. First record a promise or a note for: '
+                     + ', '.join([p['id'] + ' "' + p['label'] + '"' for p in first]) + '.')
+    if order and pc.get('same_date') and not st['promises']:
         # The first promise of a call fixes the date of all of them. Calls of one message run side by side and
         # cannot see each other, so two first promises with two dates could both pass. Only the first open
         # product of the list may therefore take the first promise: of two such calls, one is refused.
@@ -1024,27 +1026,27 @@ def pre_promise(cfg, vars, config):
             if rank < mine or (rank == mine and not seen):
                 ahead.append(p)
         if ahead:
-            return block(cfg, vars, config, st, 'promise', 'NOT RECORDED: all promises of this call carry one date, so they are recorded one at a time in the order of the list. First record a promise or a note for: '
-                         + ', '.join([p['id'] + ' "' + p['label'] + '"' for p in ahead]) + '.', soft)
+            return fail(pid, 'NOT RECORDED: all promises of this call carry one date, so they are recorded one at a time in the order of the list. First record a promise or a note for: '
+                         + ', '.join([p['id'] + ' "' + p['label'] + '"' for p in ahead]) + '.')
     # Every request that went out for this product and did not end in a recorded promise has failed,
     # with or without an answer.
     failures = attempts(vars, st, pid)
     if failures >= int(pc.get('max_attempts', 2)):
-        return block(cfg, vars, config, st, 'promise', promise_failure(cfg, prod['label'], failures), soft)
+        return fail(pid, promise_failure(cfg, prod['label'], failures))
     amount = number(body.get(pc['amount_param']))
     if amount is None or amount <= 0:
-        return block(cfg, vars, config, st, 'promise', 'The amount must be a positive number.', soft)
+        return fail(pid, 'The amount must be a positive number.')
     amount = round(amount, 2)
     lo, hi = number(prod.get('min_amount')), number(prod.get('max_amount'))
     if lo is not None and amount < lo - 0.004:
-        return block(cfg, vars, config, st, 'promise', 'NOT RECORDED: ' + money(amount) + ' is below the lowest amount that can be recorded for ' + prod['label'] + ', which is ' + money(lo) + '. Follow the amount rules of your instructions.', soft)
+        return fail(pid, 'NOT RECORDED: ' + money(amount) + ' is below the lowest amount that can be recorded for ' + prod['label'] + ', which is ' + money(lo) + '. Follow the amount rules of your instructions.')
     if hi is not None and amount > hi + 0.004:
-        return block(cfg, vars, config, st, 'promise', 'NOT RECORDED: ' + money(amount) + ' is more than the amount due for ' + prod['label'] + ', which is ' + money(hi) + '. Read back the correct amount and get a new confirmation.', soft)
+        return fail(pid, 'NOT RECORDED: ' + money(amount) + ' is more than the amount due for ' + prod['label'] + ', which is ' + money(hi) + '. Read back the correct amount and get a new confirmation.')
     if pc.get('amount_step') is not None:
         step = number(pc.get('amount_step'))
         unit = int(round(step * 100)) if step is not None else 0
         if unit <= 0:
-            return block(cfg, vars, config, st, 'promise', 'NOT RECORDED: the amount rule of this bank could not be read, so no promise can be recorded.', soft)
+            return fail(pid, 'NOT RECORDED: the amount rule of this bank could not be read, so no promise can be recorded.')
         cents = int(round(amount * 100))
         full = pc.get('amount_step_except_max') and hi is not None and abs(amount - hi) <= 0.004
         if cents % unit != 0 and not full:
@@ -1052,9 +1054,9 @@ def pre_promise(cfg, vars, config):
             near = [v for v in (below, below + unit / 100.0) if v > 0 and (lo is None or v >= lo - 0.004) and (hi is None or v <= hi + 0.004)]
             if pc.get('amount_step_except_max') and hi is not None and hi not in near:
                 near.append(hi)
-            return block(cfg, vars, config, st, 'promise', 'NOT RECORDED: ' + money(amount) + ' is not a whole multiple of ' + money(step) + ', and amounts for ' + prod['label'] + ' are recorded only in such steps.'
+            return fail(pid, 'NOT RECORDED: ' + money(amount) + ' is not a whole multiple of ' + money(step) + ', and amounts for ' + prod['label'] + ' are recorded only in such steps.'
                          + (' The nearest amounts that can be recorded are ' + ' and '.join([money(v) for v in near]) + '.' if near else '')
-                         + ' Agree one of them with the person, read it back and get a clear yes before calling create_promise again.', soft)
+                         + ' Agree one of them with the person, read it back and get a clear yes before calling create_promise again.')
     need = number(st.get('min_total'))
     if need is not None:
         # The most this call can still reach: what is recorded, this amount, and the full amount of every
@@ -1066,41 +1068,271 @@ def pre_promise(cfg, vars, config):
             if p['id'] != pid and p.get('promise_allowed') is not False:
                 reach += number(p.get('max_amount')) or 0.0
         if reach < need - 0.004:
-            return block(cfg, vars, config, st, 'promise', 'NOT RECORDED: all promises of this call must add up to at least ' + money(need)
-                         + ', and with ' + money(amount) + ' for ' + prod['label'] + ' that can no longer be reached. Ask the customer to raise an amount.', soft)
-    body[pc['amount_param']] = amount
+            return fail(pid, 'NOT RECORDED: all promises of this call must add up to at least ' + money(need)
+                         + ', and with ' + money(amount) + ' for ' + prod['label'] + ' that can no longer be reached. Ask the customer to raise an amount.')
     try:
         day = to_date(body.get(pc['date_param']))
     except Exception:
-        return block(cfg, vars, config, st, 'promise', 'The date must be sent as YYYY-MM-DD. Look it up in the calendar facts.', soft)
+        return fail(pid, 'The date must be sent as YYYY-MM-DD. Look it up in the calendar facts.')
     today = to_date(st['today'])
     latest = to_date(prod['latest_date']) if prod.get('latest_date') else None
     if day < today:
-        return block(cfg, vars, config, st, 'promise', 'NOT RECORDED: ' + say_date(day) + ' is in the past. Today is ' + say_date(today) + '.', soft)
+        return fail(pid, 'NOT RECORDED: ' + say_date(day) + ' is in the past. Today is ' + say_date(today) + '.')
     early = to_date(prod['earliest_date']) if prod.get('earliest_date') else None
     if pc.get('same_date') and st['promises']:
         fixed = min([str(st['promises'][k].get('date')) for k in st['promises']])
         if day.isoformat() != fixed:
             one = to_date(fixed)
             if (latest and one > latest) or (early and one < early):
-                return block(cfg, vars, config, st, 'promise', 'NOT RECORDED: all promises of this call carry the date already recorded, ' + say_date(one) + ', and that date cannot be recorded for '
-                             + prod['label'] + '. No promise can be recorded for it in this call. Follow your instructions for a promise that cannot be recorded.', soft)
-            return block(cfg, vars, config, st, 'promise', 'NOT RECORDED: all promises of this call carry one date, and ' + say_date(one) + ' is already recorded. The promise for ' + prod['label']
-                         + ' can only be recorded for ' + say_date(one) + '. Explain that one date applies to all, read it back and get a clear yes before calling create_promise again.', soft)
+                return fail(pid, 'NOT RECORDED: all promises of this call carry the date already recorded, ' + say_date(one) + ', and that date cannot be recorded for '
+                             + prod['label'] + '. No promise can be recorded for it in this call. Follow your instructions for a promise that cannot be recorded.')
+            return fail(pid, 'NOT RECORDED: all promises of this call carry one date, and ' + say_date(one) + ' is already recorded. The promise for ' + prod['label']
+                         + ' can only be recorded for ' + say_date(one) + '. Explain that one date applies to all, read it back and get a clear yes before calling create_promise again.')
     if early and day < early:
-        return block(cfg, vars, config, st, 'promise', 'NOT RECORDED: ' + say_date(day) + ' is before the earliest date that can be recorded for ' + prod['label'] + ', which is ' + say_date(early) + '. Offer that date, read it back and get a clear yes before calling create_promise again.', soft)
+        return fail(pid, 'NOT RECORDED: ' + say_date(day) + ' is before the earliest date that can be recorded for ' + prod['label'] + ', which is ' + say_date(early) + '. Offer that date, read it back and get a clear yes before calling create_promise again.')
     if latest and day > latest:
-        return block(cfg, vars, config, st, 'promise', 'NOT RECORDED: ' + say_date(day) + ' is after the latest date that can be recorded for ' + prod['label'] + ', which is ' + say_date(latest) + '. Tell the customer the latest date you can record is ' + say_date(latest) + ', offer it, read it back and get a clear yes before calling create_promise again.', soft)
+        return fail(pid, 'NOT RECORDED: ' + say_date(day) + ' is after the latest date that can be recorded for ' + prod['label'] + ', which is ' + say_date(latest) + '. Tell the customer the latest date you can record is ' + say_date(latest) + ', offer it, read it back and get a clear yes before calling create_promise again.')
     if pc.get('business_day_only', True) and not is_biz(day, cal):
         alt = next_biz(day, cal)
         if latest and alt > latest:
             alt = latest
-        return block(cfg, vars, config, st, 'promise', 'NOT RECORDED: ' + say_date(day) + ' is not a business day. Offer ' + say_date(alt) + ' instead, read it back and get a clear yes before calling create_promise again.', soft)
+        return fail(pid, 'NOT RECORDED: ' + say_date(day) + ' is not a business day. Offer ' + say_date(alt) + ' instead, read it back and get a clear yes before calling create_promise again.')
     for floor in prod.get('floors') or []:
         limit = to_date(floor[0])
         if day <= limit and amount < number(floor[1]) - 0.004:
-            return block(cfg, vars, config, st, 'promise', 'NOT RECORDED: a promise for ' + prod['label'] + ' dated ' + say_date(day) + ' needs at least ' + money(floor[1]) + ', and ' + money(amount)
-                         + ' is less. Either the amount is ' + money(floor[1]) + ' or more, or the date is later than ' + say_date(limit) + '. Agree one of the two with the person, read it back and get a clear yes before calling create_promise again.', soft)
+            return fail(pid, 'NOT RECORDED: a promise for ' + prod['label'] + ' dated ' + say_date(day) + ' needs at least ' + money(floor[1]) + ', and ' + money(amount)
+                         + ' is less. Either the amount is ' + money(floor[1]) + ' or more, or the date is later than ' + say_date(limit) + '. Agree one of the two with the person, read it back and get a clear yes before calling create_promise again.')
+    return [pid, amount, day, failures, '']
+
+
+# ---------------------------------------------------------------- confirmation
+#
+# A promise is recorded only for values that were checked and registered in an earlier customer turn
+# (check_promise), read back by the agent after that, and answered by the customer with a clear yes.
+# What the gate knows: its own registration, the engine's count of customer turns, and the engine's list of
+# what was said. It establishes that these things happened in this order with these values. It does not
+# establish that a person understood or meant it. Whatever it cannot read, it refuses.
+
+REG_TURNS = 6
+
+def words_of(text):
+    return re.findall(r"[a-z]+", str(text).lower().replace("'", ''))
+
+
+def numbers_of(text):
+    found = []
+    for raw in re.findall(r'[0-9][0-9.,]*', str(text)):
+        value = number(raw.rstrip('.,'))
+        if value is not None:
+            found.append(value)
+    return found
+
+
+def customer_key(cfg, body):
+    return '|'.join([str(body.get(name)) for name in cfg['customer_fields']])
+
+
+def turn_count(cfg, vars):
+    """Customer turns in the part of the call where promises are taken, as the engine counts them; None if unreadable."""
+    value = vars.get(str((cfg.get('confirm') or dict()).get('node')) + '.total_turns')
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str) and value.isdigit():
+        return int(value)
+    return None
+
+
+def registration(vars, st, pid):
+    try:
+        value = json.loads(vars.get(rec(st, 'reg', pid)) or '')
+    except Exception:
+        return None
+    if not isinstance(value, dict):
+        return None
+    for key in ('c', 'd'):
+        if not isinstance(value.get(key), str):
+            return None
+    for key in ('a', 't', 'i'):
+        if not isinstance(value.get(key), int) or isinstance(value.get(key), bool):
+            return None
+    return value
+
+
+def said_since(conversation, index):
+    """What agent and customer said from position `index` on, as [role, text] in order; None if the list is not in the engine's form."""
+    if not isinstance(conversation, list) or not isinstance(index, int) or index < 0:
+        return None
+    rows = []
+    for position in range(len(conversation)):
+        entry = conversation[position]
+        if not isinstance(entry, dict) or not isinstance(entry.get('role'), str):
+            return None
+        content = entry.get('content')
+        if entry['role'] in ('assistant', 'user'):
+            if content is None or content == '':
+                continue
+            if not isinstance(content, str):
+                return None
+            if position >= index:
+                rows.append([entry['role'], content])
+    return rows
+
+
+def says(text, amount, day):
+    """Does a sentence state this amount and this date: the number to the cent, and the day with its month."""
+    values = numbers_of(text)
+    if not [v for v in values if abs(v - amount) < 0.005]:
+        return False
+    if day.isoformat() in str(text):
+        return True
+    return MON[day.month - 1].lower() in str(text).lower() and float(day.day) in values
+
+
+def reply_problem(texts, amount, day, read=''):
+    """Why the customer's words after a read-back are not a clear yes to it; empty if they are."""
+    # `read` is the read-back itself. A number or a day the customer repeats from it (the digits of a card,
+    # the weekday) is no change; one that was not in it is.
+    heard = numbers_of(read)
+    named = words_of(read)
+    yes_words = ('yes', 'yeah', 'yep', 'correct', 'confirm', 'confirmed', 'right', 'sure', 'okay', 'ok', 'agree', 'agreed')
+    no_words = ('no', 'not', 'cannot', 'never', 'but', 'instead', 'change', 'changed', 'actually', 'wait', 'rather', 'refuse', 'unless',
+                'except', 'maybe', 'perhaps', 'guess', 'if', 'however', 'different', 'another', 'cancel', 'stop', 'wrong', 'incorrect',
+                'dont', 'wont', 'cant', 'nope', 'nah', 'hold', 'unsure', 'depends')
+    first = words_of(texts[0])
+    if not [w for w in first if w in yes_words]:
+        return 'the answer was not a clear yes'
+    for text in texts:
+        if '?' in str(text):
+            return 'the person asked something'
+        words = words_of(text)
+        if [w for w in words if w in no_words] or re.search(r"n't", str(text).lower()):
+            return 'the person refused, hesitated or changed something'
+        for value in numbers_of(text):
+            if abs(value - amount) >= 0.005 and value != float(day.day) and value != float(day.year) and value not in heard:
+                return 'the person named another amount or day'
+        for name in WDL:
+            if name.lower() in words and name != WDL[day.weekday()] and name.lower() not in named:
+                return 'the person named another day'
+        for name in MON:
+            if name.lower() in words and name != MON[day.month - 1] and name.lower() not in named:
+                return 'the person named another month'
+    return ''
+
+
+def read_back_line(prod, amount, day):
+    return prod['label'] + ': ' + money(amount) + ' on ' + WDL[day.weekday()] + ' ' + str(day.day) + ' ' + MON[day.month - 1] + ' (' + day.isoformat() + ')'
+
+
+def unconfirmed(cfg, vars, st, body, prod, amount, day):
+    """Why a promise that passed every other check may still not be recorded; empty if it may."""
+    again = ' Call check_promise with the product, the amount and the date, read back what it returns, and call create_promise only after the person has answered that read-back with a clear yes.'
+    reg = registration(vars, st, prod['id'])
+    if reg is None:
+        return 'NOT RECORDED: these values were not checked and read back. A read-back cannot be skipped, whoever asks for it.' + again
+    if reg['c'] != customer_key(cfg, body) or reg['a'] != int(round(amount * 100)) or reg['d'] != day.isoformat():
+        return ('NOT RECORDED: ' + money(amount) + ' on ' + day.isoformat() + ' is not what was checked for ' + prod['label'] + ' (' + money(reg['a'] / 100.0) + ' on ' + reg['d']
+                + '). Changed values need a new check and a new read-back.' + again)
+    now = turn_count(cfg, vars)
+    if now is None:
+        return 'NOT RECORDED: the bank cannot see whether the person has answered the read-back, so no promise can be recorded in this call. Follow your instructions for a promise that cannot be recorded.'
+    if now <= reg['t']:
+        return 'NOT RECORDED: the person has not answered the read-back yet. Read back ' + read_back_line(prod, amount, day) + ', ask for confirmation, wait for the answer, and only then call create_promise.'
+    if now - reg['t'] > REG_TURNS:
+        return 'NOT RECORDED: the check for ' + prod['label'] + ' is too old.' + again
+    rows = said_since(vars.get('system.conversation'), reg['i'])
+    if rows is None:
+        return 'NOT RECORDED: the bank cannot read what was said, so it cannot see a read-back and an answer. No promise can be recorded in this call. Follow your instructions for a promise that cannot be recorded.'
+    at = -1
+    for position in range(len(rows)):
+        if rows[position][0] == 'assistant' and says(rows[position][1], amount, day):
+            at = position
+    if at < 0:
+        return ('NOT RECORDED: after the check you did not read back ' + read_back_line(prod, amount, day) + '. Say the amount as a number and the date with its day and month, '
+                'ask for confirmation, wait for the answer, and only then call create_promise.')
+    after = rows[at + 1:]
+    if not after or not [r for r in after if r[0] == 'user']:
+        return 'NOT RECORDED: the person has not answered the read-back yet. Wait for the answer, and call create_promise only after a clear yes.'
+    if after[0][0] != 'user':
+        return 'NOT RECORDED: after the read-back you said something else before the person answered, so the answer is not an answer to the read-back. Read it back again and wait for a clear yes.'
+    problem = reply_problem([r[1] for r in after if r[0] == 'user'], amount, day, rows[at][1])
+    if problem:
+        return ('NOT RECORDED: ' + problem + ' after the read-back of ' + read_back_line(prod, amount, day) + '. A promise is recorded only after a clear yes. '
+                'If the person wants other values, agree them, call check_promise again and read back again. If the person does not want this promise, do not record it.')
+    return ''
+
+
+def pre_check(cfg, vars, config):
+    """check_promise: the checks of a promise without recording anything."""
+    # Values that pass are registered, and the request is turned into the account request, which changes
+    # nothing at the bank. Nothing the model sent leaves in it.
+    pc = cfg['promise']
+    st = load_state(vars)
+    body = body_of(config)
+    found = promise_problem(cfg, vars, st, body, False)
+    if found[4]:
+        return block(cfg, vars, config, st, 'check', found[4])
+    pid, amount, day = found[0], found[1], found[2]
+    prod = [p for p in st['products'] if p['id'] == pid][0]
+    now = turn_count(cfg, vars)
+    conversation = vars.get('system.conversation')
+    if now is None or said_since(conversation, 0) is None:
+        return block(cfg, vars, config, st, 'check', 'NOT CHECKED: the bank cannot see the conversation, so no read-back can be verified and no promise can be recorded in this call. Follow your instructions for a promise that cannot be recorded.')
+    new = dict(c=customer_key(cfg, body), a=int(round(amount * 100)), d=day.isoformat(), t=now, i=len(conversation))
+    old = registration(vars, st, pid)
+    if not (old and old['c'] == new['c'] and old['a'] == new['a'] and old['d'] == new['d'] and now - old['t'] <= REG_TURNS):
+        vars[rec(st, 'reg', pid)] = json.dumps(new)
+    kept = dict()
+    for name in cfg['customer_fields']:
+        if name in body:
+            kept[name] = body[name]
+    config['body'] = kept
+    problem = shape_problem(cfg, 'account', kept)
+    if problem:
+        return block(cfg, vars, config, st, 'check', 'NOT CHECKED: ' + problem + '.')
+    vars['rt_block_check'] = ''
+    st['last_block'] = ''
+    opened(st, 'check', pid, 'The values for ' + prod['label'] + ' are checked: read back ' + read_back_line(prod, amount, day) + ', ask for confirmation, and call create_promise only after a clear yes.')
+    save_state(cfg, vars, st)
+
+
+def post_check(cfg, vars, result):
+    if blocked(cfg, vars, result, 'check'):
+        return
+    st = load_state(vars)
+    lines = []
+    for p in pending(st):
+        reg = registration(vars, st, p['id'])
+        if reg:
+            try:
+                lines.append(read_back_line(p, reg['a'] / 100.0, to_date(reg['d'])))
+            except Exception:
+                pass
+    text = ('CHECKED, NOT RECORDED YET. Now read back to the person, in one message: ' + '; '.join(lines) + '. Say every amount as a number and every date with its day and month, '
+            'as written here, and ask for confirmation in the words your instructions prescribe. Then wait for the answer. Only after a clear yes, call create_promise with exactly '
+            'these values, once per product. If the person changes anything or does not say yes, do not call create_promise: agree new values and call check_promise again.')
+    if isinstance(result, dict):
+        result['data'] = dict(checked=True, recorded=False, read_back=lines)
+    finish(cfg, vars, result, st, text)
+
+
+def pre_promise(cfg, vars, config):
+    pc = cfg['promise']
+    st = load_state(vars)
+    body = body_of(config)
+    keep_args(vars, 'promise', config)
+    found = promise_problem(cfg, vars, st, body)
+    if found[4]:
+        return block(cfg, vars, config, st, 'promise', found[4])
+    pid, amount, day, failures = found[0], found[1], found[2], found[3]
+    prod = [p for p in st['products'] if p['id'] == pid][0]
+    if cfg.get('confirm'):
+        why = unconfirmed(cfg, vars, st, body, prod, amount, day)
+        if why:
+            return block(cfg, vars, config, st, 'promise', why)
+    body[pc['product_param']] = pid
+    body[pc['amount_param']] = amount
     body[pc['date_param']] = day.isoformat()
     vars[rec(st, 'try', pid + '_' + str(failures + 1))] = 'sent'
     send(cfg, vars, config, st, 'promise', pid, promise_failure(cfg, prod['label'], failures + 1))

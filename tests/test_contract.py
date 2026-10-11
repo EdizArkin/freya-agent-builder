@@ -144,10 +144,11 @@ class Tools(unittest.TestCase):
         product = bank.products[0]
         sim.tool('create_promise', product_id='p1', amount=str(product['past_due']), date='2026-10-15')
         sim.tool('close_call', outcome='promise')
-        self.assertEqual([name for name, _ in sent], ['verify_identity', 'verify_identity', 'get_account', 'create_promise', 'close_call'])
+        self.assertEqual([name for name, _ in sent], ['verify_identity', 'verify_identity', 'get_account', 'check_promise', 'create_promise', 'close_call'])
         for name, req in sent:
             self.assertEqual(contract.check_request(API, name, req), [], name)
-        self.assertIsInstance(sent[3][1]['body']['amount'], float, 'an amount the model sent as text leaves as a number')
+        self.assertEqual(sent[3][1], sent[2][1], 'the check before a read-back leaves as the account request, with nothing of the promise in it')
+        self.assertIsInstance(sent[4][1]['body']['amount'], float, 'an amount the model sent as text leaves as a number')
 
     def test_constructs_the_builder_does_not_handle_are_reported(self):
         self.assertEqual(contract.document_notes(API), [])

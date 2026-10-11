@@ -10,7 +10,14 @@ from builder.spec.models import TOOLS, exprs
 
 # The runtime module is embedded as source text, so it is located as a file, not used as an import.
 RUNTIME_SOURCE = Path(runtime.__file__)
+DEAL_NODE = 'negotiate'           # the conversation node of the second part of the call
 
+
+# The step before a promise: the checks of create_promise without a record. It is the builder's own tool and travels
+# on the tool API's read-only account operation, so that its answer comes back as a result the runtime can write
+# its instruction into. The contract check knows it by this name and holds it to that operation.
+CHECK_TOOL = 'check_promise'
+CHECK_TRANSPORT = 'get_account'
 
 ROLES = {'verify_identity': 'identity', 'get_account': 'account', 'create_promise': 'promise', 'add_note': 'note',
          'schedule_callback': 'callback', 'transfer_to_agent': 'transfer', 'close_call': 'close'}
@@ -60,6 +67,7 @@ FAILURES = {
     'schedule_callback': ('callback.failed', 'the callback was not booked; call schedule_callback once more with the same values.'),
     'transfer_to_agent': ('transfer.failed', 'the transfer did not happen; call transfer_to_agent once more with the same queue.'),
     'close_call': (None, 'the call is still open; call close_call again with the same values.'),
+    CHECK_TOOL: (None, 'nothing was checked and nothing was recorded; call ' + CHECK_TOOL + ' once more with the same values.'),
 }
 
 
@@ -77,7 +85,7 @@ def failure_rules(spec, tools):
             '1. THE BANK\'S POLICY CHECK REFUSED THE VALUES YOU SENT. This is the case when LIVE STATE shows LAST REJECTED TOOL CALL, and also whenever a value you sent '
             'breaks a fact in your instructions: an amount below the lowest or above the highest amount of that product; a date before the earliest or after the latest date '
             'of that product, or in the past; a day that the CALENDAR or DAY NAMES mark as NOT a business day; a product id that is not in the account facts; a product that '
-            'already has a promise or a note; a callback outside the callback slots; a value that is not in the tool\'s list of allowed values. '
+            'already has a promise or a note; a callback outside the callback slots; a value that is not in the tool\'s list of allowed values; a create_promise that was not checked, read back and answered with a clear yes. '
             'Then: do NOT send the same values again. It is NOT a service problem: never call it one, never record a service error for it, and do not give up on the product. '
             'Tell the person what can be recorded instead, taken from the facts (the latest date, the lowest amount, the next business day, a time inside the slots), '
             'follow your instructions for that case, agree the new value with the person, and call the tool with the corrected values.',
@@ -98,20 +106,25 @@ class CompileError(ValueError):
 
 
 def promise_check(spec):
-    """What the model has to compare before it reads a promise back.
+    """How a promise is checked, read back and recorded.
 
-    The runtime refuses a promise outside the limits, but a refused call reaches the model only as a failed call.
-    A live call showed the model taking that for a service failure. So the comparison is asked for before the
-    read-back, against the facts the runtime computed; the refusal stays behind it as the last line."""
-    rows = ['CHECK EVERY PROMISE BEFORE YOU READ IT BACK',
-            'Before you read a promise back, ask the person to confirm it, or call create_promise, compare it with the facts of that product:',
-            '1. Find the date in the CALENDAR and take its weekday from that row, never from memory.',
-            '2. The date must not be in the past and must be inside the dates that LIMITS THE BANK CHECKS gives for that product: not after its latest date, and not before its earliest date if one is given.'
-            + (' The CALENDAR must mark it as a business day.' if spec['promise'].get('business_day_only', True) else ''),
-            '3. The amount must not be below the lowest amount and not above the highest amount of that product.',
-            'If any of these does not hold, do NOT read it back and do NOT call create_promise: the bank would refuse it. Tell the person which limit applies and offer '
-            'what your instructions say for that case, with the value taken from the facts (the latest date, the next business day, the lowest amount). '
-            'Read back only a promise that passes all of them.']
+    A live call showed that the read-back is skipped when a customer asks for it, and that an instruction
+    alone does not hold. The runtime therefore records a promise only for values that went through
+    check_promise in an earlier turn, were read back after that, and were answered with a clear yes
+    (runtime.unconfirmed). This text tells the model the order; the runtime refuses any other."""
+    rows = ['CHECK, READ BACK, THEN RECORD: THE ONLY WAY TO RECORD A PROMISE',
+            '1. When you and the person have agreed an amount and a date for a product, call ' + CHECK_TOOL + ' with that product, amount and date BEFORE you read anything back. '
+            'It checks the values against the limits of that product and records nothing. With several products, call it once for each, one call per message.',
+            '2. If ' + CHECK_TOOL + ' refuses, nothing is wrong with the service: the values break a limit. Tell the person which limit applies and offer what your instructions '
+            'say for that case, with the value taken from the facts (the latest date, the next business day, the lowest amount). Then check the new values.',
+            '3. Its result tells you what to read back. Read it back in one message: every amount as a number and every date with its day and its month, exactly as the result '
+            'gives them. Ask for confirmation in the words your instructions prescribe, ask nothing else in that message, and wait for the answer.',
+            '4. Only after the person answers that read-back with a clear yes, call create_promise with exactly the checked values.',
+            '5. The read-back can never be skipped, shortened or replaced by your own summary, whoever asks and whatever reason is given. If the person tells you to record '
+            'without reading back, say that you have to read it back first, and do it.',
+            '6. If the answer is anything but a clear yes, or the person changes the amount or the date, do not call create_promise: agree the new values and start again at 1.',
+            'The bank refuses a create_promise whose values were not checked, were not read back after the check, or were not answered with a clear yes. '
+            'Such a refusal is not a service problem: do what it says.']
     return '\n'.join(rows)
 
 
@@ -217,6 +230,8 @@ def runtime_cfg(spec, api):
         'guidance': {k: v for k, v in (spec.get('guidance') or {}).items() if isinstance(v, str)},
         'customer_fields': sorted({f for tool in TOOLS for f in props(tool) if f in call_vars}) or ['customer_id'],
     }
+    # Where the engine counts the customer's turns for the confirmation of a promise: the node of the second part.
+    cfg['confirm'] = {'node': DEAL_NODE, 'tool': CHECK_TOOL}
     for key in ('note', 'callback'):
         if spec.get(key):
             cfg[key] = spec[key]
@@ -230,7 +245,7 @@ def runtime_cfg(spec, api):
 
 def _slice(cfg, role):
     """Only the configuration one tool's hooks read, to keep the workflow small."""
-    keep = ('now_var', 'ok_field', 'calendar', 'customer_fields', role) + (('callback',) if role == 'callback' else ())
+    keep = ('now_var', 'ok_field', 'calendar', 'customer_fields', role) + (('callback',) if role == 'callback' else ()) + (('confirm',) if role == 'promise' else ())
     out = {k: v for k, v in cfg.items() if k in keep}
     out['shape'] = {role: cfg['shape'][role]} if role in cfg['shape'] else {}
     out['guidance'] = {k: v for k, v in cfg['guidance'].items() if k.startswith(role + '.')}
@@ -300,6 +315,25 @@ def build_tool(tool, spec, api, cfg, engine_run=False):
     return result
 
 
+def build_check(spec, api, cfg):
+    """check_promise: the arguments of create_promise, the request of the account operation. Its pre-hook runs the
+    promise checks, registers what passes and replaces the body by the account request; nothing of the model's
+    values leaves, and the operation it travels on cannot change the bank."""
+    tool = build_tool('create_promise', spec, api, cfg)
+    fn = tool['function']
+    props = fn['parameters']['properties']
+    fn['name'] = CHECK_TOOL
+    fn['description'] = ('Check an amount and a date for one product before you read them back. It records NOTHING. CALL it every time you and the person have agreed an '
+                         'amount and a date, before the read-back, and again whenever a value changes. Its result tells you what to read back.')
+    props['url']['default'] = api.url(CHECK_TRANSPORT)
+    props['method']['default'] = api.ops[CHECK_TRANSPORT]['method']
+    part = dict(_slice(cfg, 'promise'))
+    part['shape'] = {'account': cfg['shape']['account']} if 'account' in cfg['shape'] else {}
+    tool['pre_process_code'] = runtime_code('pre_check', 'pre_check(CFG, vars, config)', part, pre_fallback('check', cfg['customer_fields']))
+    tool['post_process_code'] = runtime_code('post_check', 'post_check(CFG, vars, result)', part)
+    return tool
+
+
 def _code_node(name, target, code, transitions):
     return {'name': name, 'node_type': 'code', 'passthrough': True, 'passthrough_default_transition': target,
             'on_enter': {'type': 'silent'}, 'disable_inactivity_monitor': True,
@@ -320,7 +354,7 @@ def compile_workflow(spec, api):
     close_ok = [('close_call_response.data.rt_closed', 'yes'), (ok, 'true'), (ok, 'True')]
 
     contact_tools = [tool('verify_identity')] + ([tool('schedule_callback')] if spec.get('callback') else []) + [tool('transfer_to_agent'), tool('close_call')]
-    deal_tools = [tool('create_promise')] + ([tool('add_note')] if spec.get('note') else []) + [tool('transfer_to_agent'), tool('close_call')]
+    deal_tools = [tool('create_promise'), build_check(spec, api, cfg)] + ([tool('add_note')] if spec.get('note') else []) + [tool('transfer_to_agent'), tool('close_call')]
     verified = [('rt_identity', 'verified'), ('verify_identity_response.data.rt_identity', 'verified')]
     if idc['response'].get('all_verified'):
         flat = 'verify_identity_response.data.' + idc['response']['all_verified']
@@ -365,8 +399,8 @@ def compile_workflow(spec, api):
             'transitions': [_edge('account_facts', 'always')]},
         'account_facts': _code_node('account_facts', 'negotiate', runtime_code('load_account', 'load_account(CFG, vars)', cfg, ACCOUNT_FALLBACK),
                                     [_edge('negotiate', 'always')]),
-        'negotiate': {
-            'name': 'negotiate', 'node_type': 'conversation', 'on_enter': {'type': 'llm'}, 'on_enter_first_entry_only': True,
+        DEAL_NODE: {
+            'name': DEAL_NODE, 'node_type': 'conversation', 'on_enter': {'type': 'llm'}, 'on_enter_first_entry_only': True,
             'task_message': deal_task, 'tools': deal_tools, 'max_node_turns': 80,
             'transitions': [_edge('end', 'The call was closed', closed, *close_ok)]},
         'end': {

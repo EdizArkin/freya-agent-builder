@@ -441,6 +441,16 @@ value), and any workflow of packages C to G in a call. One prompt-only rule was 
 customer asked to skip the read-back and the promise was recorded without it. The full account is
 `benchmarks/reports/m17-closure.md`.
 
+Since M18 phase 2 that rule is enforced, offline-tested and not yet verified live. Every agent gets a
+tool of the builder's own, `check_promise`: the checks of a promise without a record, travelling on the
+tool API's read-only account operation (the one named exception of the contract check,
+`contract.RUNTIME_TOOLS`). `create_promise` is sent only for values that `check_promise` registered in
+an earlier customer turn, that the agent read back after that, and that the customer answered with a
+clear yes, as far as the engine's turn counter and its list of what was said show it
+(`runtime.unconfirmed`). Whatever cannot be read is refused. This is evidence of a confirmation, not
+proof of consent. Conditions, limits and what has to be verified live:
+`benchmarks/reports/m18-phase2-implementation.md`.
+
 Other limits: the tests and `--deploy` need the git-ignored starter kit; persuasion
 counting and other conversational rules are prompt-dependent; the tool names are assumed
 to be the seven of the starter kit.

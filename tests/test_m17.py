@@ -590,7 +590,7 @@ class WhatThePlatformStored(unittest.TestCase):
         self.assertEqual({n: v['type'] for n, v in shape['nodes'].items()},
                          {'setup': 'code', 'contact': 'conversation', 'get_account': 'api_request', 'account_facts': 'code', 'negotiate': 'conversation', 'end': 'end_call'})
         tools = {t['name']: t for t in shape['nodes']['negotiate']['tools']}
-        self.assertEqual(sorted(tools), ['add_note', 'close_call', 'create_promise', 'transfer_to_agent'])
+        self.assertEqual(sorted(tools), ['add_note', 'check_promise', 'close_call', 'create_promise', 'transfer_to_agent'])
         self.assertEqual((tools['create_promise']['method'], tools['create_promise']['body_fields']), ('POST', ['amount', 'customer_id', 'date', 'product_id']))
         self.assertTrue(tools['create_promise']['url'].endswith('/v1/create_promise'))
         self.assertTrue(all(t['pre_hook'] and t['post_hook'] for node in ('contact', 'negotiate') for t in shape['nodes'][node]['tools']), 'every tool the model can call has both hooks')

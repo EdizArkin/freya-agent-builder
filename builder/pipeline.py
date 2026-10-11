@@ -13,7 +13,7 @@ import time
 from pathlib import Path
 
 from builder.artifacts import store
-from builder.compiler.compiler import CompileError, compile_workflow
+from builder.compiler.compiler import CHECK_TOOL, CHECK_TRANSPORT, CompileError, compile_workflow
 from builder.config import settings
 from builder.evaluation import simulation
 from builder.extraction import claude
@@ -42,7 +42,7 @@ def build_workflow(spec, document, best_effort=False):
         raise CompileError('; '.join(problems))
     # A compiled tool that departs from the tool API would send requests the bank does not expect: not built.
     # The runtime checks every outgoing request again (runtime.send).
-    departures = contract.check_tools(workflow, api)
+    departures = contract.check_tools(workflow, api, {CHECK_TOOL: CHECK_TRANSPORT})
     if departures:
         raise CompileError('the compiled tools do not match the tool API: ' + '; '.join(departures))
     return workflow, dict({'warnings': warnings, 'contract': contract.document_notes(api)}, **report)

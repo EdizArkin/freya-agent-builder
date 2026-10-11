@@ -34,6 +34,24 @@ Tool calls of one model message (`together`), as seen in three live calls:
 
 Assumed from the kit's README, not yet seen live: an unknown product id is one of
 the bank's refusals.
+
+What a pre-hook is given besides the request, as two probe calls showed on 2026-10-11:
+- `<node>.total_turns`: the customer's turns in a node, a number, the same for every call
+  of one agent reply.
+- `system.conversation`: a list of messages in order, each with a `role`; spoken ones
+  have their words in `content`, a tool call is an `assistant` entry with the name and
+  the arguments. What the agent says in the message that carries a tool call is NOT in
+  the list of that call's hook; it is there from the next call on. The entry of a tool's
+  answer was not seen in full: its shape here is assumed and nothing may depend on it.
+
+The bank's log (`bank.calls`) lists what the agent's operations did at the bank. The account
+reads that check_promise makes are kept in `bank.reads` instead: they change nothing, and a
+scenario's list of bank calls keeps meaning what it meant before the step existed.
+
+The compliant path to a promise (`compliant`, on by default): a played create_promise
+stands for what a compliant agent does to get there, which since M18 is check_promise,
+the read-back it returns, the customer's yes, and then create_promise. Tests of the
+confirmation itself switch it off and play each step.
 """
 import copy
 import json
@@ -43,7 +61,7 @@ class Bank:
     def __init__(self, customer_id, identity, products, faults=None):
         self.customer_id, self.identity, self.faults = customer_id, identity, dict(faults or {})
         self.products = [dict(p, product_id='p%d' % (i + 1)) for i, p in enumerate(products)]
-        self.wrong_left, self.passed, self.calls = 3, set(), []
+        self.wrong_left, self.passed, self.calls, self.reads = 3, set(), [], []
         self.ledger = {'promises': [], 'notes': [], 'callbacks': [], 'transfers': [], 'outcome': None, 'reason': None}
 
     def call(self, tool, body):
@@ -114,7 +132,70 @@ class Sim:
         self.wf, self.bank = workflow, bank
         self.vars = dict(variables, customer_id=bank.customer_id)
         self.node = workflow['initial_node']
+        self.talk, self.turns, self.compliant, self.withheld = [], {}, True, set()
         self.advance()
+
+    # ------------------------------------------------------------ what was said
+
+    def say(self, text):
+        """The agent says something in a message of its own."""
+        self.talk.append({'role': 'assistant', 'content': text})
+
+    def hear(self, text):
+        """The customer says something: one more customer turn in the current node."""
+        self.turns[self.node] = self.turns.get(self.node, 0) + 1
+        self.talk.append({'role': 'user', 'content': text})
+
+    def _expose(self, variables):
+        """What the engine puts into a hook's variables. `withheld` plays an engine that does not: 'turns', 'conversation'."""
+        for name in self.wf['nodes']:
+            if 'turns' in self.withheld:
+                variables.pop(name + '.total_turns', None)
+            else:
+                variables[name + '.total_turns'] = self.turns.get(name, 0)
+        if 'conversation' in self.withheld:
+            variables.pop('system.conversation', None)
+        else:
+            variables['system.conversation'] = copy.deepcopy(self.talk)
+
+    def _called(self, name, args, result, said=None):
+        """After a call: the words of its message, the call and its answer join the conversation."""
+        if said:
+            self.say(said)
+        self.talk.append({'role': 'assistant', 'tool_calls': [{'id': 'call-%d' % len(self.talk), 'function': {'name': name, 'arguments': json.dumps(args)}}]})
+        self.talk.append({'role': 'tool', 'content': json.dumps(result.get('data') if isinstance(result, dict) else None, default=str)})
+
+    def confirm(self, promises):
+        """What a compliant agent does before it records: check each promise, read back what the checks return in
+        one message, and get the customer's yes. A promise the check refuses is not read back."""
+        try:
+            check = self._find('check_promise')
+        except LookupError:
+            return None
+        lines, refused = [], None
+        for args in promises:
+            result = self._api(check, args)
+            self._called('check_promise', args, result)
+            data = result.get('data') if isinstance(result.get('data'), dict) else {}
+            lines = data.get('read_back') or lines
+            if not data.get('checked'):
+                refused = result
+        self.advance()
+        if lines:
+            self.say('To confirm: ' + '; '.join(lines) + '. Do you confirm?')
+            self.hear('Yes, I confirm.')
+        return refused
+
+    def play(self, name, args, said=None):
+        """One tool call of the phone model, with what it says in the same message."""
+        if name == 'create_promise' and self.compliant:
+            refused = self.confirm([args])
+            if refused is not None:
+                return refused
+        result = self._api(self._find(name), args)
+        self._called(name, args, result, said)
+        self.advance()
+        return result
 
     def advance(self):
         """Run passthrough nodes and follow deterministic transitions until a conversation or end node."""
@@ -155,13 +236,18 @@ class Sim:
             elif name in args:
                 body[name] = args[name]
         config = {'url': props['url']['default'], 'method': 'POST', 'headers': {}, 'body': body}
+        self._expose(variables)
         if tool.get('pre_process_code'):
             run(tool['pre_process_code'], vars=variables, config=config)
         return config
 
     def _respond(self, tool, config, variables=None):
         variables = self.vars if variables is None else variables
+        logged = len(self.bank.calls)
         status, data = self.bank.call(config['url'].rsplit('/', 1)[-1], config['body'])
+        if tool['function']['name'] == 'check_promise':
+            self.bank.reads += self.bank.calls[logged:]
+            del self.bank.calls[logged:]
         if status != 200:
             return {'status': 'error', 'error': 'API request failed: ' + repr(data)}
         result = {'status': 'success', 'data': data, 'status_code': status,
@@ -190,8 +276,7 @@ class Sim:
 
     def tool(self, name, **args):
         """The phone model calls a tool in the current conversation node."""
-        result = self._api(self._find(name), args)
-        self.advance()
+        result = self.play(name, args)
         return result['data'] if isinstance(result.get('data'), dict) else {}
 
     def together(self, *calls, arrival='reversed', merge='all', apply='message', hooks='isolated'):
@@ -203,6 +288,8 @@ class Sim:
         merge    'all': a call writes back every variable of its copy; 'changed': only those it changed
         apply    whose write survives for a shared variable: the last call of the 'message', or the last 'completion'
         """
+        if self.compliant and [args for name, args in calls if name == 'create_promise']:
+            self.confirm([args for name, args in calls if name == 'create_promise'])
         start = copy.deepcopy(self.vars)
         runs = []
         for name, args in calls:

@@ -108,7 +108,9 @@ def play(variant, site, bank):
         api.verify(sim) if step == V else api.call(sim, step[0], **step[1])
     was, sent = snapshot(held), len(sim.requests)
     data = api.call(sim, blocked[0], **blocked[1])
-    request = sim.requests[sent][1]
+    # The request that was refused is the last one: for a promise, a check that passed may have gone out before it.
+    assert len(sim.requests) > sent
+    request = sim.requests[-1][1]
     body = request['body']
     how = 'detached' if body.get(api.r('customer_id')) == PLACEHOLDER else 'product replaced' if PLACEHOLDER in body.values() else 'sent'
     return how, snapshot(held) != was, request, data
@@ -149,11 +151,14 @@ class Blocks(unittest.TestCase):
     def test_every_place_where_the_runtime_blocks_is_played_here(self):
         with open(rt.__file__, encoding='utf-8') as source:
             tree = ast.parse(source.read())
-        sites = [n for n in ast.walk(tree) if isinstance(n, ast.Call) and isinstance(n.func, ast.Name) and n.func.id in ('block', 'refuse_close')]
-        # 37 calls of block or refuse_close in the runtime. A new one needs a site above; then raise this number.
-        # Two of them have no site above because no valid spec and no listed product reaches them: a product whose
-        # limits cannot be worked out, and an amount step that cannot be read. tests/test_enforcement_m16.py plays both.
-        self.assertEqual(len(sites), 37, 'a block was added to or removed from the runtime: add or remove its safety test')
+        sites = [n for n in ast.walk(tree) if isinstance(n, ast.Call) and isinstance(n.func, ast.Name) and n.func.id in ('block', 'refuse_close', 'fail')]
+        # 41 places where the runtime refuses: calls of block or refuse_close, and since M18 of fail, which holds the
+        # 22 refusals of a promise that check_promise and create_promise share. A new one needs a site above; then
+        # raise this number. Two have no site above because no valid spec and no listed product reaches them: a
+        # product whose limits cannot be worked out, and an amount step that cannot be read;
+        # tests/test_enforcement_m16.py plays both. The refusals of the confirmation itself are not calls of these
+        # functions: tests/test_m18_confirmation.py plays each of them.
+        self.assertEqual(len(sites), 41, 'a refusal was added to or removed from the runtime: add or remove its safety test')
 
     def test_two_fields_that_tie_a_request_to_the_call_are_both_replaced(self):
         api = Renamed({'customer_id': 'caller_ref'}, {}, second_call_field=True)

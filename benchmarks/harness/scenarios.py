@@ -191,8 +191,7 @@ class Call(Sim):
     and what is assumed about the merge."""
 
     def call(self, name, args, time_passes=True):
-        result = self._api(self._find(name), args)
-        self.advance()
+        result = self.play(name, args)
         return result.get('data') if isinstance(result.get('data'), dict) else {}
 
     def together(self, calls, arrival='reversed', merge='all', apply='message'):

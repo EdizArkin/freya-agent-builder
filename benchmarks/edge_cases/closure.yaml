@@ -420,6 +420,7 @@
             "node": "negotiate",
             "tools": [
               "create_promise",
+              "check_promise",
               "transfer_to_agent",
               "close_call"
             ]

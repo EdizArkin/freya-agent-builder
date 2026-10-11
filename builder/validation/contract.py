@@ -14,6 +14,12 @@ FORMATS = ('date', 'date-time')
 TYPES = {'string': str, 'boolean': bool, 'object': dict, 'array': list}
 
 
+# The builder's own tools and the operation of the tool API each travels on. Such a tool takes other arguments
+# than its operation, because its pre-hook replaces the body before the request leaves. The compiler builds
+# them under these names (compiler.CHECK_TOOL, CHECK_TRANSPORT); a test holds the two together.
+RUNTIME_TOOLS = {'check_promise': 'get_account'}
+
+
 def resolve(document, schema):
     for _ in range(20):
         if not (isinstance(schema, dict) and '$ref' in schema):
@@ -105,7 +111,10 @@ def body_schema(api, tool):
 
 
 def check_request(api, tool, request, notes=None):
-    """Problems of one outgoing request {url, method, body} against the operation of `tool`."""
+    """Problems of one outgoing request {url, method, body} against the operation of `tool`.
+    A request of one of the builder's own tools is held to the operation it travels on."""
+    if tool not in api.ops and tool in RUNTIME_TOOLS:
+        tool = RUNTIME_TOOLS[tool]
     if tool not in api.ops:
         return ['%s is not an operation of the tool API' % tool]
     op, bad = api.ops[tool], []
@@ -129,14 +138,30 @@ def check_response(api, tool, status, data, notes=None):
     return [tool + ' ' + p for p in check_value(api.document, api.response(tool), data, 'response', False, notes)]
 
 
-def check_tools(workflow, api):
-    """Every compiled tool against its operation: url, method, body fields, types, enums, required."""
+def check_tools(workflow, api, runtime_tools=None):
+    """Every compiled tool against its operation: url, method, body fields, types, enums, required.
+
+    `runtime_tools` names the builder's own tools and the operation each travels on: {tool: operation}. Such a tool
+    takes other arguments than its operation, because its pre-hook replaces the body before the request leaves.
+    It is held to the URL and the method of that operation, to having that pre-hook, and to an operation that
+    takes nothing but fields of the call itself; what leaves is checked again at run time (runtime.shape_problem)."""
     bad = []
+    runtime_tools = dict(RUNTIME_TOOLS if runtime_tools is None else runtime_tools)
     for node in (workflow.get('nodes') or {}).values():
         for tool in (node.get('tools') or []) + (node.get('pre_actions') or []):
             fn = tool.get('function') or {}
             name = fn.get('name')
             if fn.get('handler') != '__function__:api_call':
+                continue
+            if name in runtime_tools and name not in api.ops:
+                op = api.ops.get(runtime_tools[name])
+                props = (fn.get('parameters') or {}).get('properties') or {}
+                if not op:
+                    bad.append('%s travels on %s, which is not an operation of the tool API' % (name, runtime_tools[name]))
+                elif (props.get('url') or {}).get('default') != api.base + op['path'] or str((props.get('method') or {}).get('default', '')).upper() != op['method']:
+                    bad.append('%s: url and method are not those of %s' % (name, runtime_tools[name]))
+                elif not str(tool.get('pre_process_code') or '').strip():
+                    bad.append('%s has no pre-hook that replaces its body' % name)
                 continue
             if name not in api.ops:
                 bad.append('%s is not an operation of the tool API' % name)

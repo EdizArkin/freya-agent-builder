@@ -100,17 +100,26 @@ class Faults(unittest.TestCase):
             self.api.verify(sim)
         return sim, bank
 
+    def ready(self, tool, args, verified):
+        """A call in which the request under test is the next one: a promise that will be recorded has been checked,
+        read back and confirmed, as it must be since M18, so that the fault falls into the hook that is tested."""
+        sim, bank = self.start(verified)
+        if tool == 'create_promise':
+            sim.confirm([self.api.args(**args)])
+        sim.compliant = False
+        return sim, bank
+
     def test_a_fault_at_any_point_of_a_pre_hook_leaves_the_bank_untouched(self):
         for tool, verified, refused, allowed in CASES:
-            sim, bank = self.start(verified)
+            sim, bank = self.ready(tool, allowed, verified)
             sent = len(sim.requests)
             self.api.call(sim, tool, **allowed)
             checked = sim.requests[sent][1]['body']             # what leaves when every check ran
             for args in [a for a in (refused, allowed) if a]:
                 for forever in (False, True):
                     points = 0
-                    for at in range(1, 80):
-                        sim, bank = self.start(verified)
+                    for at in range(1, 120):
+                        sim, bank = self.ready(tool, args, verified)
                         was, sent = bank_state(bank), len(sim.requests)
                         if not faulted(self.api, sim, tool, args, at, forever):
                             break                   # the hook uses its variables fewer than `at` times: no fault any more
@@ -183,6 +192,7 @@ class Faults(unittest.TestCase):
             old = Renamed()
             sim, bank = old.start()
             old.verify(sim)
+        sim.compliant = False           # the one request, as it was sent then: the fault is in its own hook
         was = bank_state(bank)
         self.assertTrue(faulted(old, sim, 'create_promise', dict(product_id='p1', amount=10, date='2026-10-15'), 1))
         self.assertNotEqual(bank_state(bank), was)
