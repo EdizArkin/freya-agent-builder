@@ -1,4 +1,10 @@
-"""Brief + tool API -> agent-spec/1, by one Claude call and a bounded repair loop."""
+"""Brief + tool API -> agent-spec/1.
+
+One extractor with three strategies: `single` (one call and a bounded repair loop), `audit` (single, then one
+targeted check of the high-risk content and at most one revision) and `double` (two independent extractions,
+their differences adjudicated, at most one revision). All three return the same agent-spec/1 and pass the same
+`check`; none of them can return a spec that `check` refused.
+"""
 import json
 import re
 import time
@@ -6,7 +12,7 @@ import time
 from builder.config import settings
 from builder.spec.models import SpecError
 
-SYSTEM = """You turn a bank's brief for an outbound phone call into a compact executable specification, `agent-spec/1`. A compiler turns your specification into a phone agent without any human step, so everything the agent must know has to be in your output, and everything in your output has to come from the documents you are given.
+_PROMPT = """You turn a bank's brief for an outbound phone call into a compact executable specification, `agent-spec/1`. A compiler turns your specification into a phone agent without any human step, so everything the agent must know has to be in your output, and everything in your output has to come from the documents you are given.
 
 # How the phone agent is built from your output
 
@@ -116,6 +122,32 @@ Write them as direct instructions to the model ("Ask ...", "If the customer ...,
 - Keep the output compact: no commentary, no repetition of one rule in several places beyond what is needed.
 """
 
+STRUCTURING = """Every rule of the documents goes to exactly one of three places.
+- A structured field, when the rule fixes something the runtime computes, counts or checks: an amount, a date, a window, a limit, a count of attempts, which products may get a promise, in which order, an outcome that follows from what was recorded. Prefer this whenever a field fits: only a structured rule holds whatever the phone model does. Put it in the rule text as well only where the model has to say or propose it.
+- The rule text, when the rule is about what to say, in which order, how often, or how to react to what the person says.
+- `unsupported`, only when the rule is mandatory, something would have to enforce it, and no structured field can carry it. Name the rule there in one sentence, and still describe it in the rule text so that the phone model follows it. Never drop such a rule silently, and never bend a field to a meaning it does not have."""
+
+# The prompt in named sections. The first part defines agent-spec/1 itself: what validation and the compiler
+# implement. It is fixed. The three sections after it are guidance on how to read and write, and are the only
+# parts a prompt optimisation may change.
+MUTABLE = ('rules_writing', 'structuring', 'reading')
+FIXED, _rest = _PROMPT.split('## rules\n\n', 1)
+_rules_writing, _reading = _rest.split('# Reading the documents\n\n', 1)
+SECTIONS = {'rules_writing': _rules_writing.strip(), 'structuring': STRUCTURING, 'reading': _reading.strip()}
+
+
+def system_prompt(sections=None):
+    """The system prompt with some of its mutable sections replaced."""
+    unknown = [name for name in (sections or {}) if name not in MUTABLE]
+    if unknown:
+        raise ValueError('only these sections of the prompt may be replaced: %s; got %s' % (', '.join(MUTABLE), ', '.join(unknown)))
+    text = dict(SECTIONS, **(sections or {}))
+    return (FIXED + '## rules\n\n' + text['rules_writing'].strip() + '\n\n## Where a rule goes\n\n' + text['structuring'].strip()
+            + '\n\n# Reading the documents\n\n' + text['reading'].strip() + '\n')
+
+
+SYSTEM = system_prompt()
+
 REPAIR = """The specification cannot be compiled. Problems found by the compiler:
 
 {problems}
@@ -145,9 +177,9 @@ def parse_json(text):
 class AnthropicClient:
     """One streamed Messages call per turn. Credentials come from the environment, never from arguments."""
 
-    def __init__(self, model=None, max_tokens=32000, effort='high'):
+    def __init__(self, model=None, max_tokens=32000, effort='high', fallback=True):
         self.model = settings.extraction_model(model)
-        self.max_tokens, self.effort = max_tokens, effort
+        self.max_tokens, self.effort, self.fallback = max_tokens, effort, fallback
 
     def complete(self, system, messages):
         import anthropic
@@ -155,6 +187,8 @@ class AnthropicClient:
         kwargs = dict(model=self.model, max_tokens=self.max_tokens, system=system, messages=messages,
                       thinking={'type': 'adaptive'}, output_config={'effort': self.effort})
         try:
+            if not self.fallback:       # a measurement wants the model it asked for, and its price
+                raise TypeError('no fallback')
             # A safety classifier can decline a request; let the API route it instead of failing the build.
             with client.beta.messages.stream(betas=['server-side-fallback-2026-07-01'], fallbacks='default', **kwargs) as stream:
                 message = stream.get_final_message()
@@ -183,15 +217,24 @@ class ReplayClient:
         return text, {'model': self.model, 'input_tokens': 0, 'output_tokens': 0, 'stop_reason': 'end_turn'}, text
 
 
-def extract(briefs, openapi_text, client, check, trace=lambda line: None, repairs=2):
+def ask(client, system, messages, purpose, trace, usage=None):
+    """One model call, traced with its model and purpose and added to `usage` when a list is given."""
+    started = time.time()
+    text, used, content = client.complete(system, messages)
+    seconds = time.time() - started
+    trace('model call: %s | purpose: %s | %.0f s | in %s out %s tokens | stop %s' % (
+        used.get('model'), purpose, seconds, used.get('input_tokens'), used.get('output_tokens'), used.get('stop_reason')))
+    if usage is not None:
+        usage.append(dict(used, purpose=purpose, seconds=round(seconds, 1)))
+    return text, content
+
+
+def extract(briefs, openapi_text, client, check, trace=lambda line: None, repairs=2, system=None, usage=None):
     """Return a spec that `check` accepts. `check(spec)` raises SpecError with the problems it finds."""
     messages = [{'role': 'user', 'content': user_message(briefs, openapi_text)}]
     for attempt in range(repairs + 1):
         purpose = 'extract agent-spec/1 from the brief' if attempt == 0 else 'repair the spec after compiler errors (round %d)' % attempt
-        started = time.time()
-        text, usage, content = client.complete(SYSTEM, messages)
-        trace('model call: %s | purpose: %s | %.0f s | in %s out %s tokens | stop %s' % (
-            usage.get('model'), purpose, time.time() - started, usage.get('input_tokens'), usage.get('output_tokens'), usage.get('stop_reason')))
+        text, content = ask(client, system or SYSTEM, messages, purpose, trace, usage)
         try:
             candidate = parse_json(text)
             check(candidate)
@@ -205,3 +248,121 @@ def extract(briefs, openapi_text, client, check, trace=lambda line: None, repair
             raise SpecError(problems)
         messages += [{'role': 'assistant', 'content': content},
                      {'role': 'user', 'content': REPAIR.format(problems='\n'.join('- ' + p for p in problems))}]
+
+
+# ---------------------------------------------------------------- strategies
+
+STRATEGIES = ('single', 'audit', 'double')
+
+AUDIT = """You check a specification that another model wrote from a bank's documents for an outbound phone call. You are given the documents, the tool API, and a list of what the specification makes the phone agent do, worked out by code: limits and dates per kind of product, the security check, the callback window, transfers, the closing table and the order of its rules.
+
+Compare every item with the documents. Later documents amend earlier ones. Look in particular for: a number, limit or deadline that differs from the documents; an amendment that was not applied; an exception or a product type that is missing; a boundary on the wrong side (up to, more than, both included); a wrong order of precedence at the close; a rule of the documents that appears nowhere in the list although code would have to enforce it.
+
+Reply with one JSON array and nothing else. One object per defect you are sure of:
+{"item": "<the item of the list, or 'missing'>", "problem": "<what is wrong, in one sentence>", "evidence": "<the sentence of the documents that shows it, copied word for word>", "fix": "<what the item should be>"}
+The evidence must be an exact quotation from the documents; a defect without one is ignored. If nothing is wrong, reply with []."""
+
+ADJUDICATE = """Two specifications were written independently from the same bank documents for an outbound phone call. Code worked out what each makes the phone agent do and found the items below on which they differ. You are given the documents, the tool API, and for each item the value of specification A and of specification B.
+
+Decide each item from the documents alone. Later documents amend earlier ones.
+
+Reply with one JSON array and nothing else, one object per item:
+{"item": "<the item>", "right": "A" | "B" | "neither", "evidence": "<the sentence of the documents that decides it, copied word for word>", "fix": "<only for neither: what the item should be>"}
+The evidence must be an exact quotation from the documents; a decision without one is ignored."""
+
+REVISE = """A check of your specification against the documents found these defects. Each comes with the sentence of the documents that shows it.
+
+{findings}
+
+Return the complete corrected JSON object, and nothing else. Change only what these defects require."""
+
+
+def squeeze(text):
+    return re.sub(r'\s+', ' ', str(text)).strip().casefold()
+
+
+def parse_list(text):
+    """The JSON array in a reply, or [] when there is none: a check that cannot be read finds nothing."""
+    start, end = text.find('['), text.rfind(']')
+    if start < 0 or end <= start:
+        return []
+    try:
+        found = json.loads(text[start:end + 1])
+    except ValueError:
+        return []
+    return [f for f in found if isinstance(f, dict)] if isinstance(found, list) else []
+
+
+def quoted(findings, briefs, openapi_text):
+    """Only the findings whose evidence is word for word in the documents. The rest is not acted on."""
+    source = squeeze(openapi_text + ' ' + ' '.join(text for _, text in briefs))
+    return [f for f in findings if len(squeeze(f.get('evidence', ''))) >= 12 and squeeze(f['evidence']) in source]
+
+
+def render(digest):
+    return '\n'.join('- %s: %s' % (item, json.dumps(value, ensure_ascii=False, sort_keys=True, default=str)) for item, value in digest.items())
+
+
+def revise(spec, findings, briefs, openapi_text, client, check, trace, system, usage, purpose):
+    """One revision of a valid spec. A revision that `check` refuses is dropped and the spec is kept as it was."""
+    listed = '\n'.join('- %s: %s Evidence: "%s"%s' % (f.get('item'), f.get('problem') or 'wrong.', f.get('evidence'), (' Should be: ' + str(f['fix'])) if f.get('fix') else '')
+                       for f in findings)
+    messages = [{'role': 'user', 'content': user_message(briefs, openapi_text)},
+                {'role': 'assistant', 'content': json.dumps(spec, ensure_ascii=False)},
+                {'role': 'user', 'content': REVISE.format(findings=listed)}]
+    text, _ = ask(client, system or SYSTEM, messages, purpose, trace, usage)
+    try:
+        candidate = parse_json(text)
+        check(candidate)
+        return candidate
+    except (SpecError, ValueError) as exc:
+        trace('revision dropped, the spec before it is kept: ' + str(exc)[:600])
+        return spec
+
+
+def run(strategy, briefs, openapi_text, client, check, trace=lambda line: None, digest=None, system=None, usage=None, repairs=2):
+    """Extract with one of STRATEGIES. `digest(spec)` or `digest(spec, other)` returns what a spec makes the agent do,
+    as {item: value}; the audit and the comparison work on it, never on the JSON as written."""
+    if strategy not in STRATEGIES:
+        raise ValueError('unknown extraction strategy %r; one of %s' % (strategy, ', '.join(STRATEGIES)))
+    first = extract(briefs, openapi_text, client, check, trace, repairs, system, usage)
+    if strategy == 'single':
+        return first
+    if digest is None:
+        raise ValueError('the %s strategy needs a digest of the spec' % strategy)
+    documents = user_message(briefs, openapi_text).rsplit('\n\n', 1)[0]
+
+    if strategy == 'audit':
+        content = documents + '\n\n<what_the_specification_does>\n' + render(digest(first)) + '\n</what_the_specification_does>'
+        text, _ = ask(client, AUDIT, [{'role': 'user', 'content': content}], 'audit the high-risk content of the spec against the documents', trace, usage)
+        findings = quoted(parse_list(text), briefs, openapi_text)
+        trace('audit: %d finding(s) with evidence from the documents' % len(findings))
+        for f in findings:
+            trace('finding: %s | %s | evidence: %s' % (f.get('item'), str(f.get('problem'))[:300], squeeze(f.get('evidence', ''))[:300]))
+        if not findings:
+            return first
+        return revise(first, findings, briefs, openapi_text, client, check, trace, system, usage, 'revise the spec after the audit')
+
+    second = extract(briefs, openapi_text, client, check, trace, repairs, system, usage)
+    a, b = digest(first, second), digest(second, first)
+    differing = [item for item in list(a) + [i for i in b if i not in a] if a.get(item) != b.get(item)]
+    trace('double extraction: %d item(s) differ' % len(differing))
+    if not differing:
+        return first
+    for item in differing:              # kept, so that a disagreement can be looked at afterwards without another call
+        trace('differs: %s | A: %s | B: %s' % (item, json.dumps(a.get(item), sort_keys=True, default=str), json.dumps(b.get(item), sort_keys=True, default=str)))
+    listed = '\n'.join('- %s\n  A: %s\n  B: %s' % (item, json.dumps(a.get(item), sort_keys=True, default=str), json.dumps(b.get(item), sort_keys=True, default=str)) for item in differing)
+    content = documents + '\n\n<items_on_which_they_differ>\n' + listed + '\n</items_on_which_they_differ>'
+    text, _ = ask(client, ADJUDICATE, [{'role': 'user', 'content': content}], 'adjudicate the differences of two extractions', trace, usage)
+    decided = [d for d in quoted(parse_list(text), briefs, openapi_text) if d.get('item') in differing and d.get('right') in ('A', 'B', 'neither')]
+    wins = {side: sum(d['right'] == side for d in decided) for side in ('A', 'B')}
+    # The spec that was right more often is kept whole, so that its rule text and its structure still belong together.
+    winner, other = (second, 'A') if wins['B'] > wins['A'] else (first, 'B')
+    trace('adjudication: %d decided with evidence, A right %d, B right %d' % (len(decided), wins['A'], wins['B']))
+    for d in decided:
+        trace('decided: %s | right: %s | evidence: %s' % (d['item'], d['right'], squeeze(d.get('evidence', ''))[:300]))
+    against = [dict(d, problem='the other extraction has %s' % json.dumps((a if other == 'A' else b).get(d['item']), sort_keys=True, default=str),
+                    fix=d.get('fix') or (a if other == 'A' else b).get(d['item'])) for d in decided if d['right'] in (other, 'neither')]
+    if not against:
+        return winner
+    return revise(winner, against, briefs, openapi_text, client, check, trace, system, usage, 'revise the spec after the adjudication')

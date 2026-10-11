@@ -1,3 +1,5 @@
 # The builder itself uses only the standard library.
 # The Anthropic SDK is needed for --live-extract.
 anthropic
+# Only for benchmarks/harness/optimize_prompt.py. The builder itself does not import it.
+gepa==0.1.4

@@ -391,6 +391,9 @@ def classify(rule, checks, results, fit, candidate):
             anchors = [norm(a) for a in rule.get('anchors') or []]
             found = any(a in norm(json.dumps(candidate.spec)) for a in anchors)
             out['extraction'] = 'missing' if anchors and not found else 'incorrect'
+    # A rule the schema carries, named under "unsupported" and not encoded: the extractor gave up on something it could do.
+    listed = norm(' '.join(str(u) for u in candidate.spec.get('unsupported') or []))
+    out['declared_unsupported'] = bool(listed) and any(norm(a) in listed for a in rule.get('anchors') or []) and not out['extraction'].startswith('correct')
     if not reference_ok:
         return out          # the earlier stage owns the rule; the extraction result is reported beside it
     if not out['extraction'].startswith('correct'):
@@ -409,10 +412,10 @@ def classify(rule, checks, results, fit, candidate):
 _REFERENCE = {}
 
 
-def key_problems(pid):
+def key_problems(pid, reference='v1'):
     """Everything wrong with a key itself, before anything is run."""
     documents, _ = packages.inputs(pid)
-    k, bad, source = packages.key(pid), [], norm(' \n '.join(text for _, text in documents))
+    k, bad, source = packages.key(pid, reference), [], norm(' \n '.join(text for _, text in documents))
     ids = [r['id'] for r in k['rules']]
     bad += ['%s: duplicate rule id' % i for i in set(ids) if ids.count(i) > 1]
     for rule in k['rules']:
@@ -436,18 +439,20 @@ def key_problems(pid):
     return bad
 
 
-def evaluate(pid, extracted=None):
-    """The report of one package: per check and per rule, for the reference spec and, if given, an extracted spec."""
+def evaluate(pid, extracted=None, reference='v1'):
+    """The report of one package: per check and per rule, for the reference spec and, if given, an extracted spec.
+    `reference` names the reference spec and fit table to judge against; rules and checks are the frozen ones."""
     _, document = packages.inputs(pid)
-    k = packages.key(pid)
-    if pid not in _REFERENCE:
+    k = packages.key(pid, reference)
+    version = reference
+    if (pid, version) not in _REFERENCE:
         target = Target('reference', k['spec'], document, k['defaults'], k['bank'])
-        _REFERENCE[pid] = (target, {c['id']: run_check(target, c) for c in k['checks']})
-    reference, reference_results = _REFERENCE[pid]
+        _REFERENCE[(pid, version)] = (target, {c['id']: run_check(target, c) for c in k['checks']})
+    reference, reference_results = _REFERENCE[(pid, version)]
     candidate = Target('extracted', extracted, document, k['defaults'], k['bank']) if extracted is not None else None
     results = {c['id']: {'reference': reference_results[c['id']], 'extracted': run_check(candidate, c) if candidate else None} for c in k['checks']}
     rules = [classify(rule, k['checks'], results, k['fit'].get(rule['id'], 'structured'), candidate) for rule in k['rules']]
-    report = {'package': pid, 'tier': packages.tier(pid), 'version': packages.meta(pid)['version'],
+    report = {'package': pid, 'tier': packages.tier(pid), 'version': packages.meta(pid)['version'], 'reference_version': version,
               'reference_problems': reference.problems, 'spec_problems': candidate.problems if candidate else None,
               'api_notes': contract.document_notes(reference.api),
               'static_contract': contract.check_tools((candidate or reference).workflow, reference.api) if (candidate or reference).workflow else None,
@@ -514,17 +519,17 @@ def mutate(spec, ops):
     return spec
 
 
-def mutation_baseline(pid):
+def mutation_baseline(pid, reference='v1'):
     """Each mutation of the reference spec must turn its own rules from correct to something else.
 
     A check that plays a whole call can speak for several rules, so a mutation may also flag a rule
     that shares a failed check with one of its own. Those are listed as coupled. A rule flagged
     without such a shared check, or an expected rule that is not flagged, makes the row wrong."""
-    k = packages.key(pid)
+    k = packages.key(pid, reference)
     good = lambda report: {r['id'] for r in report['rules'] if str(r['extraction']).startswith('correct')}
-    base, rows = good(evaluate(pid, k['spec'])), []
+    base, rows = good(evaluate(pid, k['spec'], reference)), []
     for m in k['mutations']:
-        report = evaluate(pid, mutate(k['spec'], m['ops']))
+        report = evaluate(pid, mutate(k['spec'], m['ops']), reference)
         hit, want = base - good(report), set(m['rules'])
         failed = [set(c['rules']) for c in report['checks'] if 'fail' in (c['extracted']['spec'], c['extracted']['compiled'])]
         coupled = {r for r in hit - want if any(r in rules and rules & want for rules in failed)}
@@ -541,27 +546,76 @@ def exposures():
     return [json.loads(line) for line in EXPOSURE.read_text(encoding='utf-8').splitlines() if line.strip()]
 
 
+LABELS = {'selection': 'model-selection evidence', 'final': 'final holdout'}
+
+
+def _log(entry):
+    entry = dict({'at': time.strftime('%Y-%m-%dT%H:%M:%S%z')}, **entry)
+    EXPOSURE.parent.mkdir(parents=True, exist_ok=True)
+    with EXPOSURE.open('a', encoding='utf-8') as out:
+        out.write(json.dumps(entry) + '\n')
+    return entry
+
+
+def batch_state(pid, batch):
+    """'none', 'open' (started, not every run done) or 'completed', from the log."""
+    events = [e.get('event') for e in exposures() if e['package'] == pid and e.get('batch') == batch]
+    return 'none' if not events else 'completed' if 'completed' in events else 'open'
+
+
+def open_batch(pid, purpose, batch, candidates, relabel=None, resume=False):
+    """Put a whole batch of frozen candidates on the record before any of it runs, or refuse.
+
+    A selection or final package is opened once, by one batch. `batch` is the hash of the frozen candidates,
+    so a batch can only be continued with exactly what it was started with. Continuing an unfinished batch
+    needs `resume` and is logged; it runs what is missing and repeats nothing. Any other evaluation after
+    the first is a new look at a package that was already seen and needs `relabel`, which is what its
+    results are called from then on."""
+    level = packages.tier(pid)
+    if level == 'development':
+        raise PermissionError('%s is a development package: it needs no batch' % pid)
+    if not purpose:
+        raise PermissionError('%s is a %s package: say what the evaluation is for' % (pid, level))
+    earlier, state = [e for e in exposures() if e['package'] == pid], batch_state(pid, batch)
+    if resume:
+        if state != 'open':
+            raise PermissionError('there is no unfinished batch %s on %s to continue: %s' % (
+                batch, pid, 'it is completed' if state == 'completed' else 'no batch was started with these candidates'))
+        label = next(e['label'] for e in earlier if e.get('batch') == batch and e.get('event') == 'started')
+        return _log({'package': pid, 'tier': level, 'event': 'resumed', 'batch': batch, 'label': label, 'purpose': purpose})
+    if state == 'open':
+        raise PermissionError('batch %s on %s was started and not finished: continue it with resume; it is not run again from the start' % (batch, pid))
+    if earlier and not relabel:
+        raise PermissionError('%s was already evaluated (%d log entries): a further evaluation is post-exposure and has to be relabelled' % (pid, len(earlier)))
+    return _log({'package': pid, 'tier': level, 'event': 'started', 'batch': batch, 'label': relabel or LABELS[level], 'purpose': purpose, 'candidates': candidates})
+
+
+def close_batch(pid, batch, done, planned, note=''):
+    """The end of one run of a batch: completed when every planned run has a result, otherwise left open."""
+    return _log({'package': pid, 'tier': packages.tier(pid), 'event': 'completed' if done == planned else 'interrupted', 'batch': batch,
+                 'runs_done': done, 'runs_planned': planned, 'note': note})
+
+
 def expose(pid, purpose, config, relabel=None, frozen_candidates=None):
-    """Record that a package of the selection or final tier is about to be evaluated on an extracted spec,
-    or refuse. A final package is run on one configuration, after the candidates are frozen; anything
-    else needs `relabel`, which is what its results are called from then on."""
+    """Record that a package of the selection or final tier is about to be evaluated on one extracted spec,
+    or refuse. Inside an open batch (config names it) nothing more is logged: the batch is the record.
+    Outside a batch the first evaluation of a final package needs the frozen candidates, and every
+    evaluation of a package that was already seen needs `relabel`."""
     level = packages.tier(pid)
     if level == 'development':
         return None
     if not purpose:
         raise PermissionError('%s is a %s package: say what the evaluation is for' % (pid, level))
-    label = {'selection': 'model-selection evidence', 'final': 'final holdout'}[level]
-    if level == 'final':
-        earlier = [e for e in exposures() if e['package'] == pid]
-        if not frozen_candidates and not relabel:
-            raise PermissionError('%s is the final holdout: freeze the candidates first' % pid)
-        if any(e['config'] != config for e in earlier) and not relabel:
-            raise PermissionError('%s was already evaluated on another configuration; a further one has to be relabelled' % pid)
-    entry = {'at': time.strftime('%Y-%m-%dT%H:%M:%S%z'), 'package': pid, 'tier': level, 'label': relabel or label, 'purpose': purpose, 'config': config}
-    EXPOSURE.parent.mkdir(parents=True, exist_ok=True)
-    with EXPOSURE.open('a', encoding='utf-8') as out:
-        out.write(json.dumps(entry) + '\n')
-    return entry
+    if (config or {}).get('batch'):
+        if batch_state(pid, config['batch']) != 'open':
+            raise PermissionError('%s: batch %s is not open' % (pid, config['batch']))
+        return None
+    earlier = [e for e in exposures() if e['package'] == pid]
+    if level == 'final' and not frozen_candidates and not relabel:
+        raise PermissionError('%s is the final holdout: freeze the candidates first' % pid)
+    if earlier and not relabel:
+        raise PermissionError('%s was already evaluated (%d log entries): a further evaluation is post-exposure and has to be relabelled' % (pid, len(earlier)))
+    return _log({'package': pid, 'tier': level, 'event': 'single', 'label': relabel or LABELS[level], 'purpose': purpose, 'config': config})
 
 
 # ---------------------------------------------------------------- reports
@@ -571,7 +625,7 @@ def report_text(reports, mutations=None):
     for rep in reports:
         who = 'extracted' if rep['spec_problems'] is not None else 'reference'
         s = rep['summary']
-        out += ['## Package %s (%s, v%s): %s spec' % (rep['package'], rep['tier'], rep['version'], who), '']
+        out += ['## Package %s (%s, v%s, reference %s): %s spec' % (rep['package'], rep['tier'], rep['version'], rep.get('reference_version', 'v1'), who), '']
         if rep['reference_problems'] or rep['spec_problems']:
             out += ['Not valid: ' + '; '.join(rep['spec_problems'] or rep['reference_problems'])[:600], '']
         out += ['| | |', '| --- | --- |', '| Rules | %d |' % s['rules'],
@@ -632,11 +686,13 @@ def main(argv=None):
     ap.add_argument('--mutations', action='store_true', help='also evaluate the mutated reference specs')
     ap.add_argument('--out', help='write <out>.json and <out>.md')
     ap.add_argument('--skip-verify', action='store_true', help='do not compare the packages with the manifest (before the first freeze)')
+    ap.add_argument('--reference', default='v1', help="'v1' (frozen with the package), a later version such as 'v2', or 'latest'")
     args = ap.parse_args(argv)
     chosen = args.package or packages.ids()
-    problems = [line for pid in chosen for line in ['%s: %s' % (pid, p) for p in key_problems(pid)]]
+    version = {pid: packages.references(pid)[-1] if args.reference == 'latest' else args.reference for pid in chosen}
+    problems = [line for pid in chosen for line in ['%s: %s' % (pid, p) for p in key_problems(pid, version[pid])]]
     if not args.skip_verify:
-        problems += [line for pid in chosen for line in packages.verify(pid)]
+        problems += [line for pid in chosen for line in packages.verify(pid)] + packages.verify_references()
     if problems:
         print('The packages cannot be evaluated:')
         for line in problems:
@@ -648,8 +704,8 @@ def main(argv=None):
             ap.error('--spec needs exactly one --package')
         expose(chosen[0], args.purpose, json.loads(args.config), args.relabel, args.frozen_candidates)
         extracted = json.loads(Path(args.spec).read_text(encoding='utf-8'))
-    reports = [evaluate(pid, extracted) for pid in chosen]
-    mutations = {pid: mutation_baseline(pid) for pid in chosen} if args.mutations else None
+    reports = [evaluate(pid, extracted, version[pid]) for pid in chosen]
+    mutations = {pid: mutation_baseline(pid, version[pid]) for pid in chosen} if args.mutations else None
     text = report_text(reports, mutations)
     for rep in reports:
         s = rep['summary']

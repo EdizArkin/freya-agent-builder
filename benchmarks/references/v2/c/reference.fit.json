@@ -1,0 +1,22 @@
+{
+ "C-01": "structured",
+ "C-02": "structured",
+ "C-03": "structured",
+ "C-05": "structured",
+ "C-07": "structured",
+ "C-09": "structured",
+ "C-10": "structured",
+ "C-12": "structured",
+ "C-15": "structured",
+ "C-16": "structured",
+ "C-18": "structured",
+ "C-19": "structured",
+ "C-20": "structured",
+ "C-06": "text",
+ "C-13": "text",
+ "C-14": "text",
+ "C-17": "text",
+ "C-04": "structured",
+ "C-08": "structured",
+ "C-11": "structured"
+}

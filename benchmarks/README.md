@@ -57,6 +57,15 @@ python benchmarks/harness/run_benchmarks.py --spec A=outputs/<build>/spec.json -
 
 The assertions use only text the runtime itself produces, so they hold for any spec of the same brief.
 
+## Extraction experiments
+
+`harness/experiment.py` runs an extraction strategy on the evaluation packages of `packages/` and judges the spec rule by rule; `harness/optimize_prompt.py` optimises three sections of the extraction prompt with GEPA. Both call a paid model only with `--live` and a `--max-dollars` limit; `--plan` prints calls and cost and calls nothing.
+
+- **References.** A package's rules and checks are frozen. The hand-written reference spec and its fit table exist in versions: `v1` is frozen with the package, later ones are in `references/` with their own manifest and a list of every difference (`references/v2/CHANGES.md`). Only development packages have a later reference. A result always names the reference it was judged against.
+- **The score** measures the extraction, not the builder. A rule the schema carries scores when it is encoded; a rule the schema cannot carry scores when it is reported under `unsupported`. Leaving a rule out, or reporting a supported rule as unsupported, never scores more than writing it down, and the set of rules that count is the same for every extraction of a package. Whether the runtime enforces a rule is the evaluator's layer and end-to-end columns, not this number.
+- **Time.** Each run records the wall clock of the whole extraction, the part spent waiting for the model, the slowest call, and the time of the offline evaluation.
+- **Selection and final packages** run only as one batch of frozen candidates: `experiment.py --batch f --candidates FILE --purpose TEXT`. The batch is written to `reports/m15.exposure.jsonl` before the first model call, every extraction is finished before the key is read, an interrupted batch continues with `--resume` and repeats nothing, and any further evaluation of the package is refused unless it is relabelled.
+
 ## The three kinds of scenario
 
 | Tier | What the harness does | What it proves |

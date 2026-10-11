@@ -1,0 +1,21 @@
+{
+ "D-01": "structured",
+ "D-02": "structured",
+ "D-03": "structured",
+ "D-04": "structured",
+ "D-07": "structured",
+ "D-08": "structured",
+ "D-09": "structured",
+ "D-10": "structured",
+ "D-13": "structured",
+ "D-15": "structured",
+ "D-16": "structured",
+ "D-18": "structured",
+ "D-19": "structured",
+ "D-05": "text",
+ "D-12": "text",
+ "D-14": "partial",
+ "D-06": "structured",
+ "D-11": "partial",
+ "D-17": "structured"
+}

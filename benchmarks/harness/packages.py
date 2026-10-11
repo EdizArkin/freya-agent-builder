@@ -30,6 +30,8 @@ if str(ROOT) not in sys.path:
 
 PACKAGES = BENCH / 'packages'
 MANIFEST = PACKAGES / 'MANIFEST.json'
+REFERENCES = BENCH / 'references'
+REFERENCES_MANIFEST = REFERENCES / 'MANIFEST.json'
 TIERS = ('development', 'selection', 'final')
 FROZEN = ('rules.json', 'checks.json', 'bank.json')
 REFERENCE = ('reference.spec.json', 'reference.fit.json')
@@ -59,15 +61,27 @@ def inputs(pid):
     return documents, json.loads((folder / 'openapi.json').read_text(encoding='utf-8'))
 
 
-def key(pid):
-    """The answer key: rules, checks, the reference spec with its fit table, the bank's field names."""
+def references(pid):
+    """The reference versions a package can be evaluated against, oldest first. 'v1' is the one frozen with
+    the package. A later one is a separate file under benchmarks/references/ and exists only for a
+    development package: the reference of a selection or final package is never rewritten."""
+    later = sorted(p.parent.name for p in REFERENCES.glob('v*/%s' % pid) if (p / 'reference.spec.json').exists()) if tier(pid) == 'development' else []
+    return ['v1'] + later
+
+
+def key(pid, reference='v1'):
+    """The answer key: rules, checks, the reference spec with its fit table, the bank's field names.
+    Rules and checks are always the frozen ones; `reference` chooses only the spec and its fit table."""
     folder = PACKAGES / pid / 'key'
-    need = lambda name: json.loads((folder / name).read_text(encoding='utf-8'))
+    need = lambda name, base=folder: json.loads((base / name).read_text(encoding='utf-8'))
     read = lambda name, default: need(name) if (folder / name).exists() else default
     checks = need('checks.json')
+    if reference not in references(pid):
+        raise FileNotFoundError('package %s has no reference %s (it has %s)' % (pid, reference, ', '.join(references(pid))))
+    base = folder if reference == 'v1' else REFERENCES / reference / pid
     return {'rules': need('rules.json')['rules'], 'defaults': checks.get('defaults') or {}, 'checks': checks['checks'],
-            'spec': need('reference.spec.json'), 'fit': need('reference.fit.json'), 'bank': read('bank.json', {}),
-            'mutations': read('mutations.json', {'mutations': []})['mutations']}
+            'spec': need('reference.spec.json', base), 'fit': need('reference.fit.json', base), 'bank': read('bank.json', {}),
+            'mutations': read('mutations.json', {'mutations': []})['mutations'], 'reference': reference}
 
 
 def digest(data):
@@ -115,17 +129,50 @@ def verify(only=None):
     return bad
 
 
+def reference_hashes():
+    """Every later reference: its files, and the frozen package files it was written beside."""
+    frozen = json.loads(MANIFEST.read_text(encoding='utf-8'))['packages']
+    out = {}
+    for pid in ids():
+        for version in references(pid)[1:]:
+            folder = REFERENCES / version / pid
+            out['%s/%s' % (version, pid)] = {'package_version': frozen[pid]['version'], 'package_key': frozen[pid]['key'], 'replaces': frozen[pid]['reference'],
+                                             'files': {name: digest(folder / name) for name in REFERENCE}}
+    return out
+
+
+def freeze_references():
+    manifest = {'frozen_at': time.strftime('%Y-%m-%dT%H:%M:%S%z'), 'references': reference_hashes()}
+    REFERENCES_MANIFEST.write_text(json.dumps(manifest, indent=1) + '\n', encoding='utf-8')
+    return manifest
+
+
+def verify_references():
+    """Differences between the later references and their own manifest. The package manifest is not involved."""
+    if not REFERENCES.exists():
+        return []
+    if not REFERENCES_MANIFEST.exists():
+        return ['benchmarks/references has no MANIFEST.json: the later references are not frozen']
+    frozen, now = json.loads(REFERENCES_MANIFEST.read_text(encoding='utf-8'))['references'], reference_hashes()
+    stray = ['%s: a later reference for a %s package is not allowed' % (p.name, tier(p.name)) for p in REFERENCES.glob('v*/*') if p.name in ids() and tier(p.name) != 'development']
+    return stray + ['references/%s differs from its manifest' % name for name in sorted(set(frozen) | set(now)) if frozen.get(name) != now.get(name)]
+
+
 def main(argv=None):
     command = (argv if argv is not None else sys.argv[1:] or ['list'])[0]
+    if command == 'freeze-references':
+        for name in freeze_references()['references']:
+            print('frozen: references/%s' % name)
+        return 0
     if command == 'freeze':
         for pid, entry in freeze()['packages'].items():
             print('%s v%s %-11s %d input file(s), %d key file(s)' % (pid, entry['version'], entry['tier'], len(entry['inputs']), len(entry['key'])))
         return 0
     if command == 'verify':
-        bad = verify()
+        bad = verify() + verify_references()
         for line in bad:
             print(line)
-        print('the packages match the manifest' if not bad else '%d difference(s)' % len(bad))
+        print('the packages and the later references match their manifests' if not bad else '%d difference(s)' % len(bad))
         return 1 if bad else 0
     for pid in ids():
         info = meta(pid)

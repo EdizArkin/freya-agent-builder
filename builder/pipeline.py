@@ -23,7 +23,7 @@ from builder.spec.openapi import Api
 from builder.tracing.trace import Trace
 from builder.validation import contract
 from builder.validation.safety import leaks
-from builder.validation.spec import validate
+from builder.validation.spec import digest, validate
 from builder.validation.workflow import check_workflow
 
 
@@ -55,6 +55,7 @@ def arguments(argv=None):
     p.add_argument('--out', default=str(settings.OUTPUTS))
     p.add_argument('--spec', help='reuse an already extracted spec file instead of calling the model')
     p.add_argument('--live-extract', action='store_true', help='permit the Anthropic API call')
+    p.add_argument('--strategy', choices=claude.STRATEGIES, default='single', help='how the spec is extracted: one call (single), one call and a targeted audit, or two calls and an adjudication (double)')
     p.add_argument('--model', help='extraction model; default BUILDER_LLM_MODEL or ' + settings.DEFAULT_MODEL)
     p.add_argument('--max-tokens', type=int, default=settings.MAX_TOKENS)
     p.add_argument('--best-effort', action='store_true', help='compile even if the extractor reports policy it could not express')
@@ -87,7 +88,9 @@ def main(argv=None):
         elif a.live_extract:
             model = claude.AnthropicClient(a.model, a.max_tokens)
             check = lambda candidate: validate(candidate, api, a.best_effort)
-            spec = claude.extract(briefs, json.dumps(document, separators=(',', ':')), model, check, trace)
+            trace('extraction strategy: ' + a.strategy)
+            spec = claude.run(a.strategy, briefs, json.dumps(document, separators=(',', ':')), model, check, trace,
+                              digest=lambda one, other=None: digest(one, api, other))
         else:
             raise SystemExit('No spec source: pass --live-extract to call the model, or --spec FILE to reuse one.')
         if leaks(spec):

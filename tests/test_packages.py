@@ -265,12 +265,12 @@ class Tiers(unittest.TestCase):
                     rules.expose('g', 'final run', {'prompt': 'p0'})
                 entry = rules.expose('g', 'final run', {'prompt': 'p0'}, frozen_candidates='candidates.json')
                 self.assertEqual(entry['label'], 'final holdout')
-                rules.expose('g', 'a repetition of the same configuration', {'prompt': 'p0'}, frozen_candidates='candidates.json')
-                with self.assertRaises(PermissionError):
-                    rules.expose('g', 'another prompt', {'prompt': 'p1'}, frozen_candidates='candidates.json')
+                for pid, config in (('g', {'prompt': 'p0'}), ('g', {'prompt': 'p1'}), ('f', {'prompt': 'p0'})):
+                    with self.assertRaises(PermissionError, msg='a second look is never silent, not even at the same configuration'):
+                        rules.expose(pid, 'again', config, frozen_candidates='candidates.json')
                 entry = rules.expose('g', 'another prompt', {'prompt': 'p1'}, relabel='model-selection evidence')
                 self.assertEqual(entry['label'], 'model-selection evidence')
-                self.assertEqual([e['package'] for e in rules.exposures()], ['f', 'g', 'g', 'g'])
+                self.assertEqual([e['package'] for e in rules.exposures()], ['f', 'g', 'g'])
         finally:
             shutil.rmtree(folder)
 

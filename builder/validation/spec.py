@@ -21,12 +21,14 @@ def sample_products(spec, api):
     for name, schema in props.items():
         if schema.get('enum'):
             axes.append([(name, v) for v in schema['enum']])
+        elif schema.get('type') == 'boolean':
+            axes.append([(name, True), (name, False)])
         elif name in edges:
             axes.append([(name, v) for v in sorted(edges[name])])
     base = {}
     for name, schema in props.items():
         kind = schema.get('type')
-        base[name] = 250.0 if kind == 'number' else 5 if kind == 'integer' else 'p1' if name == account['id_field'] else '1234'
+        base[name] = 250.0 if kind == 'number' else 5 if kind == 'integer' else False if kind == 'boolean' else 'p1' if name == account['id_field'] else '1234'
     products = []
     for combo in itertools.islice(itertools.product(*axes), 200) if axes else [()]:
         product = dict(base)
@@ -246,3 +248,47 @@ def validate(spec, api, best_effort=False):
     if bad:
         raise SpecError(bad)
     return warn
+
+
+def digest(spec, api, other=None):
+    """What a valid spec makes the agent do, as plain values per item: the content in which a mistake changes
+    what the bank records. Two specs that mean the same have the same digest, however they are written.
+    With `other`, the products of both specs are sampled, so that two digests can be compared item by item."""
+    cal, idc, close = spec.get('calendar') or {}, spec.get('identity') or {}, spec.get('close') or {}
+    promise, callback = spec.get('promise') or {}, spec.get('callback')
+    out = {
+        'business weekdays (Monday=0)': sorted(cal.get('business_weekdays') or []),
+        'holidays': sorted(cal.get('holidays') or []),
+        'security questions, in order (field, format, numeric date order, normalisation)':
+            [[q.get('field'), q.get('format'), q.get('numeric_order'), q.get('normalize')] for q in idc.get('questions') or [] if isinstance(q, dict)],
+        'wrong answers that end the check': idc.get('max_wrong'),
+        'callback': {k: callback.get(k) for k in ('include_today', 'next_business_days', 'start', 'end', 'after_now')} if callback else 'never used',
+        'promise attempts per product': promise.get('max_attempts', 2),
+        'promise only on a business day': promise.get('business_day_only', True),
+        'promise after a transfer': 'never' if not promise.get('allowed_after_transfer_to') else 'only after a transfer to ' + ', '.join(sorted(promise['allowed_after_transfer_to'])),
+        'products that come first': promise.get('resolve_first') or 'no order',
+        'minimum on the total of all promises': promise.get('min_total') or 'none',
+        'notes': ('used; after a transfer: ' + ('forbidden' if spec['note'].get('forbidden_after_transfer') else 'allowed')) if spec.get('note') else 'never used',
+        'transfers per call': (spec.get('transfer') or {}).get('max_transfers') or 'no limit',
+        'close outcomes and their reasons': {k: sorted(v) for k, v in (close.get('outcomes') or {}).items()},
+        'close reason of each transfer queue': close.get('queue_reasons') or {},
+        'close rules forced from what was recorded, first match wins': close.get('forced') or [],
+        'policy reported as not expressible': spec.get('unsupported') or [],
+    }
+    products = sample_products(spec, api)
+    if other is not None:
+        products += [p for p in sample_products(other, api) if p not in products]
+    account = spec['account']
+    cfg = {'calendar': {'business_weekdays': cal.get('business_weekdays') or [], 'holidays': cal.get('holidays') or [], 'week_start': cal.get('week_start', 0)},
+           'account': account, 'promise': promise}
+    clocks = sorted({str(clock) for o in (spec, other) if o for value in o['account']['values'] for when in times(value.get('expr')) for clock in when.values()})
+    clocks = ['09:00'] + [c for c in clocks] + [(datetime.datetime.strptime(c, '%H:%M') + datetime.timedelta(minutes=1)).strftime('%H:%M') for c in clocks]
+    today = datetime.date(2030, 1, 9)
+    for product in products[:40]:
+        about = ', '.join('%s=%s' % (k, v) for k, v in product.items() if k != account['id_field'])
+        for clock in sorted(set(clocks)):
+            fact = (rt.product_facts(cfg, [product], today, clock) or [{}])[0]
+            out['a product with %s, called on Wednesday 2030-01-09 at %s' % (about, clock)] = {
+                'spoken name': fact.get('label'), 'lowest amount': fact.get('min_amount'), 'highest amount': fact.get('max_amount'),
+                'earliest date': fact.get('earliest_date') or 'today', 'latest date': fact.get('latest_date'), 'promise allowed': fact.get('promise_allowed')}
+    return out
