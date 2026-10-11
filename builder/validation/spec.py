@@ -276,9 +276,9 @@ def validate(spec, api, best_effort=False):
     for event in (spec.get('guidance') or {}):
         if event not in GUIDANCE_EVENTS and not event.startswith('identity.hint.'):
             warn.append('guidance event %r is unknown and will be ignored' % event)
-    if str(spec.get('language') or 'English').strip().lower() not in ('english', 'en'):
-        # The runtime records a promise only after a yes it can recognise, and it knows the words of one language.
-        warn.append('the agent speaks %s: the confirmation of a promise recognises a clear yes in English only, so no promise can be recorded in this language' % spec.get('language'))
+    if str(spec.get('language') or 'English').strip().lower() not in ('english', 'en', 'turkish', 'tr', 'türkçe', 'turkce'):
+        # The runtime records a promise only after a yes it can recognise, and it knows the words of two languages.
+        warn.append('the agent speaks %s: the confirmation of a promise recognises a clear yes in English and Turkish only, so no promise can be recorded in this language' % spec.get('language'))
     unsupported = spec.get('unsupported') or []
     if unsupported:
         (warn if best_effort else bad).append('the extractor reported mandatory policy it could not express: ' + ' | '.join(str(u) for u in unsupported))

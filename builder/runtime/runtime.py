@@ -82,8 +82,30 @@ def number(value):
         return None
     if isinstance(value, (int, float)):
         return float(value)
+    # A written number, in the English form (1,500.50) or the Turkish one (1.500,50). With both separators the
+    # last one is the decimal point. A comma alone is a decimal comma before one or two digits (1500,50) and a
+    # thousands comma before groups of three (1,500). Anything else is not a number here: it is not guessed.
+    text = str(value).strip()
+    if ',' not in text:
+        try:
+            return float(text)
+        except Exception:
+            if re.match(r'^[0-9]{1,3}(\.[0-9]{3})+$', text):
+                return float(text.replace('.', ''))
+            return None
+    if '.' in text:
+        if text.rfind(',') > text.rfind('.'):
+            text = text.replace('.', '').replace(',', '.')
+        else:
+            text = text.replace(',', '')
+    elif re.match(r'^[+-]?[0-9]{1,3}(,[0-9]{3})+$', text):
+        text = text.replace(',', '')
+    elif re.match(r'^[+-]?[0-9]+,[0-9]{1,2}$', text):
+        text = text.replace(',', '.')
+    else:
+        return None
     try:
-        return float(str(value).replace(',', '').strip())
+        return float(text)
     except Exception:
         return None
 
@@ -1115,16 +1137,46 @@ def promise_problem(cfg, vars, st, body, order=True):
 
 REG_TURNS = 6
 
+# Turkish, written without its own letters (see `plain`): the months, the weekdays from Monday, and the words of
+# a yes and of anything that is not one.
+MON_TR = ['ocak', 'subat', 'mart', 'nisan', 'mayis', 'haziran', 'temmuz', 'agustos', 'eylul', 'ekim', 'kasim', 'aralik']
+WDL_TR = ['pazartesi', 'sali', 'carsamba', 'persembe', 'cuma', 'cumartesi', 'pazar']
+YES_TR = ('evet', 'onayliyorum', 'onaylarim', 'onayladim', 'onay', 'kabul', 'tamam', 'tamamdir', 'olur', 'dogru', 'tabii', 'tabi', 'elbette', 'peki', 'anlastik', 'uygun', 'uygundur', 'teyit')
+NO_TR = ('hayir', 'yok', 'degil', 'ama', 'fakat', 'ancak', 'lakin', 'olmaz', 'istemem', 'etmem', 'edemem', 'yapamam', 'odeyemem', 'veremem', 'vazgectim', 'vazgeciyorum', 'iptal', 'dur', 'bekle',
+         'bekleyin', 'yanlis', 'belki', 'galiba', 'sanirim', 'baska', 'farkli', 'yerine', 'aslinda', 'eger', 'emin', 'bilmiyorum', 'bakalim', 'mi', 'mu', 'misiniz', 'musunuz', 'miyim', 'muyum')
+
+
+def plain(text):
+    """Lower case, with the Turkish letters written as their nearest plain ones: one word however it was typed or transcribed."""
+    text = str(text).replace('İ', 'i').replace('İ', 'i').lower().replace('̇', '')
+    for pair in ('ıi', 'şs', 'ğg', 'üu', 'öo', 'çc', 'âa', 'îi', 'ûu'):
+        text = text.replace(pair[0], pair[1])
+    return text
+
+
 def words_of(text):
-    return re.findall(r"[a-z]+", str(text).lower().replace("'", ''))
+    return re.findall(r'[^\W\d_]+', plain(text).replace("'", '').replace('’', ''))
+
+
+def readings(raw):
+    """What a written number can mean. 1.500 is one and a half in English and fifteen hundred in Turkish: both are returned."""
+    raw = raw.rstrip('.,')
+    value = number(raw)
+    found = [] if value is None else [value]
+    if re.match(r'^[0-9]{1,3}\.[0-9]{3}$', raw):
+        found.append(float(raw.replace('.', '')))
+    return found
+
+
+def number_tokens(text):
+    """The numbers of a sentence, each with its possible readings."""
+    return [found for found in [readings(raw) for raw in re.findall(r'[0-9][0-9.,]*', str(text))] if found]
 
 
 def numbers_of(text):
     found = []
-    for raw in re.findall(r'[0-9][0-9.,]*', str(text)):
-        value = number(raw.rstrip('.,'))
-        if value is not None:
-            found.append(value)
+    for values in number_tokens(text):
+        found += values
     return found
 
 
@@ -1187,7 +1239,7 @@ def says(text, amount, day):
         return False
     if day.isoformat() in str(text):
         return True
-    return MON[day.month - 1].lower() in str(text).lower() and float(day.day) in values
+    return (MON[day.month - 1].lower() in str(text).lower() or MON_TR[day.month - 1] in words_of(text)) and float(day.day) in values
 
 
 def reply_problem(texts, amount, day, read=''):
@@ -1201,23 +1253,28 @@ def reply_problem(texts, amount, day, read=''):
                 'except', 'maybe', 'perhaps', 'guess', 'if', 'however', 'different', 'another', 'cancel', 'stop', 'wrong', 'incorrect',
                 'dont', 'wont', 'cant', 'nope', 'nah', 'hold', 'unsure', 'depends')
     first = words_of(texts[0])
-    if not [w for w in first if w in yes_words]:
+    if not [w for w in first if w in yes_words or w in YES_TR]:
         return 'the answer was not a clear yes'
     for text in texts:
         if '?' in str(text):
             return 'the person asked something'
         words = words_of(text)
-        if [w for w in words if w in no_words] or re.search(r"n't", str(text).lower()):
+        if [w for w in words if w in no_words or w in NO_TR] or re.search(r"n't", str(text).lower()):
             return 'the person refused, hesitated or changed something'
-        for value in numbers_of(text):
-            if abs(value - amount) >= 0.005 and value != float(day.day) and value != float(day.year) and value not in heard:
+        # Turkish negates inside the verb: onaylamiyorum, istemiyorum, kabul etmiyorum, odeyemeyecegim.
+        if [w for w in words if re.search(r'm[iu]yor|m[ae]y[ae]c[ae]|m[ae]d[iu]m$|m[ae]sin$|^degil|^onaylam', w)]:
+            return 'the person refused, hesitated or changed something'
+        for values in number_tokens(text):
+            if not [v for v in values if abs(v - amount) < 0.005 or v == float(day.day) or v == float(day.year) or v in heard]:
                 return 'the person named another amount or day'
-        for name in WDL:
-            if name.lower() in words and name != WDL[day.weekday()] and name.lower() not in named:
-                return 'the person named another day'
-        for name in MON:
-            if name.lower() in words and name != MON[day.month - 1] and name.lower() not in named:
-                return 'the person named another month'
+        for names in (WDL, WDL_TR):
+            for name in names:
+                if name.lower() in words and name != names[day.weekday()] and name.lower() not in named:
+                    return 'the person named another day'
+        for names in (MON, MON_TR):
+            for name in names:
+                if name.lower() in words and name != names[day.month - 1] and name.lower() not in named:
+                    return 'the person named another month'
     return ''
 
 

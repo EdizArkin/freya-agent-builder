@@ -55,6 +55,7 @@ python3 builder/build.py briefs/hidden-1.md briefs/hidden-1.openapi.json --expor
 | `--export FILE` | Where the export of the final published version is copied to |
 | `--trace FILE` | The `.log` of the run. A file that exists is never written to again: the new trace gets a number |
 | `--amend FILE` | A later document that amends the brief (Brief B on Brief A); repeat, in order |
+| `--mock-url URL` | The address of the bank for this run (https), in place of the server the tool API file names. Without it nothing changes |
 | `--slot NAME`, `--new` | The agent's name on Freya and its folder. Default: the brief's file name. `--new` stops if that slot already has a workflow |
 | `--suite public:A` ... | Test customers for the built agent. With them the run tests the agent, files what failed, has a model propose changes, and keeps or rolls back each one (see Optimize) |
 | `--max-candidates N`, `--max-credits N`, `--max-dollars N` | Limits of the run: candidates, Freya credits for self-tests, dollars for the builder's model. Defaults 3, 25, 5 |
@@ -97,6 +98,15 @@ What such a run does in place of tests:
   customers. Each check is `PASS`, `FAIL`, `SKIP`, `NOT TESTED` or `UNVERIFIED`. The SHA-256 of each
   brief, of the tool API, of the spec and of the workflow are in the trace (`provenance | ...`) and
   in the build record. No score is made from these, and a static check is no test of a call.
+
+A call in Turkish. The agent speaks the language the extraction names. The runtime's confirmation of
+a promise reads English and Turkish: a Turkish yes ("Evet, onaylıyorum"), a no, a doubt or a condition
+("evet ama ..."), Turkish month and weekday names in the read-back, and amounts written `1.500,00`
+or `1,500.00`. Input files are read as UTF-8, with or without a byte order mark; a file that is not
+UTF-8 is read as Windows-1254 and the trace says so. This is tested offline only
+(`tests/test_turkish.py`): no call was made in Turkish on the platform, an amount spoken in words
+("bin beş yüz") is not read as a number, and the messages the runtime gives the phone model are in
+English. The brief is one Markdown or text file; a folder, DOCX, XLSX or PDF is not read.
 
 The two demonstration runs are in [demo/README.md](demo/README.md).
 
@@ -227,6 +237,7 @@ are reported as skipped. The suite takes several minutes.
 | `test_m18_confirmation.py`, `test_m18_versions.py` | The read-back and confirmation gate; platform versions, history and rollback |
 | `test_m18_loop.py`, `test_recovery.py` | The optimization run: decision, limits, diagnosis, candidate, step, run, command, the harness evaluation; pending simulations, recovery, restoring a slot |
 | `test_m19_run.py` | The one command from a brief to a verified export; the `.log` trace and its redaction; the bounded wait and the stop file; credits between batches; where the starter kit is |
+| `test_turkish.py` | A call in Turkish: yes, no and read-back at the confirmation gate, amounts in the Turkish and the English form, `--mock-url`, the encoding of an input file |
 | `test_hidden_brief.py` | A brief without test customers: the limits on model calls and on waiting, the one fallback extraction, the coverage audit, what it reports and what `--coverage block` stops, the four kinds of evidence, the input hashes |
 
 `benchmarks/harness/fixture_spec.py` is a hand-written spec for the kit's Brief A and B. It is test data,

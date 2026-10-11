@@ -588,14 +588,15 @@ class TheToolAndTheContract(unittest.TestCase):
     def test_a_build_says_when_no_yes_can_be_recognised(self):
         from builder.validation.spec import validate
         self.assertEqual(validate(fixture(True), API), [])
-        warnings = validate(dict(fixture(True), language='Turkish'), API)
+        self.assertEqual(validate(dict(fixture(True), language='Turkish'), API), [], 'Turkish is the second language the gate reads (tests/test_turkish.py)')
+        warnings = validate(dict(fixture(True), language='German'), API)
         self.assertEqual(len(warnings), 1)
-        self.assertIn('recognises a clear yes in English only, so no promise can be recorded in this language', warnings[0])
-        api, sim, bank = call(dict(fixture(True), language='Turkish'))
-        sim.hear('Yarin.')
+        self.assertIn('recognises a clear yes in English and Turkish only, so no promise can be recorded in this language', warnings[0])
+        api, sim, bank = call(dict(fixture(True), language='German'))
+        sim.hear('Morgen.')
         check(api, sim)
         sim.say(READ_BACK)
-        sim.hear('Evet, onayliyorum.')
+        sim.hear('Ja, ich bestaetige das.')
         self.assertIn('the answer was not a clear yes', refusal(sim, create(api, sim)), 'unknown words are not a yes: refused, not guessed')
 
     def test_the_same_spec_gives_the_same_workflow_and_the_extraction_is_untouched(self):

@@ -209,6 +209,7 @@ def arguments(argv=None, provider=None):
     p = argparse.ArgumentParser(prog='python builder/build.py', description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument('brief', help='the brief: one Markdown file')
     p.add_argument('tool_api', help="the brief's tool API file (OpenAPI)")
+    p.add_argument('--mock-url', help='the address of the bank for this run, in place of the server the tool API file names (https). Default: the file\'s own')
     p.add_argument('--amend', action='append', default=[], help='a later document that amends the brief (Brief B on Brief A); repeat, in order')
     p.add_argument('--slot', help='the name of the agent: its workflow on Freya and its folder under --out. Default: the file name of the brief')
     p.add_argument('--new', action='store_true', help='stop if the slot already has a workflow: this run must create its own')
@@ -313,6 +314,17 @@ def report(result):
 
 def sha256(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def text_of(path, log=lambda line: None):
+    """The text of an input file: UTF-8, with or without a byte order mark. A file that is not UTF-8 is read as
+    Windows-1254, the Turkish code page, and the trace says so: such a reading can be wrong and nothing shows it."""
+    raw = Path(path).read_bytes()
+    try:
+        return raw.decode('utf-8-sig')
+    except UnicodeDecodeError:
+        log('inputs | %s is not UTF-8; read as Windows-1254 (Turkish). Check its special characters' % path)
+        return raw.decode('cp1254', errors='replace')
 
 
 def extraction(args, briefs, openapi_text, check, model, log, describe, system):
@@ -425,8 +437,13 @@ def main(argv=None, client=None, platform=None, evaluation=None, registry=versio
     try:
         # 1. configuration and inputs
         settings.load_env(settings.env_files(args.env_file, args.kit))
-        briefs = [(Path(b).name, Path(b).read_text(encoding='utf-8')) for b in [args.brief] + args.amend]
-        document = json.loads(Path(args.tool_api).read_text(encoding='utf-8'))
+        briefs = [(Path(b).name, text_of(b, log)) for b in [args.brief] + args.amend]
+        document = json.loads(text_of(args.tool_api, log))
+        if args.mock_url:
+            # The bank of this run is at another address than the tool API file names: the tools are compiled for it.
+            was = [server.get('url') for server in document.get('servers') or [] if isinstance(server, dict)]
+            document['servers'] = [{'url': args.mock_url.rstrip('/')}]
+            log('inputs | --mock-url: the tools are compiled for %s (the tool API file names %s)' % (args.mock_url.rstrip('/'), ', '.join(str(url) for url in was) or 'no server'))
         result['provenance'] = {'briefs': [{'file': str(b), 'sha256': sha256(b), 'bytes': Path(b).stat().st_size} for b in [args.brief] + args.amend],
                                 'tool_api': {'file': str(args.tool_api), 'sha256': sha256(args.tool_api), 'bytes': Path(args.tool_api).stat().st_size}}
         for number, brief in enumerate(result['provenance']['briefs'], 1):
