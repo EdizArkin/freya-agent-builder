@@ -294,7 +294,7 @@ class Evaluated:
     def stored(self, version_id):
         return dict(self.kept.get(version_id, {}))
 
-    def run(self, version_id, label, only=None):
+    def run(self, version_id, label, only=None, allow=None):
         self.runs.append((version_id, label, only))
         outcome = self.outcomes.pop(0)
         if isinstance(outcome, BaseException):
@@ -502,11 +502,11 @@ class TheStep(Deployed):
         record = loop.step('slot', OPENAPI, self.evaluation, self.freya, self.files, self.limits, self.audit, client=claude.ReplayClient([json.dumps(GOOD)]), safety_cases=SAFE,
                            credits=broken, registry=self.registry, trace=self.lines.append)
         self.assertTrue(record['status'].startswith('rolled back at the improvement gate'), record['status'])
-        self.assertEqual((record['credits'], record['credits_estimated'], self.limits.state['credits']), (0.75, True, 0.75), 'three cases at the estimate')
+        self.assertEqual((record['credits'], record['credits_estimated'], self.limits.state['credits']), (3 * loop.CREDITS_PER_CASE, True, 3 * loop.CREDITS_PER_CASE), 'three cases at the projection')
         self.assertEqual(self.published(), [1])
         self.setUp()
         record = self.step(credits=(100.0, None))
-        self.assertEqual((record['credits'], record.get('credits_estimated')), (0.75, True), 'a reading without a number is no reading')
+        self.assertEqual((record['credits'], record.get('credits_estimated')), (3 * loop.CREDITS_PER_CASE, True), 'a reading without a number is no reading')
 
     def test_no_safety_case_no_budget_or_a_bad_proposal_and_nothing_is_deployed(self):
         for kwargs, used, status in ((dict(safety_cases=['ADV-X']), {}, 'stopped: the safety case(s) ADV-X are not among the cases'), ({}, {'candidates': 3}, 'stopped: the limit of 3 candidates is used up'),
@@ -780,7 +780,12 @@ class TheHarnessEvaluation(unittest.TestCase):
             self.assertNotIn('PUB-11', evaluation.safety_cases())
             self.assertEqual(evaluation.run('wf-aaa', 'aaa'), {})
             common = ['simulate', '--run', 'M19', '--version', 'aaa', '--slot', 's', '--out', str(tmp), '--kit', str(KIT), '--live']
-            self.assertEqual(calls, [common + ['--public', 'B'], common + ['--scenarios', 'benchmarks/live/m17.scenarios.json', '--agent', 'a']])
+            scenarios = common + ['--scenarios', 'benchmarks/live/m17.scenarios.json', '--agent', 'a', '--only']
+            self.assertEqual([c[:-1] if '--only' in c else c for c in calls], [common + ['--public', 'B'], scenarios, scenarios], 'one command, and one simulation, per brief and suite')
+            self.assertEqual(sorted(len(c[-1].split(',')) for c in calls[1:]), [3, 5], 'the Safety and the Robustness customers of agent a')
+            refused = []
+            evaluation.run('wf-aaa', 'aaa', allow=lambda cases: refused.append(cases) or ('the limit of credits' if len(refused) > 1 else ''))
+            self.assertEqual((refused, len(calls)), ([3, 5, 3], 4), 'every batch is asked for before it starts, and one that is refused is not started')
             del calls[:]
             evaluation.run('wf-aaa', 'aaa', only=['PUB-12'])
             self.assertEqual(calls, [common + ['--public', 'B', '--only', 'PUB-12']], 'a suite with nothing missing is not run again')

@@ -29,9 +29,17 @@ ALLOWED = {
     'builder.extraction.claude': {'builder.config.settings', 'builder.spec.models'},
     'builder.extraction.spend': set(),
     'builder.tracing.trace': {'builder.config.settings'},
+    'builder.tracing.runlog': {'builder.config.settings'},
     'builder.freya.versioning': {'builder.config.settings'},
     'builder.freya.deployment': {'builder.freya.versioning'},
-    'builder.__main__': {'builder.pipeline', 'builder.optimization.cli'},
+    'builder.__main__': {'builder.pipeline', 'builder.optimization.cli', 'builder.run', 'builder.manifest'},
+    'builder.manifest': {'builder.config.settings', 'builder.config', 'builder.freya.versioning', 'builder.freya'},
+    # The whole builder in one run, and the script that starts it: brief in, verified agent, export and trace out.
+    'builder.build': {'builder.run'},
+    'builder.run': {'builder.pipeline', 'builder', 'builder.artifacts.store', 'builder.artifacts', 'builder.config.settings', 'builder.config', 'builder.extraction.claude',
+                    'builder.extraction.spend', 'builder.extraction', 'builder.freya.client', 'builder.freya.deployment', 'builder.freya.versioning', 'builder.freya',
+                    'builder.optimization.loop', 'builder.optimization.policy', 'builder.optimization', 'builder.spec.models', 'builder.spec.openapi', 'builder.spec',
+                    'builder.tracing.runlog', 'builder.tracing', 'builder.validation.spec', 'builder.validation'},
     # The optimization run is a product feature: it uses the builder's own machinery and is handed its evaluation.
     'builder.optimization.policy': set(),
     'builder.optimization.diagnosis': {'builder.optimization.policy', 'builder.optimization'},
@@ -102,7 +110,7 @@ class Boundaries(unittest.TestCase):
     def test_only_the_named_modules_can_reach_the_network_or_a_subprocess(self):
         # No module of the builder runs a subprocess. `importlib` alone loads the evaluation module an optimization run
         # is handed, by its name; `importlib.util` loads the kit.
-        reach = {'anthropic': {'builder.extraction.claude'}, 'subprocess': set(), 'importlib.util': {'builder.freya.client'}, 'importlib': {'builder.optimization.cli'}}
+        reach = {'anthropic': {'builder.extraction.claude'}, 'subprocess': set(), 'importlib.util': {'builder.freya.client'}, 'importlib': {'builder.optimization.cli', 'builder.run'}}
         for name, path in modules().items():
             used = imports(path)
             for library, owners in reach.items():

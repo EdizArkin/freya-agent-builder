@@ -137,7 +137,7 @@ class CommandLine(unittest.TestCase):
         a = pipeline.arguments(['--brief', 'a.md', '--brief', 'b.md', '--tool-spec', 'api.json'])
         self.assertEqual((a.brief, a.tool_spec, a.slot, a.spec, a.model, a.test), (['a.md', 'b.md'], 'api.json', None, None, None, None))
         self.assertEqual((a.live_extract, a.deploy, a.best_effort, a.max_tokens, a.env_file), (False, False, False, 32000, []))
-        self.assertEqual((Path(a.out), Path(a.kit)), (settings.ROOT / 'outputs', settings.ROOT / 'local_freya' / 'starter_kit'))
+        self.assertEqual((Path(a.out), Path(a.kit)), (settings.ROOT / 'outputs', settings.ROOT / 'freya_starter_kit'))
         with mock.patch('sys.stderr'), self.assertRaises(SystemExit) as ctx:
             pipeline.arguments(['--tool-spec', 'api.json'])
         self.assertEqual(ctx.exception.code, 2)

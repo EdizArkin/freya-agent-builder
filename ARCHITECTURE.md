@@ -16,7 +16,10 @@ must not be trusted with: dates, amounts, counting, tool-call limits and the clo
 
 ```text
 builder/
-  __main__.py              python -m builder, and python -m builder optimize
+  __main__.py              python -m builder, python -m builder optimize, python -m builder run
+  build.py                 python3 builder/build.py {brief_path} {tool_api_path}: the command of the submission
+  run.py                   the whole builder in one run: extract, build, deploy, test, optimize, verify, export, trace
+  manifest.py              the submission form, from files that exist
   pipeline.py              the stages of a build, in order; `release` builds and deploys one spec
   config/settings.py       paths, defaults, key loading, which variables are secrets
   extraction/claude.py     prompt, Claude call, repair loop
@@ -39,6 +42,7 @@ builder/
   optimization/policy.py   the decision and the limits of a run
   optimization/cli.py      python -m builder optimize
   tracing/trace.py         the trace of a build or a run, with redaction
+  tracing/runlog.py        the .log trace of one run: flushed line by line, redacted, never overwritten
   artifacts/store.py       outputs/<build-id>/, its file names, the version archive, restoring a version
 benchmarks/
   harness/                 evaluation: offline scenarios, the engine stand-in (freya_sim.py), the fixture
@@ -47,7 +51,9 @@ benchmarks/
   edge_cases/ synthetic_briefs/ expected/ live/ packages/ references/ reports/   definitions, frozen packages, reports
 tests/                     offline tests, one file per area; nothing outside tests/ imports from it
 outputs/                   build artifacts (git-ignored)
-local_freya/               the official starter kit (git-ignored)
+freya_starter_kit/         the official starter kit, unchanged; put there by whoever runs the builder, not committed
+demo/                      the two demonstration tracks: traces, exports, reports (written by runs; ignored until committed on purpose)
+submission/                the exports of the hidden briefs (empty until they are built)
 ```
 
 There is no `repair/` package: the repair loop is twenty lines inside the extraction loop
@@ -449,9 +455,24 @@ verdict, the records the scenario forbids, the transcript and the tool calls. It
 A deploy keeps its export beside its version (`versions/<version-id>/exported.workflow.json`), because the
 platform's export is the definition saved last, not the published one.
 
+**One run from a brief.** `builder/run.py` (`python3 builder/build.py BRIEF TOOL_API`) puts the build and the
+optimization run into one command with one trace: extraction, validation, compiler, a workflow on Freya, the
+self-tests and the optimization when test customers are named, then the read-back of the published version,
+the check of that build's export against its workflow, and the export. It has a deadline and keeps its last
+minutes for that end. A simulation is waited for at most `simulation.wait_limit` seconds, never beyond the
+deadline, and the wait ends as on Ctrl-C when a file `STOP` appears in the folder of the run (`simulation.bounded`).
+
+**Credits.** `loop.CREDITS_PER_CASE` (1.25) is a projection per simulated call, for a call that runs to its
+limit. Before each batch the run adds what the earlier batches of the same evaluation really cost, by two
+readings of the balance, and does not start a batch that would pass the limit. Neither figure is a cap on a
+batch that is running.
+
 **Status.** All of this is verified offline only, with a fake platform, replayed model replies and prepared
 results. No run of `python -m builder optimize` has reached Freya or a model. The two live rounds of M18
-used a hand-made candidate and an earlier script (`benchmarks/reports/m18-phase4-optimization.md`).
+used a hand-made candidate and an earlier script (`benchmarks/reports/m18-phase4-optimization.md`). On
+2026-10-11 two live starts of `python -m builder optimize` deployed and began to simulate; neither reached a
+decision (a simulation that stayed "running" on the platform; a run whose process ended with the tool call
+that had started it). What they showed went into the bounded wait, the stop file and the credit projection.
 
 **Limits of the design.** A candidate can only change words, so it cannot fix a failure of the runtime, the
 compiler, the tool API or the platform. The check of what a candidate keeps is a check of words, not of

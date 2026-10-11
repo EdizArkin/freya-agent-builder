@@ -182,6 +182,29 @@ class TheCommands(unittest.TestCase):
             self.assertEqual((code, len(self.lines(tmp))), (0, 1), 'nothing is pending any more, and nothing is written twice')
             self.assertIn('nothing is pending', said)
 
+    def test_the_ids_of_a_pending_simulation_are_found_without_being_typed(self):
+        """Seen on 2026-10-11: the platform's answer to the request that creates a simulation carries its id and no
+        iteration id. The first is in the pending record; the second is read by the route the kit itself uses."""
+        with tempfile.TemporaryDirectory() as tmp:
+            store.BuildStore(tmp, 's').write_json(store.BUILD, {'version_id': 'wf-abc'})
+            pending = simulation.Pending(Path(tmp) / 'm19' / 'pending' / 'one.json', about={'slot': 's', 'version_id': 'wf-abc', 'workflow_id': 'w-1', 'label': 'abc'}, source={'public': 'B'}, gates={})
+            pending.write(name='M19 | B | Regression | abc', agent_id='agent-1', started_at='t', cases=[{'id': 'PUB-11', 'bank_case': 'PUB-11', 'persona_id': 'persona-0', 'customer_id': 'c_then'}])
+            pending.note('POST', '/api/v2/simulations', {'simulation': {'id': 'sim-77', 'agentId': 'agent-1'}})
+            later = Later(['persona-0'])
+            later.api = lambda method, path, body=None, **params: {'iterations': [{'id': 'it-5'}]}
+            code, said = self.command(tmp, later, 'recover', '--live')
+            self.assertEqual(code, 0, said)
+            line = self.lines(tmp)[0]
+            self.assertEqual((line['simulation_id'], line['iteration_id'], line['version_id']), ('sim-77', 'it-5', 'wf-abc'))
+            self.assertEqual(later.asked[0], ('sim-77', 'it-5'))
+            pending.write()
+            later.api = lambda method, path, body=None, **params: {'iterations': []}
+            pending.path.with_name('two.json').write_text(pending.path.read_text(encoding='utf-8').replace('sim-77', 'sim-78'), encoding='utf-8')
+            pending.path.unlink()
+            code, said = self.command(tmp, later, 'recover', '--live')
+            self.assertEqual((code, len(self.lines(tmp))), (1, 1), 'without one iteration there is nothing to read, and nothing is made up')
+            self.assertIn('the iteration of simulation sim-78 could not be read', said)
+
     def test_a_simulation_that_already_has_a_record_is_not_recorded_again(self):
         with tempfile.TemporaryDirectory() as tmp:
             store.BuildStore(tmp, 's').write_json(store.BUILD, {'version_id': 'wf-abc'})

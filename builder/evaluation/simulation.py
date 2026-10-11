@@ -13,6 +13,8 @@ a complete sentence in the transcript.
 """
 import hashlib
 import json
+import math
+import os
 import re
 import time
 from pathlib import Path
@@ -46,6 +48,46 @@ def suite_name(run, brief, suite, version):
 
 class SharedCustomer(RuntimeError):
     """Two cases of one simulation would write to the same bank customer."""
+
+
+class TimedOut(Exception):
+    """A simulation did not come back within its wait. It may still be running on the platform."""
+
+
+def wait_limit(cases, max_seconds=420):
+    """How long a simulation of `cases` customers is waited for, in seconds: every call at its longest, as many at a
+    time as the kit starts (FREYA_SIM_CONCURRENCY, 5), and five minutes for the judge and the queue."""
+    together = max(1, int(os.environ.get('FREYA_SIM_CONCURRENCY') or 5))
+    return max_seconds * math.ceil(max(1, cases) / together) + 300
+
+
+def bounded(api, seconds, stop_file=None, now=time.time):
+    """The kit's `api` for the time one simulation is waited for. The kit waits without limit, in two loops: for
+    another simulation of the workspace to end, and for its own to finish. Both loops call `api`, so the limit
+    is put there: after `seconds` the next call raises TimedOut, which neither loop catches.
+
+    `stop_file` is the supported way to stop a run that has no keyboard (started detached, or by another
+    program): when that file exists, the next call raises KeyboardInterrupt, and the run ends as it does on
+    Ctrl-C, with its rollback and its audit line."""
+    until = now() + seconds
+
+    def call(method, path, body=None, **params):
+        if stop_file and Path(stop_file).exists():
+            raise KeyboardInterrupt('stop requested: %s exists' % stop_file)
+        if now() > until:
+            raise TimedOut('no result after %d s; the simulation may still be running on the platform' % seconds)
+        return api(method, path, body, **params)
+    return call
+
+
+def iteration_of(runner, sim_id):
+    """The id of a simulation's iteration, read from the platform by the route the kit's own run_simulation uses.
+    A simulation the builder starts has one iteration; with none, or with several, there is no single answer."""
+    listed = runner.freya.api('GET', '/api/v2/simulations/%s/iterations' % sim_id)
+    items = (listed.get('iterations') or listed.get('items') or []) if isinstance(listed, dict) else listed
+    if not isinstance(items, list) or len(items) != 1 or not isinstance(items[0], dict) or not items[0].get('id'):
+        raise ValueError('simulation %s has %s iteration(s), not one: name the iteration' % (sim_id, len(items) if isinstance(items, list) else 'no readable'))
+    return items[0]['id']
 
 
 def expected_label(case):
@@ -281,7 +323,7 @@ def collect(runner, agent_id, cases, name, ids, customers, sim_id, iteration_id,
             'seconds': seconds, 'passed': sum(r['pass'] for r in rows), 'total': len(rows), 'rows': rows}
 
 
-def run(runner, agent_id, cases, name, persona_cache, trace=lambda line: None, style=None, max_seconds=420, pending=None):
+def run(runner, agent_id, cases, name, persona_cache, trace=lambda line: None, style=None, max_seconds=420, pending=None, wait_seconds=None, stop_file=None):
     """One simulation on Freya under the name `name`: every case once. Returns the record of the simulation.
 
     A case is in the kit's format (id, brief, title, variables, identity, script, expected, checks). Its bank
@@ -290,7 +332,10 @@ def run(runner, agent_id, cases, name, persona_cache, trace=lambda line: None, s
     judge finds every check true in the transcript: the kit's rule, with the kit's scoring.
 
     `pending` (a Pending) is written before the simulation is started and left in place if this function does
-    not return; the caller clears it when the record it gets back is on disk."""
+    not return; the caller clears it when the record it gets back is on disk.
+
+    The wait is bounded: after `wait_seconds` (default `wait_limit`) TimedOut is raised, and with `stop_file`
+    the wait ends as on Ctrl-C when that file appears (`bounded`). Neither stops the simulation on the platform."""
     ids = personas(runner, cases, persona_cache, style)
     sessions = {c['id']: runner.http('/v1/practice/sessions', {'case': c.get('bank_case') or c['id']})['variables'] for c in cases}
     variables = {c['id']: dict(sessions[c['id']], **(c.get('override_variables') or {})) for c in cases}
@@ -304,7 +349,14 @@ def run(runner, agent_id, cases, name, persona_cache, trace=lambda line: None, s
     if pending is not None:
         pending.write(name=name, agent_id=agent_id, started_at=at, style=style,
                       cases=[{'id': c['id'], 'bank_case': c.get('bank_case') or c['id'], 'persona_id': ids[c['id']], 'customer_id': customers[c['id']]} for c in cases])
-    sim_id, iteration_id, status = runner.freya.run_simulation(agent_id, name, {ids[c['id']]: variables[c['id']] for c in cases}, max_seconds)
+    api = getattr(runner.freya, 'api', None)
+    if api is not None:
+        runner.freya.api = bounded(api, wait_limit(len(cases), max_seconds) if wait_seconds is None else wait_seconds, stop_file)
+    try:
+        sim_id, iteration_id, status = runner.freya.run_simulation(agent_id, name, {ids[c['id']]: variables[c['id']] for c in cases}, max_seconds)
+    finally:
+        if api is not None:
+            runner.freya.api = api
     return collect(runner, agent_id, cases, name, ids, customers, sim_id, iteration_id, status, at, round(time.time() - started), trace)
 
 

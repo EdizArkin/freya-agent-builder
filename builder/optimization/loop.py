@@ -13,8 +13,10 @@ The evaluation is any object with:
     cases()                           the ids of the cases that make a result complete
     safety_cases()                    the ids of its safety cases; those the incumbent passes are used when the caller names none
     stored(version_id)                {case id: row}: the results it holds for that version of this slot
-    run(version_id, label, only=None) simulate that version now (it must be the published one) and return its rows;
-                                      `only` names the cases that still lack a result
+    run(version_id, label, only=None, allow=None)
+                                      simulate that version now (it must be the published one) and return its rows;
+                                      `only` names the cases that still lack a result; `allow(cases)` is asked before
+                                      each batch of simulated calls and returns why it may not start
 A row carries `pass`, `ledger_pass`, `judge_outcome`, `unexpected_records` (the four the decision needs), the
 `version_id` and `workflow_id` it was stamped with and the `agent_version` the platform reported for its call (the
 three the binding needs), and for the diagnosis `failed`, `gate`, `messages`, `tool_trace`, `ledger`, `expected`.
@@ -54,7 +56,12 @@ from builder.optimization import diagnosis, policy
 from builder.spec.openapi import Api
 from builder.validation.spec import digest, validate
 
-CREDITS_PER_CASE = 0.25         # more than any simulated call has cost so far (about 0.1): the estimate must not be low
+# What one simulated call is taken to cost before it is made. A call that runs to the kit's limit of 420 s was seen
+# to cost about 1.03 credits (2026-10-11: five such calls, 5.13 credits); a short one about 0.1. The estimate is
+# for the long one: it decides whether a batch may start, and it must not be low. It is a projection. What a
+# batch really cost is the difference of two readings of the balance, taken around it. Neither is a cap: the
+# platform does not stop a simulation that costs more than was projected.
+CREDITS_PER_CASE = 1.25
 CONTINUES = ('accepted', 'rolled back', 'rejected before deployment')       # after these a further step can do something else
 
 
@@ -195,6 +202,34 @@ def step(slot, document, evaluation, freya, files, limits, audit, client=None, s
         except Exception as exc:
             record['credits_not_counted'] = '%s: %s' % (type(exc).__name__, str(exc)[:200])
 
+    def gate(before):
+        """The check between the batches of one evaluation: what the earlier batches really cost, by the balance, plus
+        the projection for the next one, against the limit. With no reading, the earlier batches count at the projection."""
+        started = [0]
+
+        def allow(cases):
+            after = balance()
+            spent = max(0.0, before - after) if before is not None and after is not None else started[0] * CREDITS_PER_CASE
+            stop = limits.exhausted(spent + cases * CREDITS_PER_CASE, 0)
+            if stop:
+                trace('optimize %s: a batch of %d call(s) is not started: %s (%.2f credits used by this evaluation so far)' % (slot, cases, stop, spent))
+            else:
+                started[0] += cases
+            return stop
+        return allow
+
+    def tell(what, version_id, rows):
+        """The results of one version in the trace, case by case: both verdicts, the bank records, where it ran."""
+        good = lambda r: policy.complete(r) and r['pass'] and r['ledger_pass'] and not r['unexpected_records']
+        for cid, row in sorted(rows.items()):
+            trace('self-test | %s %s | case %s | %s | bank %s | forbidden records %s | judge %s | simulation %s | platform version %s' % (
+                what, version_id, cid, 'PASS' if good(row) else 'FAIL' if policy.complete(row) else 'NO RESULT',
+                {True: 'ok', False: 'WRONG'}.get(row.get('ledger_pass'), 'unknown'), len(row.get('unexpected_records') or []) if isinstance(row.get('unexpected_records'), list) else 'unknown',
+                row.get('judge_outcome'), row.get('simulation_id'), row.get('agent_version')))
+        done_ = [r for r in rows.values() if policy.complete(r)]
+        trace('self-test | %s %s | %d of %d case(s) pass | %d with wrong bank records | %d without a result' % (
+            what, version_id, sum(1 for r in done_ if good(r)), len(rows), sum(1 for r in done_ if r['ledger_pass'] is False or r['unexpected_records']), len(rows) - len(done_)))
+
     api = Api(document)
     check, enforced = (lambda s: validate(s, api, best_effort)), (lambda s: digest(s, api))
     try:
@@ -254,7 +289,7 @@ def step(slot, document, evaluation, freya, files, limits, audit, client=None, s
             trace('optimize %s: the incumbent %s has no complete result for %d case(s); simulating them' % (slot, incumbent_id, len(missing)))
             before, problem = balance(), ''
             try:
-                evaluation.run(incumbent_id, label(incumbent_id), missing)
+                evaluation.run(incumbent_id, label(incumbent_id), missing, gate(before))
             except Exception as exc:
                 problem = ' (%s: %s)' % (type(exc).__name__, str(exc)[:200])
             except BaseException as exc:
@@ -274,6 +309,7 @@ def step(slot, document, evaluation, freya, files, limits, audit, client=None, s
         # it reject a candidate all the same (policy.decide looks at the bank records of every case).
         safety = named or [c for c in marked if incumbent[c]['pass']]
         record['incumbent'].update(cases=policy.shown(incumbent), ran_on=ran_on(incumbent))
+        tell('incumbent', incumbent_id, incumbent)
         record['safety_cases'] = safety
         if not safety:
             raise Stop('stopped: the incumbent passes none of the safety cases of the evaluation, and none was named; a candidate is never promoted without one')
@@ -337,8 +373,9 @@ def step(slot, document, evaluation, freya, files, limits, audit, client=None, s
         record['tested']['platform_version'] = now['published']
         if (now['published'] or {}).get('number') in (None, published.get('number')):
             raise RuntimeError('the candidate was saved, but platform version %s is still the published one' % published.get('number'))
-        got, _ = bound(evaluation.run(candidate_id, label(candidate_id)), candidate_id, workflow_id)
+        got, _ = bound(evaluation.run(candidate_id, label(candidate_id), None, gate(before)), candidate_id, workflow_id)
         tested = {c: got[c] for c in needed if c in got}
+        tell('candidate', candidate_id, tested)
         record['tested']['ran_on'] = ran_on(tested)
         verdict = policy.decide(incumbent, tested, safety)
         if verdict['gate'] != 'evidence' and check_platform_version and numbered and ran_on(tested) != [now['published']['number']]:

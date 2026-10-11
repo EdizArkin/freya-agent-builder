@@ -4,7 +4,7 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-KIT = ROOT / 'local_freya' / 'starter_kit'
+KIT = ROOT / 'freya_starter_kit'
 OUTPUTS = ROOT / 'outputs'
 DEFAULT_MODEL = 'claude-sonnet-5-5'
 MODEL_VARIABLE = 'BUILDER_LLM_MODEL'
@@ -12,6 +12,17 @@ MAX_TOKENS = 32000
 # The module an optimization run loads for its evaluation, by name: the builder never imports it. What such a
 # module has to offer is said in builder/optimization/loop.py.
 EVALUATION = 'benchmarks.harness.evaluation'
+
+
+def safe_console():
+    """Make printing unable to end a run. A console that cannot show a character (a Windows code page and an
+    arrow, a name, a quotation mark from a brief) raises on print; with this it prints a replacement instead."""
+    import sys
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(errors='backslashreplace')
+        except (AttributeError, ValueError, OSError):
+            pass
 
 
 def env_files(extra, kit):

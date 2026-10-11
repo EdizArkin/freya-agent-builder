@@ -91,6 +91,7 @@ def report(records, say=print):
 
 def main(argv=None, evaluation=None):
     """`evaluation` replaces the module named by --evaluation: the harness passes its own, a test passes a fake."""
+    settings.safe_console()
     args, provider = arguments(argv, evaluation)
     folder = Path(args.out) / store.build_id(args.run.lower())
     try:

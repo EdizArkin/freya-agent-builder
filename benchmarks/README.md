@@ -40,7 +40,7 @@ The `.yaml` files are YAML written in its JSON subset. The harness reads them wi
 
 ## Running
 
-From the repository root, with the starter kit in `local_freya/starter_kit/` as for the tests:
+From the repository root, with the starter kit in `freya_starter_kit/` as for the tests:
 
 ```
 python benchmarks/harness/run_benchmarks.py                       all scenarios

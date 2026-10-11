@@ -399,6 +399,7 @@ def cmd_simulate(args):
     runner = freya_client.load_runner(args.kit)
     reads = freya_client.patient(runner.freya.api) if hasattr(runner.freya, 'api') else None
     failed, not_run = 0, []
+    say = lambda line: print(line, flush=True)       # a run whose output goes to a file is read while it runs
     groups = suites(cases, args.each)
     while groups:
         group = groups.pop(0)
@@ -410,7 +411,8 @@ def cmd_simulate(args):
         if reads:
             runner.freya.api = pending.watch(reads)
         try:
-            record = simulation.run(runner, entry['agent_id'], group, name, folder / 'personas.json', print, style=args.style, pending=pending)
+            record = simulation.run(runner, entry['agent_id'], group, name, folder / 'personas.json', say, style=args.style, pending=pending, stop_file=folder / 'STOP',
+                                    wait_seconds=min(args.wait_seconds, simulation.wait_limit(len(group))) if args.wait_seconds else None)
         except simulation.SharedCustomer as exc:
             # Nothing was started. The cases of this suite run one by one instead, so that each keeps a ledger of its own.
             print('NOT GROUPED %s: %s' % (name, exc))
@@ -471,14 +473,20 @@ def cmd_recover(args):
         print('nothing is pending in %s' % folder)
         return 0
     chosen = [p for p in waiting if not args.name or read(p).get('name') == args.name]
-    if not (args.simulation_id and args.iteration_id) or len(chosen) != 1:
+    if not args.simulation_id and len(chosen) == 1 and args.live:
+        # The platform's answer to the request that created the simulation was noted: its id is there.
+        noted = [r['ids'].get('simulation.id') or r['ids'].get('id') for r in read(chosen[0]).get('requests') or [] if str(r.get('path')).endswith('/simulations')]
+        args.simulation_id = noted[-1] if noted and noted[-1] else None
+    if not args.simulation_id or len(chosen) != 1 or not args.live:
         for path in chosen or waiting:
             kept = read(path)
             print('%s | started %s | slot %s | version %s | cases %s' % (kept.get('name'), kept.get('started_at'), (kept.get('about') or {}).get('slot'),
                                                                         (kept.get('about') or {}).get('version_id'), ', '.join(c['id'] for c in kept.get('cases') or [])))
             for request in kept.get('requests') or []:
                 print('   %s %s -> %s' % (request.get('method'), request.get('path'), json.dumps(request.get('ids'))))
-        print('%d pending. To read one: recover --name "<name>" --simulation-id ID --iteration-id ID --live' % len(waiting))
+        print('%d pending. To read one: recover --name "<name>" --live [--simulation-id ID] [--iteration-id ID]' % len(waiting))
+        if args.simulation_id and not args.live:
+            return 2 if not need_live(args) else 1
         return 0 if not args.name else 1
     if not need_live(args):
         return 2
@@ -492,6 +500,12 @@ def cmd_recover(args):
     if any(line['simulation_id'] == args.simulation_id for line, _ in records(args)):
         print('simulation %s already has a record in this run: nothing is written twice' % args.simulation_id)
         return 1
+    if not args.iteration_id:
+        try:
+            args.iteration_id = simulation.iteration_of(runner, args.simulation_id)
+        except Exception as exc:
+            print('the iteration of simulation %s could not be read: %s: %s' % (args.simulation_id, type(exc).__name__, str(exc)[:200]))
+            return 1
     record = simulation.recover(runner, kept, cases, args.simulation_id, args.iteration_id, print)
     write_record(folder, store.BuildStore(args.out, about.get('slot')), record, about, kept.get('gates') or {})
     chosen[0].unlink()
@@ -625,6 +639,7 @@ def main(argv=None):
     ap.add_argument('--only', help='simulate: comma-separated scenario ids')
     ap.add_argument('--style', help="simulate: a way of talking of the kit's customers (pieces, corrects, talkative, asks_back, in_words)")
     ap.add_argument('--each', action='store_true', help='plan, simulate: one simulation per scenario, named after it, instead of one per suite')
+    ap.add_argument('--wait-seconds', type=int, help='simulate: the longest a simulation is waited for; default: every call at its longest, plus five minutes')
     ap.add_argument('--name', help='recover: the name of the pending simulation')
     ap.add_argument('--simulation-id', help='recover: the id the platform gave the simulation')
     ap.add_argument('--iteration-id', help='recover: the id of its iteration')

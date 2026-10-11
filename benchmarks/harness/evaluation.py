@@ -16,6 +16,7 @@ with cases(), safety_cases(), stored(version_id) and run(version_id, label, only
 """
 import argparse
 import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
@@ -66,19 +67,42 @@ class Evaluation:
                                       label=line.get('label'), simulation_id=line.get('simulation_id'), simulation=line.get('name'))
         return out
 
-    def run(self, version_id, label, only=None):
-        """Simulate the suites on the published version of the slot, under `label`, and return what is stored for
-        `version_id` afterwards. With `only`, just those cases, and no suite that has none of them."""
+    def batches(self, only=None):
+        """The simulations a run starts, one per brief and suite as `live.py simulate` groups them: (suite, what, ids)."""
+        out = []
         for kind, what, cases in self.suites:
-            ids = [c['id'] for c in cases if only is None or c['id'] in only]
-            if not ids:
+            groups = {}
+            for c in cases:
+                if only is None or c['id'] in only:
+                    groups.setdefault(c.get('suite') or 'Regression', []).append(c['id'])
+            out += [(kind, what, len(cases), ids) for ids in groups.values()]
+        return out
+
+    def run(self, version_id, label, only=None, allow=None):
+        """Simulate the suites on the published version of the slot, under `label`, and return what is stored for
+        `version_id` afterwards. With `only`, just those cases, and no suite that has none of them.
+
+        One simulation is one batch. `allow(cases)` is asked before each batch and returns why it may not start
+        (empty if it may): the run's limits are checked between batches, with what the earlier ones really cost.
+        A batch that is not started has no result, and the run decides what that means."""
+        for kind, what, total, ids in self.batches(only):
+            refused = allow(len(ids)) if allow else ''
+            if refused:
+                print('NOT STARTED %s:%s | %s | %s' % (kind, what, ', '.join(ids), refused), flush=True)
                 continue
             argv = ['simulate', '--run', self.args.run, '--version', label, '--slot', self.args.slot, '--out', self.args.out, '--kit', self.args.kit, '--live']
             argv += ['--public', what] if kind == 'public' else ['--scenarios', self.args.scenarios, '--agent', what]
-            if len(ids) < len(cases):
+            if len(ids) < total:
                 argv += ['--only', ','.join(ids)]
+            deadline = getattr(self.args, 'deadline', None)
+            if deadline is not None:        # the run that asked has a deadline: nothing is started or waited for beyond it
+                left = int(deadline - time.time())
+                if left < 60:
+                    print('NOT STARTED %s:%s | %s | no time left before the deadline of the run' % (kind, what, ', '.join(ids)), flush=True)
+                    continue
+                argv += ['--wait-seconds', str(left)]
             try:
                 self.simulate(argv)
             except SystemExit as exc:           # the command refused its arguments: no result, and the run decides what that means
-                print('NOT RUN %s:%s | the simulate command stopped: %s' % (kind, what, exc))
+                print('NOT RUN %s:%s | the simulate command stopped: %s' % (kind, what, exc), flush=True)
         return self.stored(version_id)

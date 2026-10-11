@@ -35,7 +35,7 @@ class Environment(unittest.TestCase):
         files = settings.env_files(['extra.sh'], 'some/kit')
         self.assertEqual(files, ['extra.sh', settings.ROOT / '.env.sh', settings.ROOT / '.env', Path('some/kit') / 'env.sh'])
         self.assertTrue((settings.ROOT / 'builder' / 'pipeline.py').is_file())
-        self.assertEqual(settings.KIT, settings.ROOT / 'local_freya' / 'starter_kit')
+        self.assertEqual(settings.KIT, settings.ROOT / 'freya_starter_kit')
 
     def test_which_variables_count_as_secrets(self):
         with mock.patch.dict('os.environ', {'FREYA_API_KEY': 'long-enough-value', 'my_token': 'another-long-value', 'SHORT_KEY': 'abc',
