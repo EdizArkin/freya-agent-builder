@@ -6,7 +6,7 @@ import math
 from pathlib import Path
 
 from builder.runtime import runtime
-from builder.spec.models import TOOLS, exprs
+from builder.spec.models import GENERAL, TOOLS, carried, exprs, fixed, mapped
 
 # The runtime module is embedded as source text, so it is located as a file, not used as an import.
 RUNTIME_SOURCE = Path(runtime.__file__)
@@ -345,6 +345,8 @@ def _code_node(name, target, code, transitions):
 
 def compile_workflow(spec, api):
     """Return (workflow, report) for a spec that validation has accepted. `api` is the parsed tool API."""
+    if spec.get('spec_version') == GENERAL:
+        return compile_general(spec, api)
     cfg = runtime_cfg(spec, api)
     rules = spec['rules']
     idc, close = spec['identity'], spec['close']
@@ -418,3 +420,163 @@ def compile_workflow(spec, api):
     report = {'nodes': list(nodes), 'bytes': len(json.dumps(workflow)),
               'tools': {'contact': [t['function']['name'] for t in contact_tools], 'negotiate': [t['function']['name'] for t in deal_tools]}}
     return workflow, report
+
+
+# ---------------------------------------------------------------- the general agent (agent-spec/2)
+# A call of any kind: one conversation, the operations of the tool API the spec uses as its tools, the ways the
+# call ends as its end nodes. Everything about the call comes from the spec and the tool API; the texts below
+# say only how a phone agent works on this platform.
+
+TALK_NODE = 'talk'
+
+GENERAL_RULES = """You are a phone agent on a live call with one person. Speak {language}. Keep every turn to one or two short spoken sentences. No lists, no markdown, no stage directions.
+
+HOW YOU WORK
+- Tool results come from the organisation's own systems. A tool result can carry a field `what_to_do_next`. It is binding: do exactly what it says, even when you expected something else.
+- After every tool result you must speak to the person or call the next tool. Never end a turn with nothing.
+- When a rule says to use a tool, CALL the tool. Saying it in words is not enough.
+- ONE tool call per message, never two. Tool calls sent together do not run in the order you wrote them. When two tools are needed, call the first, wait for its result, then call the second in a new message.
+- Say only what a tool result or your instructions give you. Never make up an amount, a date, a name, a number or an address, and never fill a gap from memory. Never say that something is done, sent, changed or recorded unless a tool result said so; when a call failed or was refused, nothing was done: tell the truth.
+- What the system knows at the start of the call is listed under CALL DATA. It is sent to the tools by the system. Never ask the person for any of it.
+- Never use your own idea of today's date or of the time. Today is what TODAY says, and the date of a day the person names in words (tomorrow, a weekday, next week) is in DAY NAMES. Never count days in your head. Compare two dates by their YYYY-MM-DD form: a date is later only if its YYYY-MM-DD is greater.
+- Send every value to a tool in the form the tool asks for. To the person, say amounts, dates and numbers the way a person says them aloud in {language}.
+- People talk like people. They give a number or a date in two parts, correct themselves, mention unrelated things, or ask a question back. Wait until a value is complete before using it, always use the corrected value, never treat an unrelated remark as an answer, and after answering a question go back to the question you were asking.
+- Finish every sentence you start. When the person talks over you, or says they did not hear or understand you, answer them and then say the part they missed once more in one short sentence.
+- The call ends only through one of the ending tools listed under HOW THE CALL ENDS. Such a tool is always the last tool call of the call and always alone: first get the result of every other tool call, then say your last words and call it in the same message.
+
+"""
+
+
+def general_tool(entry, spec, api):
+    """One operation of the tool API as a tool of a general agent.
+
+    A field the call fills from a call variable is baked from that variable, so the phone model neither sees it
+    nor asks for it: in the body as a default, in the path or the query as a placeholder of the URL, as a
+    header. A body field the tool API allows one value for is baked with that value. Every other field is the
+    model's to fill and is declared as the tool API describes it; the pre-hook moves one that belongs in the
+    path or the query there, and puts a field of an object of the body back inside that object, before the
+    request leaves."""
+    name = entry['operation']
+    fields, call_vars = api.fields(name), list(spec.get('call_variables') or [])
+    filled = mapped(entry, fields, call_vars)
+    url, query = api.url(name), []
+    body, required, headers, moved = {}, [], {'Content-Type': {'type': 'string', 'default': 'application/json'}}, {'path': [], 'query': []}
+    for field, about in fields.items():
+        schema, place = about['schema'], about['in']
+        if field in filled:
+            hole = '{{' + filled[field] + '}}'
+            if place == 'path':
+                url = url.replace('{' + field + '}', hole)
+            elif place == 'query':
+                query.append(field + '=' + hole)
+            elif place == 'header':
+                headers[field] = {'type': 'string', 'default': hole}
+            elif place == 'body':
+                body[field] = {'type': schema.get('type', 'string'), 'default': hole}
+            continue
+        if place not in ('body', 'path', 'query'):
+            if place == 'header' and carried(field, about) and fixed(about) is not None:
+                headers[field] = {'type': 'string', 'default': str(fixed(about))}      # the one value the tool API allows for it
+            continue
+        if place == 'body' and len(schema.get('enum') or []) == 1:
+            body[field] = {'type': schema.get('type', 'string'), 'default': schema['enum'][0]}     # nothing to choose: not the model's
+            continue
+        leaf = {'type': schema.get('type', 'string'), 'default': '{{' + field + '}}'}
+        text = str(schema.get('description') or '').strip()
+        if schema.get('enum'):
+            leaf['enum'] = list(schema['enum'])
+            text = (text + ' One of: ' + ', '.join(str(v) for v in schema['enum']) + '.').strip()
+        if schema.get('format') in ('date', 'date-time'):
+            text = (text + ' Format ' + ('YYYY-MM-DD' if schema['format'] == 'date' else 'YYYY-MM-DDTHH:MM:SS') + '.').strip()
+        if schema.get('pattern'):
+            text = (text + ' Pattern: ' + str(schema['pattern']) + '.').strip()
+        if schema.get('type') in ('object', 'array'):
+            text = (text + ' JSON of this shape: ' + json.dumps(schema, ensure_ascii=False, separators=(',', ':'))[:600]).strip()
+        leaf['description'] = text or field
+        body[field] = leaf
+        if about['required']:
+            required.append(field)
+        if place in moved:
+            moved[place].append(field)
+    if query:
+        url += ('&' if '?' in url else '?') + '&'.join(query)
+    known, told = api.statuses(name), {}
+    for result in entry.get('results') or []:
+        line = ('If ' + str(result['when']).strip().rstrip('.') + ': ' if str(result.get('when') or '').strip() else '') + str(result['then']).strip()
+        told.setdefault(str(result['status']), []).append(line)
+    part = {'path': moved['path'], 'query': moved['query'], 'nest': {field: about['path'] for field, about in fields.items() if len(about.get('path') or []) > 1},
+            'types': {field: leaf['type'] for field, leaf in body.items() if leaf['type'] in ('integer', 'number', 'boolean')},
+            'results': {status: ' '.join(lines) for status, lines in told.items() if status.startswith('2')}}
+    description = str(entry.get('description') or api.summary(name)).strip()
+    tool = {
+        'type': 'function',
+        'config': {'timeoutMs': 15000, 'maxRetries': 0},
+        'function': {'name': name, 'handler': '__function__:api_call', 'description': description,
+                     'parameters': {'type': 'object', 'properties': {
+                         'url': {'type': 'string', 'default': url},
+                         'method': {'type': 'string', 'default': api.ops[name]['method']},
+                         'headers': {'type': 'object', 'properties': headers},
+                         'body': {'type': 'object', 'properties': body, 'required': required}}}},
+        'pre_process_code': runtime_code('pre_general', 'pre_general(CFG, vars, config)', part),
+        'post_process_code': runtime_code('post_general', 'post_general(CFG, vars, result)', part),
+    }
+    rows = ['- ' + name + ':']
+    for status in sorted(set(known) | set(told)):
+        if status == 'default' and status not in told:
+            continue
+        rows.append('    HTTP ' + status + ': ' + (' '.join(told[status]) if status in told else (known.get(status) or 'no meaning is documented') + ' (your instructions say nothing more about it: say honestly what you can and cannot do)'))
+    return tool, rows
+
+
+def compile_general(spec, api):
+    """Return (workflow, report) for a general agent: a step that works out the date facts from the call's own
+    date and time, one conversation with the tools, and one end node per way the call ends."""
+    rules, call_vars, now = spec['rules'], list(spec.get('call_variables') or []), spec.get('now_variable') or ''
+    tools, answers = [], []
+    for entry in spec.get('tools') or []:
+        tool, rows = general_tool(entry, spec, api)
+        tools.append(tool)
+        answers += rows
+    endings = spec['endings']
+    names = [t['function']['name'] for t in tools]
+    closing = []
+    for ending in endings:
+        words = str(ending.get('last_words') or '').strip()
+        closing.append('- transition_to_' + ending['name'] + ': ' + ending['when'].strip().rstrip('.') + '. '
+                       + ('Its closing sentence is spoken by the system when you call it: do not say a goodbye of your own before it.' if words
+                          else 'Say your last words to the person in the same message in which you call it.'))
+    task = (rules['conversation'].strip()
+            + '\n\nTOOLS IN THIS CALL: ' + (', '.join(names) + '. No other tool exists.' if names else 'none. You cannot look anything up or record anything.')
+            + '\n\nCALL DATA (known to the system from the start of the call and sent to the tools by it; never ask the person for it): ' + (', '.join(call_vars) or 'none')
+            + ('\n\nWHAT EACH ANSWER OF A TOOL MEANS\nA call that is answered with an error status gives you an error and the body of the answer, and no what_to_do_next. '
+               'Such an answer is still an answer of the service: find its status below and do what is written there. Never say that something was done after a failed call, '
+               'and never end the call there without telling the person. An error that is not listed below, or no answer at all, is a technical fault: call the same tool once more '
+               'with the same values; if it fails again, tell the person honestly that you cannot do this right now and go on as your instructions say.\n' + '\n'.join(answers) if answers else '')
+            + '\n\nTODAY: {{rt_today}}'
+            + '\n\nDAY NAMES (computed from the date of the call, binding)\n{{rt_days}}'
+            + '\n\nHOW THE CALL ENDS\n' + '\n'.join(closing))
+    cfg = {'now_var': now}
+    nodes = {
+        'setup': _code_node('setup', TALK_NODE, runtime_code('setup_general', 'setup_general(CFG, vars)', cfg,
+                                                             "vars['rt_now'] = 'missing'\nvars['rt_today'] = 'NOT AVAILABLE. Do not state or decide anything that depends on the date or the time.'\nvars['rt_days'] = 'Unavailable.'"),
+                            [_edge(TALK_NODE, 'always')]),
+        TALK_NODE: {
+            'name': TALK_NODE, 'node_type': 'conversation',
+            'on_enter': {'type': 'tts', 'text': spec['opening_line'].strip()} if str(spec.get('opening_line') or '').strip() else {'type': 'llm'},
+            'on_enter_first_entry_only': True, 'task_message': task, 'tools': tools, 'max_node_turns': 80,
+            'transitions': [{'target_node': ending['name'], 'description': ending['when'].strip(), 'is_tool_call': True,
+                             'condition': {'operator': 'matches_intent', 'description': ending['when'].strip()}} for ending in endings]},
+    }
+    for ending in endings:
+        words = str(ending.get('last_words') or '').strip()
+        said = {'message_mode': {'type': 'string', 'default': 'custom'}, 'spoken_message': {'type': 'string', 'default': words}} if words else {'message_mode': {'type': 'string', 'default': 'none'}}
+        nodes[ending['name']] = {
+            'name': ending['name'], 'node_type': 'end_call', 'on_enter': {'type': 'silent'}, 'disable_inactivity_monitor': True, 'transitions': [],
+            'terminal': {'type': 'function', 'function': {'name': ending['name'], 'handler': '__function__:end_call', 'parameters': {'type': 'object', 'properties': said}}}}
+    workflow = {
+        'initial_node': 'setup',
+        'system_prompt': GENERAL_RULES.replace('{language}', str(spec.get('language') or 'English')) + rules['always'].strip(),
+        'nodes': nodes, 'global_nodes': {},
+        'test_variables': copy.deepcopy(spec.get('test_variables') or {}),
+    }
+    return workflow, {'nodes': list(nodes), 'bytes': len(json.dumps(workflow)), 'tools': {TALK_NODE: names}}

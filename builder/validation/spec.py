@@ -5,7 +5,102 @@ import math
 import re
 
 from builder.runtime import runtime as rt
-from builder.spec.models import EXPR_KINDS, FLAGS, GUIDANCE_EVENTS, NORMALIZERS, TIME_TESTS, TOOLS, VERSION, SpecError, exprs, times, whens
+from builder.spec.models import EXPR_KINDS, FLAGS, GENERAL, GUIDANCE_EVENTS, NORMALIZERS, TIME_TESTS, TOOLS, VERSION, SpecError, carried, exprs, field_of, fixed, mapped, times, whens
+
+RESERVED_NODES = ('setup', 'talk')          # the two steps every general agent has; an ending cannot take their names
+
+
+def validate_general(spec, api, best_effort=False):
+    """A general agent (agent-spec/2) against its tool API. Returns warnings; raises SpecError with every problem.
+
+    Nothing about the tools is taken from the spec but which operations are used, when, which of their fields the
+    call itself fills, and what each documented answer means. An operation, a field or a status the tool API does
+    not have is a problem, never a guess."""
+    bad, warn = [], []
+
+    def need(cond, message):
+        if not cond:
+            bad.append(message)
+        return cond
+
+    need(spec.get('spec_version') == GENERAL, 'spec_version must be %s: the tool API is not that of a collections call (%s), so the agent is a general one' % (GENERAL, ', '.join(TOOLS)))
+    need(api.ops, 'the tool API has no operation')
+    need(api.base.startswith('https://'), 'tool API has no https server url')
+    need(isinstance(spec.get('language'), str) and spec['language'].strip(), 'language is required')
+    call_vars = spec.get('call_variables') if isinstance(spec.get('call_variables'), list) else []
+    need(all(isinstance(v, str) and re.fullmatch(r'[A-Za-z_][A-Za-z0-9_.]*', v) for v in call_vars), 'call_variables must list the names of the variables a call starts with')
+    now = spec.get('now_variable')
+    need(now in (None, '') or now in call_vars, 'now_variable=%r is not one of call_variables (%s)' % (now, ', '.join(map(str, call_vars)) or 'none'))
+    if not now:
+        warn.append('the documents name no call variable for the current date and time: the agent is given no date facts and is told not to decide anything by date')
+    need(isinstance(spec.get('test_variables', {}), dict), 'test_variables must be an object')
+    need(isinstance(spec.get('opening_line', ''), str), 'opening_line must be text (empty when the documents prescribe no first words)')
+    rules = spec.get('rules') if isinstance(spec.get('rules'), dict) else {}
+    for key in ('always', 'conversation'):
+        need(isinstance(rules.get(key), str) and len(rules[key].strip()) > 40, 'rules.' + key + ' must be substantial text')
+    for key, text in list(rules.items()) + [('opening_line', spec.get('opening_line'))]:
+        for name in re.findall(r'\{\{\s*([^{}]*?)\s*\}\}', text if isinstance(text, str) else ''):
+            need(name in call_vars, '%s uses {{%s}}, which is no call variable: the agent would say the placeholder aloud' % (key if key == 'opening_line' else 'rules.' + key, name))
+
+    tools = spec.get('tools')
+    seen = set()
+    if need(isinstance(tools, list) and all(isinstance(t, dict) for t in tools), 'tools must be a list of objects'):
+        if not tools:
+            warn.append('the spec uses no operation of the tool API: the agent can only talk')
+        for entry in tools:
+            name = entry.get('operation')
+            if not need(name in api.ops, 'tools: %r is not an operation of the tool API (operations: %s)' % (name, ', '.join(api.ops))):
+                continue
+            need(name not in seen, 'tools: the operation %s is listed twice' % name)
+            seen.add(name)
+            need(isinstance(entry.get('description'), str) and len(entry['description'].strip()) > 15, 'tools: %s needs a description that says when to call it' % name)
+            fields, filled = api.fields(name), {}
+            given = entry.get('variables', {})
+            if need(isinstance(given, dict), 'tools: %s.variables must map request fields to call variables' % name):
+                for field, var in given.items():
+                    need(field_of(field, fields), 'tools: %s.variables names %r, which is no request field of %s (fields: %s)' % (
+                        name, field, name, ', '.join('.'.join(about.get('path') or [key]) for key, about in fields.items()) or 'none'))
+                    need(var in call_vars, 'tools: %s.variables fills %s from %r, which is no call variable' % (name, field, var))
+                filled = mapped(entry, fields, call_vars)
+            for field, about in fields.items():
+                if about['in'] not in ('body', 'path', 'query') and field not in filled and carried(field, about) and fixed(about) is None:
+                    # A credential is the usual case. The builder holds none and sends none: said, and not a reason to build nothing.
+                    warn.append('tools: %s carries %s as a %s value, which only a call variable or a value fixed by the tool API can fill; it has neither, and the request is sent WITHOUT it' % (name, field, about['in']))
+                if about['schema'].get('type') in ('object', 'array') and field not in filled:
+                    warn.append('tools: the request field %s of %s is nested; the phone model has to write it as JSON, which is not verified on the platform' % (field, name))
+            method = api.ops[name]['method']
+            if method in ('GET', 'DELETE') and any(a['in'] == 'body' for a in fields.values()):
+                bad.append('tools: %s is a %s with a request body, which cannot be relied on to arrive' % (name, method))
+            content = (api.ops[name]['op'].get('requestBody') or {}).get('content') or {}
+            need(not content or 'application/json' in content, 'tools: the request body of %s is not JSON' % name)
+            known = api.statuses(name)
+            results = entry.get('results', [])
+            if need(isinstance(results, list) and all(isinstance(r, dict) for r in results), 'tools: %s.results must be a list of objects' % name):
+                for result in results:
+                    need(str(result.get('status')) in known or ('default' in known and re.fullmatch(r'[1-5][0-9][0-9]', str(result.get('status')))),
+                         'tools: %s.results names status %r, which the tool API does not list for it (listed: %s)' % (name, result.get('status'), ', '.join(known) or 'none'))
+                    need(isinstance(result.get('then'), str) and result['then'].strip(), 'tools: %s.results for status %s needs "then": what the answer means and what the agent does' % (name, result.get('status')))
+                for status in known:
+                    if status != 'default' and status not in {str(r.get('status')) for r in results}:
+                        warn.append('tools: the tool API lists status %s for %s and the spec says nothing about it' % (status, name))
+
+    endings = spec.get('endings')
+    if need(isinstance(endings, list) and endings and all(isinstance(e, dict) for e in endings), 'endings must list at least one way the call ends'):
+        names = [e.get('name') for e in endings]
+        for ending in endings:
+            need(isinstance(ending.get('name'), str) and re.fullmatch(r'[a-z][a-z0-9_]{1,40}', ending['name']) and ending['name'] not in RESERVED_NODES,
+                 'endings: a name is snake_case and none of %s, got %r' % (', '.join(RESERVED_NODES), ending.get('name')))
+            need(isinstance(ending.get('when'), str) and len(ending['when'].strip()) > 10, 'endings: %s needs "when"' % ending.get('name'))
+            need(isinstance(ending.get('last_words', ''), str) and '{{' not in str(ending.get('last_words', '')), 'endings: last_words of %s must be fixed text' % ending.get('name'))
+        need(len(set(map(str, names))) == len(names), 'endings: the names must differ')
+    conflicts = spec.get('conflicts', [])
+    need(isinstance(conflicts, list), 'conflicts must be a list')
+    unsupported = spec.get('unsupported') or []
+    if unsupported:
+        (warn if best_effort else bad).append('the extractor reported mandatory policy it could not express: ' + ' | '.join(str(u) for u in unsupported))
+    if bad:
+        raise SpecError(bad)
+    return warn
 
 
 def sample_products(spec, api):
@@ -49,6 +144,8 @@ def validate(spec, api, best_effort=False):
 
     if not isinstance(spec, dict):
         raise SpecError(['spec must be a JSON object'])
+    if spec.get('spec_version') == GENERAL or (not api.legacy and spec.get('spec_version') != VERSION):
+        return validate_general(spec, api, best_effort)
     need(spec.get('spec_version') == VERSION, 'spec_version must be ' + VERSION)
     for tool in TOOLS:
         need(tool in api.ops, 'tool API has no operation ' + tool)

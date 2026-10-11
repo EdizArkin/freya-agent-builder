@@ -23,7 +23,7 @@ from builder.evaluation import simulation
 from builder.extraction import claude
 from builder.freya import client as freya_client
 from builder.freya import deployment, versioning
-from builder.spec.models import SpecError
+from builder.spec.models import GENERAL, SpecError
 from builder.spec.openapi import Api
 from builder.tracing.trace import Trace
 from builder.validation import contract
@@ -62,11 +62,13 @@ def build_workflow(spec, document, best_effort=False, stage=None):
             raise CompileError('; '.join(problems))
     # A compiled tool that departs from the tool API would send requests the bank does not expect: not built.
     # The runtime checks every outgoing request again (runtime.send).
+    general = spec.get('spec_version') == GENERAL
     with stage('static', 'tool-contract validation'):
-        departures = contract.check_tools(workflow, api, {CHECK_TOOL: CHECK_TRANSPORT})
+        departures = contract.check_general(workflow, api) if general else contract.check_tools(workflow, api, {CHECK_TOOL: CHECK_TRANSPORT})
         if departures:
             raise CompileError('the compiled tools do not match the tool API: ' + '; '.join(departures))
-    return workflow, dict({'warnings': warnings, 'contract': contract.document_notes(api)}, **report)
+    # The notes say what a collections build does not send (parameters, path templates); a general build sends them.
+    return workflow, dict({'warnings': warnings, 'contract': [] if general else contract.document_notes(api)}, **report)
 
 
 def release(files, slot, spec, document, source, trace, best_effort=False, platform=None, registry=versioning.REGISTRY, stage=None):

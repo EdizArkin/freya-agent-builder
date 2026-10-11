@@ -186,6 +186,52 @@ def check_tools(workflow, api, runtime_tools=None):
     return list(dict.fromkeys(bad))     # a tool offered in two parts of the call is reported once
 
 
+def check_general(workflow, api):
+    """Every tool of a general agent against its operation: it is an operation of the tool API, with that
+    method and that path on that server; it carries no field the operation does not have, every field with the
+    type the tool API gives it and no value outside its allowed values; and every field the operation requires
+    is either the model's to fill and required of it, or filled by the call itself."""
+    bad = []
+    for node in (workflow.get('nodes') or {}).values():
+        for tool in (node.get('tools') or []) + (node.get('pre_actions') or []):
+            fn = tool.get('function') or {}
+            name = fn.get('name')
+            if fn.get('handler') != '__function__:api_call':
+                continue
+            if name not in api.ops:
+                bad.append('%s is not an operation of the tool API' % name)
+                continue
+            props = (fn.get('parameters') or {}).get('properties') or {}
+            op, fields = api.ops[name], api.fields(name)
+            url = str((props.get('url') or {}).get('default') or '')
+            shape = ''.join(r'(?:\{[^{}/]+\}|\{\{[^{}/]+\}\})' if part.startswith('{') else re.escape(part) for part in re.split(r'(\{[^{}/]+\})', api.base + op['path']))
+            if not re.fullmatch(shape, url.split('?', 1)[0]):
+                bad.append('%s: url %s is not %s' % (name, url, api.base + op['path']))
+            if str((props.get('method') or {}).get('default', '')).upper() != op['method']:
+                bad.append('%s: method is not %s' % (name, op['method']))
+            body = props.get('body') or {}
+            have, required = body.get('properties') or {}, body.get('required') or []
+            sent = set(have) | set(re.findall(r'[?&]([^=&]+)=', url)) | set((props.get('headers') or {}).get('properties') or {})
+            for field, leaf in have.items():
+                if field not in fields:
+                    bad.append('%s: field %s is not in the tool API' % (name, field))
+                    continue
+                want = fields[field]['schema']
+                if leaf.get('type') != want.get('type', 'string'):
+                    bad.append('%s.%s: type %s, the tool API says %s' % (name, field, leaf.get('type'), want.get('type', 'string')))
+                if leaf.get('enum') and want.get('enum') and not set(leaf['enum']) <= set(want['enum']):
+                    bad.append('%s.%s: offers values the tool API does not allow' % (name, field))
+            for field, about in fields.items():
+                in_path = about['in'] == 'path' and ('{' + field + '}') not in url.replace('{{', '').replace('}}', '')
+                # A header nothing can fill (a credential the builder does not hold) is said by the validation of the spec.
+                if about['required'] and about['in'] != 'header' and field not in sent and not in_path:
+                    bad.append('%s: required field %s of the tool API is not sent' % (name, field))
+                if about['required'] and field in have and 'description' in have[field] and field not in required:
+                    bad.append('%s: required field %s is left optional for the model' % (name, field))
+            bad += ['%s: %s is required of the model but not by the tool API' % (name, f) for f in required if f in fields and not fields[f]['required']]
+    return list(dict.fromkeys(bad))
+
+
 def document_notes(api):
     """Constructs of the document that the builder does not handle."""
     notes = []

@@ -61,8 +61,8 @@ from builder.extraction import claude, coverage, documents, spend
 from builder.freya import client as freya_client
 from builder.freya import deployment, versioning
 from builder.optimization import loop, policy
-from builder.spec.models import SpecError
-from builder.spec.openapi import Api
+from builder.spec.models import GENERAL, SpecError
+from builder.spec.openapi import Api, evidence as stated
 from builder.tracing.runlog import RunLog
 from builder.validation.spec import digest, validate
 
@@ -73,6 +73,7 @@ SUCCESS, INCOMPLETE, FAILED, INTERRUPTED = 'success', 'incomplete', 'failed', 'i
 LEAST_SECONDS = 45              # any call
 FALLBACK_SECONDS = 120          # a second extraction
 COVERAGE_SECONDS = 90           # the coverage audit
+DERIVE_MODEL_CALLS = 3          # more of them when the tool API has to be written from the documents first: one call and two corrections
 HIDDEN_MODEL_CALLS = 4          # the model calls of a run without test customers, unless --max-model-calls says otherwise
 
 # What a run checked, by kind, and what a check can come to.
@@ -80,6 +81,7 @@ STATIC, AUDITS, PLATFORM, BEHAVIOR = 'static', 'audit', 'platform', 'simulation'
 KINDS = {STATIC: 'Deterministic static checks', AUDITS: 'LLM-based document audits', PLATFORM: 'Platform validation', BEHAVIOR: 'Live behavioral simulation'}
 PASS, FAIL, SKIP, NOT_TESTED, UNVERIFIED = 'PASS', 'FAIL', 'SKIP', 'NOT TESTED', 'UNVERIFIED'
 AUDIT, COVERAGE, UNSUPPORTED = 'audit of the high-risk content', 'coverage of the mandatory rules', 'rules the extractor could not express'
+DERIVED = 'tool API written from the documents'
 READBACK, EXPORTED, CUSTOMERS = 'read-back of the published version', 'export is the published build', 'customer simulation'
 CHECKS = ((STATIC, 'credential check of the spec'), (STATIC, 'spec validation against the tool API'), (STATIC, 'compilation'), (STATIC, 'credential check of the workflow'),
           (STATIC, 'workflow validation'), (STATIC, 'tool-contract validation'), (AUDITS, AUDIT), (AUDITS, COVERAGE), (AUDITS, UNSUPPORTED),
@@ -211,6 +213,8 @@ def arguments(argv=None, provider=None):
     p.add_argument('brief', help='the brief: one file (Markdown, text, .docx, .xlsx or .pdf), or the folder of a case: every such file under it is a document, in the order of its path')
     p.add_argument('tool_api', nargs='?', help="the brief's tool API file (OpenAPI, JSON). With a case folder it may be left out if the folder holds exactly one, "
                    'and an https address in its place is taken as --mock-url')
+    p.add_argument('--tool-api', dest='tool_api_file', help='the tool API file, named by a flag: for a case folder whose second argument is the address of the bank, e.g. a tool API '
+                   'an earlier run wrote from the documents')
     p.add_argument('--mock-url', help='the address of the bank for this run, in place of the server the tool API file names (https). Default: the file\'s own')
     p.add_argument('--amend', action='append', default=[], help='a later document that amends the brief (Brief B on Brief A); repeat, in order')
     p.add_argument('--slot', help='the name of the agent: its workflow on Freya and its folder under --out. Default: the file name of the brief')
@@ -250,6 +254,7 @@ def arguments(argv=None, provider=None):
     args = p.parse_args(argv)
     if args.tool_api and re.match(r'(?i)https?://', args.tool_api):          # python3 builder/build.py {case_folder} {mock_url}
         args.mock_url, args.tool_api = args.mock_url or args.tool_api, None
+    args.tool_api = args.tool_api_file or args.tool_api
     args.slot = store.build_id(args.slot or '-plus-'.join(Path(b).stem for b in [args.brief] + args.amend)).lower()
     args.run = args.slot                    # the evaluation keeps its records in the folder of the slot: one track, one folder
     args.run_id = store.build_id(args.run_id or '%s-%s' % (time.strftime('%Y%m%d-%H%M%S'), args.slot))
@@ -347,16 +352,55 @@ def inputs(args, log):
         raise Incomplete('the case folder %s holds no document that could be read (%s)' % (args.brief, ', '.join(documents.SUPPORTED)))
     tool_api = args.tool_api
     if not tool_api:
-        if len(case['tool_apis']) != 1:
-            raise Incomplete('the case folder %s holds %s; name the tool API file as the second argument (an OpenAPI document in JSON). Nothing is guessed about the tools of the bank' % (
-                args.brief, 'no OpenAPI file in JSON' if not case['tool_apis'] else 'more than one OpenAPI file: ' + ', '.join(str(f) for f in case['tool_apis'])))
-        tool_api = str(case['tool_apis'][0])
+        if len(case['tool_apis']) > 1:
+            raise Incomplete('the case folder %s holds more than one OpenAPI file: %s; name the tool API file (--tool-api). Nothing is guessed about the tools of the bank' % (
+                args.brief, ', '.join(str(f) for f in case['tool_apis'])))
+        # A folder without an OpenAPI file has its tool API in its documents: it is written from them (see `derived`).
+        tool_api = str(case['tool_apis'][0]) if case['tool_apis'] else None
     briefs = [(name, text) for name, text, _ in case['documents']] + [(Path(b).name, one(b)) for b in args.amend]
-    log('inputs | case folder %s | %d document(s), in this order: %s | tool API %s' % (args.brief, len(briefs), ', '.join(name for name, _ in briefs), tool_api))
+    log('inputs | case folder %s | %d document(s), in this order: %s | tool API %s' % (args.brief, len(briefs), ', '.join(name for name, _ in briefs), tool_api or 'none in the folder: it is written from the documents'))
     if len(briefs) > 1:
         log('inputs | the documents are given to the extraction in that order, each whole and under its name. The extraction reads a later document as amending an earlier one '
             'where they conflict: the order is the order of the file paths, not a judgement of which document holds')
     return briefs, [str(file) for _, _, file in case['documents']] + args.amend, tool_api
+
+
+def derived(args, briefs, sources, model, files, log, evidence):
+    """The tool API of a case that holds no OpenAPI file: (document, the file it is kept in).
+
+    The model writes it from the documents; code then looks for every path, method, field name and status of it
+    in the text of the documents (spec/openapi.evidence) and sends back, at most twice, what it does not find.
+    A name that still stands in no document ends the run: no tool is built on it. The document is kept with a
+    second file that says, for each of its names, in which document and line it stands, what the documents do
+    not state, and the hashes of the documents it was written from."""
+    if model is None:
+        raise Incomplete('the case holds no OpenAPI file and this run has no model to write the tool API from the documents: name the tool API file (--tool-api)')
+    log('tool API | the case holds no OpenAPI file: it is written from the documents, and every path, method, field name and status of it is looked for in their text')
+    kept = files.path('derived-tool-api.%s.json' % args.run_id)
+    try:
+        document, found = claude.derive_api(briefs, model, lambda doc: stated(doc, briefs), log, repairs=DERIVE_MODEL_CALLS - 1)
+    except Exception as exc:
+        evidence.add(STATIC, DERIVED, FAIL, '%s: %s' % (type(exc).__name__, str(exc)[:300]))
+        raise Incomplete('no tool API could be written from the documents (%s: %s). If the documents that describe the services are not in the folder yet, there is nothing to build tools from' % (
+            type(exc).__name__, str(exc)[:300]))
+    kept.parent.mkdir(parents=True, exist_ok=True)
+    kept.write_text(json.dumps(document, indent=1, ensure_ascii=False), encoding='utf-8')
+    record = dict(found, tool_api=str(kept), run_id=args.run_id, model=model.model, written_from=[{'file': str(b), 'sha256': sha256(b)} for b in sources])
+    where = kept.with_name(kept.stem + '.provenance.json')
+    where.write_text(json.dumps(record, indent=1, ensure_ascii=False), encoding='utf-8')
+    operations = sorted({row['operation'] for row in found['evidence']})
+    log('tool API | written to %s | %d operation(s): %s | where each name stands: %s' % (kept, len(operations), ', '.join(operations) or 'none', where))
+    for line in found['missing']:
+        log('tool API | NOT STATED in the documents: %s' % line[:400])
+    for line in found['conflicts']:
+        log('tool API | the documents disagree: %s' % line[:400])
+    if found['problems']:
+        evidence.add(STATIC, DERIVED, FAIL, '%d name(s) stand in no document: %s' % (len(found['problems']), ' | '.join(found['problems'])[:600]))
+        raise Incomplete('the tool API written from the documents holds %d name(s) that stand in no document, and no tool is built on a name that was guessed: %s. It is kept at %s' % (
+            len(found['problems']), '; '.join(found['problems'][:5]), kept))
+    evidence.add(STATIC, DERIVED, PASS, '%d operation(s); %d path(s), method(s), field name(s) and status(es), each found in the text of the documents; %d thing(s) the documents do not state' % (
+        len(operations), len(found['evidence']), len(found['missing'])))
+    return document, str(kept)
 
 
 def sha256(path):
@@ -485,7 +529,21 @@ def main(argv=None, client=None, platform=None, evaluation=None, registry=versio
         # 1. configuration and inputs
         settings.load_env(settings.env_files(args.env_file, args.kit))
         briefs, sources, args.tool_api = inputs(args, log)
-        document = json.loads(text_of(args.tool_api, log))
+        sdk = None
+        if client is None and not (args.spec and (args.no_optimize or not suites)):
+            if not claude.sdk_installed():
+                raise Incomplete('the Anthropic SDK is not installed for this Python')
+            sdk = claude.AnthropicClient(args.model, args.max_tokens, fallback=False)
+            client = spend.Budget(sdk, args.max_dollars, files.path('spend.%s.json' % args.run_id))
+        if not args.tool_api and max_calls and args.max_model_calls is None:
+            max_calls += DERIVE_MODEL_CALLS
+            log('limits | model calls: at most %d, because the tool API is written from the documents first (up to %d of them)' % (max_calls, DERIVE_MODEL_CALLS))
+        model = Watched(client, log, usable, args.model_call_seconds, max_calls, sdk) if client is not None else None
+        if args.tool_api:
+            document = json.loads(text_of(args.tool_api, log))
+        else:
+            document, args.tool_api = derived(args, briefs, sources, model, files, log, evidence)
+            result['tool_api'] = args.tool_api
         if args.mock_url:
             # The bank of this run is at another address than the tool API file names: the tools are compiled for it.
             was = [server.get('url') for server in document.get('servers') or [] if isinstance(server, dict)]
@@ -497,6 +555,14 @@ def main(argv=None, client=None, platform=None, evaluation=None, registry=versio
             log('provenance | brief %d of %d | %s | sha256 %s | %d bytes' % (number, len(briefs), brief['file'], brief['sha256'], brief['bytes']))
         log('provenance | tool API | %s | sha256 %s | %d bytes' % (args.tool_api, result['provenance']['tool_api']['sha256'], result['provenance']['tool_api']['bytes']))
         api = Api(document)
+        general = not api.legacy
+        if general:
+            # Any tool API but that of a collections call makes a general agent: its tools are the operations the documents use.
+            log('agent | general (%s): the tool API has %d operation(s), %s, and is not that of a collections call. Tools, call variables, answers and endings come from the documents' % (
+                GENERAL, len(api.ops), ', '.join(api.ops)))
+            if args.strategy != 'single':
+                log('agent | extraction strategy single: the %s strategy checks the items of a collections call. The rules of the documents are checked by the coverage audit' % args.strategy)
+                args.strategy = 'single'
         best_effort = not args.strict
         known = versioning.known(args.slot, registry)
         if args.new and known:
@@ -505,13 +571,6 @@ def main(argv=None, client=None, platform=None, evaluation=None, registry=versio
         if known and not suites and not args.no_deploy:
             log('policy | the slot %s already has the workflow %s: this run publishes a new version of it without test customers. The version published now stays on the platform and can be '
                 'published again; --new makes a run refuse a slot that has a workflow' % (args.slot, known.get('workflow_id')))
-        sdk = None
-        if client is None and not (args.spec and (args.no_optimize or not suites)):
-            if not claude.sdk_installed():
-                raise Incomplete('the Anthropic SDK is not installed for this Python')
-            sdk = claude.AnthropicClient(args.model, args.max_tokens, fallback=False)
-            client = spend.Budget(sdk, args.max_dollars, files.path('spend.%s.json' % args.run_id))
-        model = Watched(client, log, usable, args.model_call_seconds, max_calls, sdk) if client is not None else None
 
         # 2. the spec: extracted by the model and repaired until it validates; then audited against the documents
         audited = None
@@ -522,10 +581,14 @@ def main(argv=None, client=None, platform=None, evaluation=None, registry=versio
             for check in (AUDIT, COVERAGE):
                 evidence.add(AUDITS, check, SKIP, 'the spec was reused from a file, not extracted in this run')
         else:
-            source = {'kind': 'extraction', 'strategy': args.strategy, 'prompt_version': args.prompt_version, 'prompt_digest': claude.prompt_digest(version=args.prompt_version),
-                      'model': model.model, 'run_id': args.run_id}
-            log('extraction | strategy %s | prompt %s (digest %s) | model %s' % (args.strategy, args.prompt_version, source['prompt_digest'], model.model))
-            text, system = json.dumps(document, separators=(',', ':')), claude.system_prompt(version=args.prompt_version)
+            system = claude.general_prompt() if general else claude.system_prompt(version=args.prompt_version)
+            source = {'kind': 'extraction', 'strategy': args.strategy, 'prompt_version': 'general-1' if general else args.prompt_version,
+                      'prompt_digest': hashlib.sha256(system.encode('utf-8')).hexdigest()[:16], 'model': model.model, 'run_id': args.run_id}
+            log('extraction | strategy %s | prompt %s (digest %s) | model %s' % (args.strategy, source['prompt_version'], source['prompt_digest'], model.model))
+            if general and len(briefs) > 1:
+                log('extraction | general agent: the order of the documents carries no meaning. Where they disagree the extraction follows an explicit replacement, the later date or the higher '
+                    'version, then the document whose subject it is, and records each choice (conflict lines below)')
+            text = json.dumps(document, separators=(',', ':'))
             check = lambda s: validate(s, api, best_effort)
             spec, used, audit, fallback = extraction(args, briefs, text, check, model, log, lambda one, other=None: digest(one, api, other), system)
             if fallback:
@@ -545,6 +608,8 @@ def main(argv=None, client=None, platform=None, evaluation=None, registry=versio
                                      'Nothing was built or published; the spec is kept at %s (--coverage report publishes such a spec and reports the omissions)' % (
                                          len(firm), '; '.join(row['requirement'][:120] for row in firm[:3]), held))
         source['inputs'] = dict(result['provenance'])
+        for conflict in spec.get('conflicts') or []:
+            log('conflict | the documents disagree, and the spec follows one of them: %s' % json.dumps(conflict, ensure_ascii=False)[:700])
         unsupported = [str(rule) for rule in spec.get('unsupported') or []]
         for rule in unsupported:
             log('NOT ENFORCED | the extractor reports policy the builder cannot express: %s' % rule)

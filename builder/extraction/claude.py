@@ -11,7 +11,7 @@ import re
 import time
 
 from builder.config import settings
-from builder.spec.models import SpecError
+from builder.spec.models import GENERAL, SpecError
 
 _PROMPT = """You turn a bank's brief for an outbound phone call into a compact executable specification, `agent-spec/1`. A compiler turns your specification into a phone agent without any human step, so everything the agent must know has to be in your output, and everything in your output has to come from the documents you are given.
 
@@ -208,11 +208,130 @@ REPAIR = """The specification cannot be compiled. Problems found by the compiler
 Return the complete corrected JSON object, and nothing else."""
 
 
-def user_message(briefs, openapi_text):
+GENERAL_PROMPT = """You turn the documents of an organisation into a compact executable specification of a phone agent, `agent-spec/2`. A compiler turns your specification into the phone agent without any human step, so everything the agent must know has to be in your output, and everything in your output has to come from the documents you are given.
+
+# How the phone agent is built from your output
+
+The phone agent is a smaller language model that talks to one person on a phone call. It is not careful with arithmetic, calendars or counting, and it knows nothing but what your specification tells it.
+
+- The whole call is one conversation. The model reads your rule text, speaks, and calls tools.
+- Its tools are operations of the tool API you are given, and only the ones you list under `tools`. The compiler takes the URL, the method, the field names, their types and their allowed values from the tool API. You say when each tool is called and what each documented answer means. An operation is named by its `operationId` in the tool API: use that name exactly.
+- A call starts with call variables that the system supplies (who is on the line, the current date and time, and so on). A request field you map to a call variable is filled by the system: the model does not see that field and never asks the person for it. A request field that has exactly the name of a call variable is filled from it without a mapping. Map every request field whose value a call variable holds, whatever the field is called. A field inside an object of the request body is named by its path with dots ("<object>.<field>").
+- The model fills every other request field. It sees a field inside an object of the body as an argument of its own, named by the field's own name (by its path joined with underscores if two fields of one request share a name); the runtime puts it back in its place. A body field for which the tool API allows exactly one value is sent with that value and is not the model's to fill. In your rule text, say for each field the model fills where its value comes from: which field of which earlier tool result, or which words of the person.
+- If the documents name a call variable that holds the current date and time, name it in `now_variable`. The runtime reads it and gives the model two facts blocks: TODAY (the date, the weekday and the time of the call) and DAY NAMES (the dates of today, tomorrow, yesterday, every coming weekday, the Mondays of this and next week, the first and last day of the month). The clock of the machine is never used. In your rule text, tie every decision that depends on the date or the time to TODAY, and never ask the model to count days: let it compare a date from a tool result with TODAY in the YYYY-MM-DD form.
+- When the service answers a tool call with a success status, the runtime adds your instruction for that status to the result as `what_to_do_next`. When it answers with an error status, the model gets the error and its body and no instruction; the compiler therefore also puts the meaning of every status you describe into the model's instructions. A status the documents give a meaning to must be in `results` with that meaning: an error status that is an ordinary answer of the service (nothing found, not allowed, already done) is not a technical fault and must not be treated as one.
+- The call ends when the model uses one of the `endings` you define. Each ending is one way the documents let the call end (the matter is done, the person is handed to someone else, the call goes back to where it came from, and so on). Its name is recorded as the reason the call ended.
+
+# Output
+
+Return one JSON object and nothing else: no prose before or after, no code fence. Shape (comments are explanations, not part of the output):
+
+{
+ "spec_version": "agent-spec/2",
+ "language": "...",                          // the language the agent speaks to the person, as the documents say
+ "direction": "inbound" | "outbound",        // who started the call
+ "call_variables": ["..."],                  // every variable the documents say a call starts with, by its exact name
+ "now_variable": "...",                      // the call variable that holds the current date and time; "" if the documents name none
+ "test_variables": {"<call variable>": "..."}, // one example value per call variable, taken from the documents' own examples or test data
+ "opening_line": "...",                      // the exact first words of the agent if the documents prescribe them or the agent has to greet first; "" if the agent starts by acting on its rules. Use {{variable}} only for call variables.
+ "tools": [
+   {"operation": "<operationId from the tool API>",
+    "description": "...",                    // one or two sentences: what it does and exactly when to CALL it, and when not to
+    "variables": {"<request field, by its path with dots if it is inside an object>": "<call variable>"},   // the request fields the call itself fills; {} if none
+    "results": [{"status": "200",            // an HTTP status the tool API lists for this operation
+                 "when": "...",              // only if one status has several meanings: what in the answer tells them apart, by its field names and values
+                 "then": "..."}]}            // what this answer means and what the agent says or does next, with the field names of the answer it reads from
+ ],
+ "endings": [{"name": "snake_case", "when": "...", "last_words": "..."}],   // "when": the situation in which the call ends this way. "last_words": only when the documents prescribe one fixed closing sentence for it; it is then spoken by the system.
+ "rules": {"always": "...", "conversation": "..."},
+ "conflicts": [{"topic": "...", "chosen": "...", "source": "...", "over": "...", "because": "..."}],   // every point on which two documents disagree, and which one you followed and why
+ "unsupported": ["..."]                      // mandatory policy you could express nowhere above. Normally empty.
+}
+
+## rules
+
+The two rule texts are the only policy the phone model reads. Together they must carry EVERY rule, exception, prohibition, order of steps and prescribed sentence of the documents that the model has to act on. A rule left out is a failed call.
+- "always": who the agent is and for whom it speaks, how to address the person, what it may never say or do, what to do with requests outside its task, and rules that hold at every moment of the call.
+- "conversation": the call from its first moment to each of its endings, in the order it runs: what to do first, which tool to call when and with which values, how to choose when a tool returns several items, what to say for each kind of result (name the fields of the tool result the words come from), what to offer next, what to confirm before something is changed or sent, and which ending follows each branch.
+Write them as direct instructions to the model ("Call ...", "If the person ..., then ..."), grouped under short headings, in the order the call runs. Name tools and endings exactly. Quote prescribed sentences exactly, in the language the agent speaks. Say explicitly how amounts, currencies, dates, digits and identifiers are to be spoken where the documents say so. State counts and limits ("once", "at most two") explicitly. Never tell the model to ask for something a call variable already holds. Do not mention nodes, steps of a workflow, JSON or this specification.
+
+## Where a rule goes
+
+- A request field the call fills goes to `variables`. The meaning of an answer of a tool goes to `results` (and into the rule text where the conversation depends on it). A way the call ends goes to `endings`.
+- Everything about what to say, in which order, how often, and how to react to what the person says goes to the rule text.
+- `unsupported` is only for a mandatory rule that neither a field nor the rule text can carry (for example a computation the model cannot be trusted with and no tool performs). Name it there in one sentence and still describe it in the rule text.
+
+# Reading the documents
+
+- The documents are given in the order of their file paths. That order says nothing about which of them is newer or which of them holds.
+- The documents can be of many kinds: specifications, analysis documents in several versions, mails, meeting notes, flow descriptions, data models, examples, test data, lists of abbreviations, questions and answers. They may have been written at different times and may disagree. Decide each disagreement from what the documents themselves say, in this order: an explicit statement that one thing replaces, corrects or withdraws another; then the later of two stated dates or the higher of two version numbers (dates in the text, in a mail header, in a file name, of a meeting); then the document whose purpose is that subject (the integration or service description for paths, field names, values and statuses; the test data for what the services return). A decision recorded in a later mail or meeting overrides an earlier document. A draft, a proposal or a question that was not confirmed overrides nothing. Record every disagreement and your choice under `conflicts`. Produce one consolidated specification with the choices already applied.
+- A document, or a part of one, may be written for the people who build or test the agent (how to deploy, how the result is scored, how to set up a test service). That is no rule for the call. Example conversations and test data are evidence of the behaviour that is expected.
+- Take every operation, field name, response field name, status and allowed value from the tool API, never from memory or from an example in these instructions. Do not list an operation the conversation never needs.
+- Never invent a rule, a number, a date, a sentence or a step. If the documents do not say, leave it out.
+- Keep the output compact: no commentary, and no rule repeated in several places beyond what is needed.
+"""
+
+DERIVE = """You write the tool API of an organisation's services as one OpenAPI 3.0 document in JSON, from the documents you are given. The documents may be an integration document, service descriptions, data models, request and response examples, test data, mails and notes. A program then builds tools from your document and checks every name in it against the text of the documents.
+
+Rules:
+- Write only what the documents state. Every path, every HTTP method, every request field, every response field and every HTTP status in your output must stand in the documents with exactly that spelling. Code checks this; a name or a status that stands in no document makes the whole document unusable. Never complete an API from what is usual.
+- One entry under `paths` per service the documents describe, with the path exactly as the documents write it (a variable part as {name}). When the documents give one address and the names of the services under it, the path of a service is that name after a slash, and the address goes under `servers`.
+- When every request or every answer has the same outer objects, write them into the schema of each operation as they are, objects inside objects, with the fields of each service in their place. A field the documents give one fixed value for gets an `enum` with that one value. Give each operation an `operationId`: a short snake_case name made from the documents' own name of the service.
+- For each operation: `summary` (what the service does, in the documents' words); `parameters` for values in the path, the query or a header; `requestBody` with an `application/json` schema for body fields (name, type, `required`, `enum` where the documents list the allowed values, `description` from the documents); `responses` with one entry per HTTP status the documents state for it, each with a `description` of when the service answers so, and for the answers with a body an `application/json` schema of the fields.
+- If the documents state no HTTP status for the ordinary answer of a service, use the key "default" for it and no number.
+- Where documents disagree (two versions of a data model, a mail that corrects a field), follow the one the documents themselves mark as newer or as the correction: an explicit statement, a later date, a higher version. The order in which the documents are given means nothing.
+- Under `servers` put the base address the documents give, if they give one.
+- Do not describe services the documents only mention without a path. An address that a document shows only as an example of how to run, deploy or test a service (a sample endpoint, a health check) is no service of the organisation, unless a service description lists it too.
+- A service called with GET or DELETE takes its values in the path or the query, as the documents show them; give such an operation no request body. A header the documents require with one fixed value is a header parameter whose `enum` holds that one value.
+
+Reply with one JSON object and nothing else:
+{"openapi": {<the OpenAPI 3.0 document>},
+ "missing": ["<what a tool would need and the documents do not state: one sentence each, naming the service>"],
+ "conflicts": ["<each point on which two documents disagree about a service, which one you followed and why>"]}"""
+
+DERIVE_REPAIR = """A program looked for every name of your document in the text of the documents. These were not found:
+
+{problems}
+
+For each: if you misspelled it, write it exactly as the documents do. If the documents do not state it, remove it and name it under "missing". Return the complete corrected JSON object, and nothing else."""
+
+
+def general_prompt():
+    """The system prompt of the extraction of a general agent (agent-spec/2)."""
+    return GENERAL_PROMPT
+
+
+def documents_message(briefs):
+    return '\n\n'.join('<document index="%d" name="%s">\n%s\n</document>' % (i, name, text.strip()) for i, (name, text) in enumerate(briefs, 1))
+
+
+def derive_api(briefs, client, check, trace=lambda line: None, usage=None, repairs=1):
+    """A tool API written from documents that hold no OpenAPI file: (document, report).
+
+    `check(document)` returns (rows, problems): where the documents state each name of the document, and the
+    names that stand in none (spec/openapi.evidence). A document with problems is sent back once with them; what
+    then remains is in the report, and the caller decides. The report is {'evidence', 'problems', 'missing',
+    'conflicts'}. Raises ValueError when the reply holds no document that can be read."""
+    messages = [{'role': 'user', 'content': documents_message(briefs) + '\n\nWrite the tool API of these documents.'}]
+    for attempt in range(repairs + 1):
+        text, content = ask(client, DERIVE, messages, 'write the tool API from the documents' if attempt == 0 else 'correct the tool API after the check of its names (round %d)' % attempt, trace, usage)
+        reply = parse_json(text)
+        document = reply.get('openapi') if isinstance(reply.get('openapi'), dict) else reply
+        if not isinstance(document.get('paths'), dict) or not document['paths']:
+            raise ValueError('the reply holds no tool API with paths')
+        rows, problems = check(document)
+        report = {'evidence': rows, 'problems': problems, 'missing': [str(m) for m in reply.get('missing') or []], 'conflicts': [str(c) for c in reply.get('conflicts') or []]}
+        if not problems or attempt == repairs:
+            return document, report
+        trace('tool API: %d name(s) stand in no document; sent back once: %s' % (len(problems), ' | '.join(problems)[:1200]))
+        messages += [{'role': 'assistant', 'content': content}, {'role': 'user', 'content': DERIVE_REPAIR.format(problems='\n'.join('- ' + p for p in problems))}]
+
+
+def user_message(briefs, openapi_text, system=None):
     parts = ['<tool_api>\n' + openapi_text.strip() + '\n</tool_api>']
     for i, (name, text) in enumerate(briefs, 1):
         parts.append('<document index="%d" name="%s">\n%s\n</document>' % (i, name, text.strip()))
-    parts.append('Write the agent-spec/1 JSON object for a phone agent that follows these documents.')
+    parts.append('Write the %s JSON object for a phone agent that follows these documents.' % (GENERAL if system == GENERAL_PROMPT else 'agent-spec/1'))
     return '\n\n'.join(parts)
 
 
@@ -300,7 +419,7 @@ def ask(client, system, messages, purpose, trace, usage=None):
 
 def extract(briefs, openapi_text, client, check, trace=lambda line: None, repairs=2, system=None, usage=None):
     """Return a spec that `check` accepts. `check(spec)` raises SpecError with the problems it finds."""
-    messages = [{'role': 'user', 'content': user_message(briefs, openapi_text)}]
+    messages = [{'role': 'user', 'content': user_message(briefs, openapi_text, system)}]
     for attempt in range(repairs + 1):
         purpose = 'extract agent-spec/1 from the brief' if attempt == 0 else 'repair the spec after compiler errors (round %d)' % attempt
         text, content = ask(client, system or SYSTEM, messages, purpose, trace, usage)
@@ -391,7 +510,7 @@ def revise(spec, findings, briefs, openapi_text, client, check, trace, system, u
     """One revision of a valid spec. A revision that `check` refuses is dropped and the spec is kept as it was."""
     listed = '\n'.join('- %s: %s Evidence: "%s"%s' % (f.get('item'), f.get('problem') or 'wrong.', f.get('evidence'), (' Should be: ' + str(f['fix'])) if f.get('fix') else '')
                        for f in findings)
-    messages = [{'role': 'user', 'content': user_message(briefs, openapi_text)},
+    messages = [{'role': 'user', 'content': user_message(briefs, openapi_text, system)},
                 {'role': 'assistant', 'content': json.dumps(spec, ensure_ascii=False)},
                 {'role': 'user', 'content': REVISE.format(findings=listed)}]
     text, _ = ask(client, system or SYSTEM, messages, purpose, trace, usage)

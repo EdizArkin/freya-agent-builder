@@ -301,3 +301,6 @@ temp/
 
 # Freya workflow ids of deployed agents (written by --deploy)
 .freya-agents.json
+
+# Final case material, which is not part of the starter kit and is not to be committed
+/final_case/

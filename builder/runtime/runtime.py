@@ -1644,3 +1644,140 @@ def post_close(cfg, vars, result):
         st['closed'] = True
         return finish(cfg, vars, result, st, 'The call is closed. Do not call any tool again.', dict(rt_closed='yes'))
     return finish(cfg, vars, result, st, close_failure(), dict(rt_closed='no'))
+
+
+# ---------------------------------------------------------------- the general agent
+# A call of any kind with any tools (agent-spec/2). Nothing here knows what the call is about: the date facts
+# come from the call's own date and time, and a request is sent as the tool API describes it.
+
+NO_NOW = ('NOT SUPPLIED. The call did not give the current date and time. Do not state or decide anything that depends on '
+          'today\'s date or on the time of day; say that you cannot check it right now.')
+NEXT_GENERAL = 'Now speak to the person or call the next tool your instructions name. Say only what this result and your instructions support.'
+
+
+def read_now(raw):
+    """The date and time a call supplies, or None when it supplies none that can be read. The clock of the
+    machine is never taken in its place."""
+    text = str(raw or '').strip().replace(' ', 'T')
+    for part in (text[:16], text[:10] + 'T00:00'):
+        try:
+            return datetime.datetime.fromisoformat(part)
+        except Exception:
+            pass
+    return None
+
+
+def general_days(today):
+    """The date of every nearby day a person can name in words, so that the model never counts days."""
+    def row(words, day):
+        return '  ' + words + ' = ' + WDL[day.weekday()] + ' ' + str(day.day) + ' ' + MON[day.month - 1] + ' ' + str(day.year) + ' = ' + day.isoformat()
+
+    rows = [row('today', today), row('yesterday', today - DAY), row('tomorrow', today + DAY), row('the day after tomorrow', today + DAY + DAY)]
+    for step in range(1, 7):
+        day = today + datetime.timedelta(days=step)
+        rows.append(row('the coming ' + WDL[day.weekday()], day))
+        rows.append(row(WDL[day.weekday()] + ' of the week after', day + datetime.timedelta(days=7)))
+    rows.append(row('a week from today', today + datetime.timedelta(days=7)))
+    monday = today - datetime.timedelta(days=today.weekday())
+    rows.append(row('Monday of this week', monday))
+    rows.append(row('Monday of next week', monday + datetime.timedelta(days=7)))
+    first = today.replace(day=1)
+    following = (first + datetime.timedelta(days=32)).replace(day=1)
+    rows.append(row('the first day of this month', first))
+    rows.append(row('the last day of this month', following - DAY))
+    rows.append(row('the first day of next month', following))
+    return '\n'.join(rows)
+
+
+def setup_general(cfg, vars):
+    name = cfg.get('now_var')
+    now = read_now(vars.get(name)) if name else None
+    if now is None:
+        vars['rt_now'] = 'missing'
+        vars['rt_today'] = NO_NOW
+        vars['rt_days'] = 'Unavailable.'
+        return
+    vars['rt_now'] = now.strftime('%Y-%m-%dT%H:%M')
+    vars['rt_today'] = say_date(now.date()) + ' ' + str(now.year) + ', current time ' + now.strftime('%H:%M')
+    vars['rt_days'] = general_days(now.date())
+
+
+def url_part(value):
+    """A value as part of a URL: every byte that is not a letter, a digit or one of -._~ is written as %XX."""
+    if isinstance(value, bool):
+        value = 'true' if value else 'false'
+    out = ''
+    for byte in str(value).encode('utf-8'):
+        out += chr(byte) if re.match('[A-Za-z0-9._~-]', chr(byte)) else '%' + ('%02X' % byte)
+    return out
+
+
+def typed(value, kind):
+    """A value the model sent as text, in the type the tool API gives its field; unchanged when it does not fit."""
+    if not isinstance(value, str):
+        return value
+    text = value.strip()
+    try:
+        if kind == 'integer' and re.fullmatch('-?[0-9]+', text):
+            return int(text)
+        if kind == 'number' and re.fullmatch('-?[0-9]+([.][0-9]+)?', text):
+            return float(text)
+        if kind == 'boolean' and text.lower() in ('true', 'false'):
+            return text.lower() == 'true'
+    except Exception:
+        pass
+    return value
+
+
+def pre_general(cfg, vars, config):
+    """Before a request of a general agent leaves: a field the model left unfilled is dropped, a value is given
+    the type of its field, the fields that belong in the path or the query of the URL are moved there, and a
+    field of an object of the body is put back inside that object."""
+    body = config.get('body')
+    if not isinstance(body, dict):
+        body = dict()
+    for name in list(body.keys()):
+        value = body[name]
+        if value is None or (isinstance(value, str) and (value.strip() == '' or value.strip().startswith('{' + '{'))):
+            body.pop(name)
+        else:
+            body[name] = typed(value, (cfg.get('types') or dict()).get(name))
+    url = str(config.get('url') or '')
+    for name in cfg.get('path') or []:
+        if name in body:
+            url = url.replace('{' + name + '}', url_part(body.pop(name)))
+    pairs = []
+    for name in cfg.get('query') or []:
+        if name in body:
+            pairs.append(url_part(name) + '=' + url_part(body.pop(name)))
+    if pairs:
+        url = url + ('&' if '?' in url else '?') + '&'.join(pairs)
+    if url:
+        config['url'] = url
+    nest = cfg.get('nest') or dict()
+    if nest:
+        built = dict()
+        for name in list(body.keys()):
+            path = nest.get(name) or [name]
+            node = built
+            for part in path[:-1]:
+                if not isinstance(node.get(part), dict):
+                    node[part] = dict()
+                node = node[part]
+            node[path[-1]] = body[name]
+        body = built
+    config['body'] = body
+
+
+def post_general(cfg, vars, result):
+    """After an answer: the response headers are dropped and the instruction for the status of the answer is added."""
+    if not isinstance(result, dict):
+        return
+    result.pop('header', None)
+    told = str((cfg.get('results') or dict()).get(str(result.get('status_code') or '')) or '').strip()
+    text = (told + ' ' if told else '') + NEXT_GENERAL
+    data = result.get('data')
+    if isinstance(data, dict):
+        data['what_to_do_next'] = text
+    else:
+        result['what_to_do_next'] = text

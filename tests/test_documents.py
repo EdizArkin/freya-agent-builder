@@ -170,14 +170,15 @@ class ACaseFolder(unittest.TestCase):
         (self.case / 'notlar.json').write_text('{"not": "an api"}', encoding='utf-8')
         (self.case / 'tools.json').write_text(json.dumps({'openapi': '3.0.0', 'paths': {}}), encoding='utf-8')
         found = documents.folder(self.case)
-        self.assertEqual(len(found['documents']), 5, 'the five that can be read')
-        self.assertEqual(sorted(found['skipped']), ['api.yaml', 'eski.doc', 'notlar.json'])
+        self.assertEqual(len(found['documents']), 7, 'the five that can be read, and the YAML and the JSON file, which are text')
+        self.assertEqual(sorted(found['skipped']), ['eski.doc'])
+        self.assertEqual({name: text for name, text, _ in found['documents']}['api.yaml'], 'openapi: 3.0.0', 'a tool API in YAML is a document: the tool API is written from it')
         self.assertEqual([file.name for file in found['tool_apis']], ['tools.json'], 'an OpenAPI document is the tool API and no brief')
         told = '\n'.join(found['warnings'])
-        for part in ('bos.md: holds no text', 'bozuk.docx: cannot be read as .docx (BadZipFile', 'tarama.pdf: no page of this PDF has a text layer', 'eski.doc: files ending in .doc are not read',
-                     'api.yaml: files ending in .yaml are not read. If it holds rules or the tool API, they are NOT part of this run'):
+        for part in ('bos.md: holds no text', 'bozuk.docx: cannot be read as .docx (BadZipFile', 'tarama.pdf: no page of this PDF has a text layer',
+                     'eski.doc: files ending in .doc are not read. If it holds rules or the tool API, they are NOT part of this run'):
             self.assertIn(part, told)
-        self.assertEqual(len(found['warnings']), 5)
+        self.assertEqual(len(found['warnings']), 4)
 
 
 class TheCommand(unittest.TestCase):
@@ -229,7 +230,7 @@ class TheCommand(unittest.TestCase):
     def test_a_folder_without_a_tool_api_or_without_a_document_ends_the_run_and_guesses_nothing(self):
         code, trace = self.build(str(self.case), 'https://mock.example.test')
         self.assertEqual(code, 1)
-        self.assertIn('INCOMPLETE | the case folder %s holds no OpenAPI file in JSON; name the tool API file as the second argument' % self.case, trace)
+        self.assertIn('INCOMPLETE | the case holds no OpenAPI file and this run has no model to write the tool API from the documents: name the tool API file (--tool-api)', trace)
         self.assertNotIn('| build | wf-', trace)
         code, trace = self.build(str(self.case), str(self.api), '--slot', 'named')
         self.assertIn('| build | wf-', trace, 'with the tool API named, the folder is built')

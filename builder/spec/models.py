@@ -8,6 +8,9 @@ from builder.runtime import runtime as rt
 
 
 VERSION = 'agent-spec/1'
+# The general form: a call of any kind whose tools are whatever operations the tool API has. agent-spec/1 stays
+# the form of a collections call with its seven operations and its enforced promise rules.
+GENERAL = 'agent-spec/2'
 TOOLS = ('verify_identity', 'get_account', 'create_promise', 'add_note', 'schedule_callback',
          'transfer_to_agent', 'close_call')
 EXPR_KINDS = ('by', 'by_time', 'const', 'text', 'field', 'percent', 'fixed_amount') + rt.DATE_KINDS
@@ -55,3 +58,30 @@ def times(expr):
             for case in e.get('cases') or []:
                 if isinstance(case.get('when'), dict):
                     yield case['when']
+
+
+def fixed(about):
+    """The one value the tool API allows for a request field that is not the model's to fill (a header), or None:
+    its only allowed value, else the default the tool API gives it."""
+    schema = about.get('schema') or {}
+    allowed = schema.get('enum') or []
+    return allowed[0] if len(allowed) == 1 else schema.get('default')
+
+
+def carried(name, about):
+    """Whether a request field needs a value from the spec or the model: not a header the platform sets itself."""
+    return not (about.get('in') == 'header' and str(name).lower() in ('content-type', 'accept', 'content-length', 'host'))
+
+
+def field_of(key, fields):
+    """The request field a spec means by `key`: its name, or its path with dots (data.memberNo); None if there is none."""
+    if key in fields:
+        return key
+    return next((name for name, about in fields.items() if '.'.join(about.get('path') or [name]) == key), None)
+
+
+def mapped(entry, fields, call_vars):
+    """Which request fields of one tool of a general agent the system fills, and from which call variable: what
+    the spec maps, and every field that has the very name of a call variable."""
+    given = entry.get('variables') if isinstance(entry.get('variables'), dict) else {}
+    return dict({name: name for name in fields if name in call_vars}, **{field_of(key, fields): var for key, var in given.items() if field_of(key, fields)})

@@ -1,4 +1,5 @@
-"""The documents of a case, as text: Markdown, plain text, Word (.docx), Excel (.xlsx) and PDF.
+"""The documents of a case, as text: Markdown, plain text, Word (.docx), Excel (.xlsx), PDF, and the text formats
+JSON, YAML, CSV, XML, mail (.eml) and HTML.
 
     read(path)      one file -> (text, warnings)
     folder(path)    a case folder -> the documents in a fixed order, the tool API file if there is exactly
@@ -12,16 +13,29 @@ the documents.
 Word and Excel files are read with the standard library (they are zip files of XML). A formula of a sheet is
 written as its formula and the value the file stores for it; nothing is computed. PDF needs `pypdf`; a PDF
 without a text layer (a scan) gives a warning and no text, and there is no OCR.
+
+JSON, YAML, CSV and XML are handed on as the text they are. A mail is its date, sender, recipients and subject
+and then its text; its attachments are named, and read only where they lie as files of their own. An HTML page
+is its text without markup, scripts and styles.
+
+A JSON file of data that is longer than MOST characters is not handed on whole: of every list in it, the entries
+that show a shape no earlier entry of that list showed are kept (at most a few), and a line says how many were
+left out. A warning says so. Every field name of the file is still there; most of its values are not.
 """
 import datetime
+import email
+import email.policy
+import html.parser
 import json
 import re
 import zipfile
 from pathlib import Path
 from xml.etree import ElementTree
 
-TEXT, WORD, EXCEL, PDF = ('.md', '.markdown', '.txt'), ('.docx',), ('.xlsx',), ('.pdf',)
-SUPPORTED = TEXT + WORD + EXCEL + PDF
+TEXT, WORD, EXCEL, PDF = ('.md', '.markdown', '.txt', '.json', '.yaml', '.yml', '.csv', '.tsv', '.xml'), ('.docx',), ('.xlsx',), ('.pdf',)
+MAIL, HTML = ('.eml',), ('.html', '.htm')
+SUPPORTED = TEXT + WORD + EXCEL + PDF + MAIL + HTML
+MOST = 40000                    # characters of a JSON data file that are handed on whole
 W = '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}'
 S = '{http://schemas.openxmlformats.org/spreadsheetml/2006/main}'
 R = '{http://schemas.openxmlformats.org/officeDocument/2006/relationships}'
@@ -151,11 +165,123 @@ def read_pdf(path):
     return '\n'.join(lines), (['page(s) %s have no text layer (images?): their content is NOT part of this run' % ', '.join(map(str, empty))] if empty else [])
 
 
+class _Page(html.parser.HTMLParser):
+    """The text of an HTML page: what stands between the tags, a new line where a block ends, nothing of a
+    script or a style."""
+    BLOCKS = ('p', 'div', 'br', 'tr', 'li', 'table', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'section', 'article', 'pre', 'blockquote')
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.parts, self.hidden = [], 0
+
+    def handle_starttag(self, tag, attrs):
+        if tag in ('script', 'style'):
+            self.hidden += 1
+        elif tag in self.BLOCKS:
+            self.parts.append('\n')
+        elif tag in ('td', 'th'):
+            self.parts.append(' | ')
+
+    def handle_endtag(self, tag):
+        if tag in ('script', 'style'):
+            self.hidden = max(0, self.hidden - 1)
+        elif tag in self.BLOCKS:
+            self.parts.append('\n')
+
+    def handle_data(self, data):
+        if not self.hidden:
+            self.parts.append(data)
+
+
+def html_text(markup):
+    page = _Page()
+    page.feed(markup)
+    page.close()
+    lines = [re.sub(r'[ \t\xa0]+', ' ', line).strip() for line in ''.join(page.parts).splitlines()]
+    return '\n'.join(line for line, before in zip(lines, [''] + lines) if line or before)
+
+
+def read_html(path):
+    text, warning = decode(Path(path).read_bytes())
+    return html_text(text), [warning] if warning else []
+
+
+def read_eml(path):
+    """A mail: its date, sender, recipients and subject, then its text (the plain part, else the HTML part as
+    text). An attachment is named and not read here."""
+    message = email.message_from_bytes(Path(path).read_bytes(), policy=email.policy.default)
+    lines = ['[mail] %s: %s' % (name, message[name]) for name in ('Date', 'From', 'To', 'Cc', 'Subject') if message[name]]
+    body = message.get_body(preferencelist=('plain', 'html'))
+    warnings = []
+    if body is None:
+        warnings.append('the mail has no text part')
+    else:
+        try:
+            content = body.get_content()
+        except (LookupError, UnicodeError):
+            content, warning = decode(body.get_payload(decode=True) or b'')
+            warnings += [warning] if warning else []
+        lines += ['', html_text(content) if body.get_content_type() == 'text/html' else str(content)]
+    attached = [part.get_filename() for part in message.iter_attachments() if part.get_filename()]
+    if attached:
+        lines += ['', '[attachments of this mail, read only where they are files of the case: %s]' % ', '.join(attached)]
+    return '\n'.join(lines), warnings
+
+
+def _shape(value, prefix='', depth=0):
+    """The paths of the names in a value: what two entries of a list have in common when they are of one kind."""
+    found = set()
+    if isinstance(value, dict) and depth < 8:
+        for key, child in value.items():
+            found |= _shape(child, prefix + '.' + str(key), depth + 1)
+    elif isinstance(value, list) and depth < 8:
+        for child in value:
+            found |= _shape(child, prefix + '[]', depth + 1)
+    return found or {prefix + ':' + type(value).__name__}
+
+
+def sample(value, keep):
+    """A value with every list in it shortened to the entries that show a new shape, at most `keep` of them."""
+    if isinstance(value, dict):
+        return {key: sample(child, keep) for key, child in value.items()}
+    if isinstance(value, list):
+        kept, seen = [], set()
+        for child in value:
+            shape = frozenset(_shape(child))
+            if shape not in seen and len(kept) < keep:
+                seen.add(shape)
+                kept.append(sample(child, keep))
+        if len(kept) < len(value):
+            kept.append('[%d more entries of this list are left out here]' % (len(value) - len(kept)))
+        return kept
+    return value
+
+
+def read_data(path):
+    """A JSON file as text: as it is, or, when it is longer than MOST characters, as a sample of its lists."""
+    text, warning = decode(Path(path).read_bytes())
+    warnings = [warning] if warning else []
+    if len(text) <= MOST:
+        return text, warnings
+    try:
+        data = json.loads(text)
+    except ValueError:
+        return text[:MOST], warnings + ['%d characters that are no valid JSON: only the first %d are part of this run' % (len(text), MOST)]
+    for keep in (6, 3, 2, 1):
+        short = json.dumps(sample(data, keep), ensure_ascii=False, indent=1)
+        if len(short) <= 2 * MOST:
+            break
+    return short, warnings + ['%d characters of data: of every list only the entries that show a new shape are part of this run, at most %d per list (%d characters). '
+                              'Every field name is kept; the values of the entries left out are NOT part of this run' % (len(text), keep, len(short))]
+
+
 def read(path):
     """(text, warnings) of one file, by its ending. Raises ValueError for an ending that is not read, and
     whatever the file's format raises when the file is not what its ending says."""
     path = Path(path)
     kind = path.suffix.lower()
+    if kind == '.json':
+        return read_data(path)
     if kind in TEXT:
         text, warning = decode(path.read_bytes())
         return text, [warning] if warning else []
@@ -165,6 +291,10 @@ def read(path):
         return read_xlsx(path)
     if kind in PDF:
         return read_pdf(path)
+    if kind in MAIL:
+        return read_eml(path)
+    if kind in HTML:
+        return read_html(path)
     raise ValueError('files ending in %s are not read' % (kind or 'nothing'))
 
 
@@ -184,7 +314,7 @@ def folder(path):
     regard to case, then exactly), so that the same folder gives the same documents in the same order on every
     machine. A document's name is that relative path. A file that cannot be read, or holds no text, is not a
     document: it is a warning, never a silent gap. A JSON file that is an OpenAPI document is a tool API and no
-    document; any other file is skipped and listed."""
+    document; a JSON file that is none is a document like any other text. A file of another format is skipped and listed."""
     root = Path(path)
     found = {'documents': [], 'tool_apis': [], 'warnings': [], 'skipped': []}
     files = sorted((p for p in root.rglob('*') if p.is_file()), key=lambda p: (p.relative_to(root).as_posix().casefold(), p.relative_to(root).as_posix()))
@@ -195,7 +325,7 @@ def folder(path):
             found['tool_apis'].append(file)
         elif kind not in SUPPORTED:
             found['skipped'].append(name)
-            if kind in ('.yaml', '.yml', '.doc', '.xls', '.rtf', '.odt', '.png', '.jpg', '.jpeg', '.tif', '.tiff'):
+            if kind in ('.doc', '.xls', '.ppt', '.pptx', '.msg', '.rtf', '.odt', '.png', '.jpg', '.jpeg', '.tif', '.tiff'):
                 found['warnings'].append('%s: files ending in %s are not read. If it holds rules or the tool API, they are NOT part of this run' % (name, kind))
         else:
             try:
