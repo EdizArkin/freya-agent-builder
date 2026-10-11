@@ -11,6 +11,7 @@ outputs/<slot>/trace.txt and archives its spec and workflow under their version 
 (python -m builder optimize, builder/optimization/) builds and deploys its candidates through them.
 """
 import argparse
+import contextlib
 import json
 import time
 from pathlib import Path
@@ -31,37 +32,57 @@ from builder.validation.spec import digest, validate
 from builder.validation.workflow import check_workflow
 
 
-def build_workflow(spec, document, best_effort=False):
+def unwatched(group, check, **more):
+    """The `stage` of a build nobody keeps evidence of: every check runs as it does, and nothing is noted."""
+    return contextlib.nullcontext()
+
+
+def build_workflow(spec, document, best_effort=False, stage=None):
     """Validate the spec, compile it, validate the workflow. Returns (workflow, report).
 
     Raises SpecError when the spec cannot be executed faithfully and CompileError
     when the generated workflow breaks a platform rule.
+
+    `stage(group, check)` is a context manager around each check, for a caller that keeps evidence of what was
+    checked (builder/run.py). It changes no check: the same ones run, in the same order, with or without it.
     """
+    stage = stage or unwatched
     api = Api(document)
-    warnings = validate(spec, api, best_effort)
-    workflow, report = compile_workflow(spec, api)
-    problems = check_workflow(workflow)
-    if problems:
-        raise CompileError('; '.join(problems))
+    with stage('static', 'spec validation against the tool API'):
+        warnings = validate(spec, api, best_effort)
+    with stage('static', 'compilation'):
+        workflow, report = compile_workflow(spec, api)
+    with stage('static', 'credential check of the workflow'):
+        found = leaks(workflow)
+        if found:
+            raise CompileError('; '.join('credential leak at ' + leak for leak in found))
+    with stage('static', 'workflow validation'):
+        problems = check_workflow(workflow)
+        if problems:
+            raise CompileError('; '.join(problems))
     # A compiled tool that departs from the tool API would send requests the bank does not expect: not built.
     # The runtime checks every outgoing request again (runtime.send).
-    departures = contract.check_tools(workflow, api, {CHECK_TOOL: CHECK_TRANSPORT})
-    if departures:
-        raise CompileError('the compiled tools do not match the tool API: ' + '; '.join(departures))
+    with stage('static', 'tool-contract validation'):
+        departures = contract.check_tools(workflow, api, {CHECK_TOOL: CHECK_TRANSPORT})
+        if departures:
+            raise CompileError('the compiled tools do not match the tool API: ' + '; '.join(departures))
     return workflow, dict({'warnings': warnings, 'contract': contract.document_notes(api)}, **report)
 
 
-def release(files, slot, spec, document, source, trace, best_effort=False, platform=None, registry=versioning.REGISTRY):
+def release(files, slot, spec, document, source, trace, best_effort=False, platform=None, registry=versioning.REGISTRY, stage=None):
     """Stages 3 and 4 of a build for one spec: validate, compile, validate, archive under the version id and, with
     a platform, deploy as the published version of the slot's workflow. Returns (workflow, build record,
     deployment record or None) and raises what a stage raises.
 
     `platform` is a function that returns the Freya client; it is called only when the workflow is ready, so a
-    build that fails before never loads it. The files at the top of the slot's folder become those of this build."""
-    if leaks(spec):
-        raise SpecError(['credential leak in the spec at ' + leak for leak in leaks(spec)])
+    build that fails before never loads it. The files at the top of the slot's folder become those of this build.
+    `stage` is as for build_workflow."""
+    stage = stage or unwatched
+    with stage('static', 'credential check of the spec'):
+        if leaks(spec):
+            raise SpecError(['credential leak in the spec at ' + leak for leak in leaks(spec)])
     trace('spec written: %s' % files.write_json(store.SPEC, spec))
-    workflow, report = build_workflow(spec, document, best_effort)
+    workflow, report = build_workflow(spec, document, best_effort, stage)
     workflow_path = files.write_json(store.WORKFLOW, workflow)
     for warning in report['warnings']:
         trace('warning: ' + warning)
@@ -73,7 +94,7 @@ def release(files, slot, spec, document, source, trace, best_effort=False, platf
     trace('version %s archived: %s' % (built['version_id'], files.archive(built['version_id'], spec, workflow, built)))
     if platform is None:
         return workflow, built, None
-    record = deployment.deploy(platform(), slot, workflow, files.path(store.EXPORT), trace, registry)
+    record = deployment.deploy(platform(), slot, workflow, files.path(store.EXPORT), trace, registry, stage)
     files.write_json(store.DEPLOYMENT, record)
     files.keep(built['version_id'], store.EXPORT)
     if record.get('history'):

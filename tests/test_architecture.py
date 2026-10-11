@@ -28,6 +28,8 @@ ALLOWED = {
     'builder.compiler.compiler': {'builder.runtime.runtime', 'builder.spec.models'},
     'builder.extraction.claude': {'builder.config.settings', 'builder.spec.models'},
     'builder.extraction.spend': set(),
+    # The audit of whether a spec carries the rules of its documents: one more question to the model, checked by code.
+    'builder.extraction.coverage': {'builder.extraction.claude', 'builder.extraction', 'builder.spec.models', 'builder.spec'},
     'builder.tracing.trace': {'builder.config.settings'},
     'builder.tracing.runlog': {'builder.config.settings'},
     'builder.freya.versioning': {'builder.config.settings'},
@@ -37,7 +39,7 @@ ALLOWED = {
     # The whole builder in one run, and the script that starts it: brief in, verified agent, export and trace out.
     'builder.build': {'builder.run'},
     'builder.run': {'builder.pipeline', 'builder', 'builder.artifacts.store', 'builder.artifacts', 'builder.config.settings', 'builder.config', 'builder.extraction.claude',
-                    'builder.extraction.spend', 'builder.extraction', 'builder.freya.client', 'builder.freya.deployment', 'builder.freya.versioning', 'builder.freya',
+                    'builder.extraction.coverage', 'builder.extraction.spend', 'builder.extraction', 'builder.freya.client', 'builder.freya.deployment', 'builder.freya.versioning', 'builder.freya',
                     'builder.optimization.loop', 'builder.optimization.policy', 'builder.optimization', 'builder.spec.models', 'builder.spec.openapi', 'builder.spec',
                     'builder.tracing.runlog', 'builder.tracing', 'builder.validation.spec', 'builder.validation'},
     # The optimization run is a product feature: it uses the builder's own machinery and is handed its evaluation.

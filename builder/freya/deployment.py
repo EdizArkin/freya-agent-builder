@@ -13,6 +13,8 @@ There is no approval step. The caller's --deploy flag (or --live of an optimizat
 a candidate does not replace the incumbent (builder/optimization/loop.py).
 `departures` compares what the platform stores with what was sent, after the fact.
 """
+import contextlib
+
 from builder.freya import versioning
 
 
@@ -44,16 +46,23 @@ def departures(sent, stored, path='$'):
     return changed, added
 
 
-def deploy(freya, slot, workflow, export_path, trace, registry=versioning.REGISTRY):
-    """Dry-run, save and publish, export. Returns the deployment record."""
-    freya.validate_workflow(slot + ' dry run', workflow)
+def deploy(freya, slot, workflow, export_path, trace, registry=versioning.REGISTRY, stage=None):
+    """Dry-run, save and publish, export. Returns the deployment record.
+
+    `stage(group, check)` is a context manager around each step, for a caller that keeps evidence of what was
+    done. A save that does not come back is marked `unsure`: the platform may have stored it or not."""
+    stage = stage or (lambda group, check, **more: contextlib.nullcontext())
+    with stage('platform', 'dry run'):
+        freya.validate_workflow(slot + ' dry run', workflow)
     trace('freya: dry-run validation accepted the workflow')
     created = versioning.known(slot, registry) is None
-    saved = freya.save_workflow(slot, workflow, state_file=str(registry))
+    with stage('platform', 'publication', unsure=True):
+        saved = freya.save_workflow(slot, workflow, state_file=str(registry))
     trace('freya: saved and published workflow %s | agent %s | version %s | %s' % (
         saved['workflow_id'], saved['agent_id'], saved.get('version', 1),
         'new workflow created' if created else 'existing workflow updated'))
-    freya.export_workflow(saved['workflow_id'], str(export_path))
+    with stage('platform', 'export read from the platform'):
+        freya.export_workflow(saved['workflow_id'], str(export_path))
     trace('freya: exported %s' % export_path)
     record = versioning.deployment_record(slot, saved, workflow, created)
     state = platform_versions(freya, saved['workflow_id'])

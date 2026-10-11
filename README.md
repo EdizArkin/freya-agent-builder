@@ -61,13 +61,42 @@ python3 builder/build.py briefs/hidden-1.md briefs/hidden-1.openapi.json --expor
 | `--deadline-minutes N`, `--reserve-minutes N` | The whole run, and what is kept at its end for the read-back, the export and the trace. Defaults 25 and 4; the event allows 30 minutes per brief |
 | `--repeat N` | Test the final version N times in all |
 | `--strict` | Fail when the extractor reports policy it could not express. By default the agent is built and the trace names that policy under `NOT ENFORCED` |
+| `--max-model-calls N`, `--model-call-seconds N` | Model calls the run may start, and how long it waits for one. Defaults: 4 calls without `--suite` (no limit with one; 0 is no limit), 240 seconds |
+| `--coverage block\|report\|off` | The audit of whether the spec carries the mandatory rules of the brief. Default `report` without `--suite`, `off` with one |
 | `--plan` | Print what the run would do and call nothing |
 
-A brief without test customers (a hidden brief) is built, deployed, verified and exported; nothing is
-tested and the trace says so. The run ends `success` only when the published version was read back
-from Freya, tied to a build, and that build's export was checked against its workflow. Otherwise it
-ends `incomplete` or `failed` and hands out no export. Ctrl-C, or a file named `STOP` in
+A brief without test customers (a hidden brief) is built, deployed, verified and exported; no
+customer is simulated and the trace says so. The run ends `success` only when the published version
+was read back from Freya, tied to a build, and that build's export was checked against its workflow.
+Otherwise it ends `incomplete` or `failed` and hands out no export. Ctrl-C, or a file named `STOP` in
 `outputs/<slot>/`, ends a run through its rollback.
+
+What such a run does in place of tests:
+
+- **Time and calls.** No model call is started in the minutes kept for the end, and none with less
+  than 45 seconds left. The run waits for one call at most `--model-call-seconds`; a call that does
+  not come back is left behind and the run goes on. The request itself is not interrupted by that:
+  only the SDK's timeout ends it, and it may still be billed.
+- **One fallback.** If the extraction gives no valid spec (a call fails or times out, or the spec
+  stays invalid after its repairs), one more extraction is made with the `single` strategy, when at
+  least 120 seconds and a call are left. Nothing is published from a spec that fails a check, and a
+  version that was published before stays published.
+- **Coverage audit.** One model call lists the mandatory rules of the brief (and of every `--amend`
+  document, in order) and says where the spec carries each. Code checks every quotation: a rule is
+  `COVERED` only if its sentence is in the brief and the passage is in the spec, word for word;
+  `OVERRIDDEN` only if the replacing sentence stands later; otherwise `MISSING`, `AMBIGUOUS` or
+  `UNVERIFIED`. For reported omissions one revision of the spec is tried. An omission that is firm
+  (reported as missing, its sentence in the brief, and a figure of that sentence nowhere in the spec)
+  is reported as such and the run publishes all the same; with `--coverage block` it stops the run
+  before anything is published. The list of rules is the model's reading: a rule it did not list is
+  not seen.
+- **One version.** Nothing is proposed or replaced without test customers. `--new` makes a run
+  refuse a slot that already has a workflow.
+- **Evidence.** The trace (`evidence | ...`) and the report say what was checked, by kind:
+  deterministic static checks, document audits by a model, validation by the platform, simulated
+  customers. Each check is `PASS`, `FAIL`, `SKIP`, `NOT TESTED` or `UNVERIFIED`. The SHA-256 of each
+  brief, of the tool API, of the spec and of the workflow are in the trace (`provenance | ...`) and
+  in the build record. No score is made from these, and a static check is no test of a call.
 
 The two demonstration runs are in [demo/README.md](demo/README.md).
 
@@ -198,6 +227,7 @@ are reported as skipped. The suite takes several minutes.
 | `test_m18_confirmation.py`, `test_m18_versions.py` | The read-back and confirmation gate; platform versions, history and rollback |
 | `test_m18_loop.py`, `test_recovery.py` | The optimization run: decision, limits, diagnosis, candidate, step, run, command, the harness evaluation; pending simulations, recovery, restoring a slot |
 | `test_m19_run.py` | The one command from a brief to a verified export; the `.log` trace and its redaction; the bounded wait and the stop file; credits between batches; where the starter kit is |
+| `test_hidden_brief.py` | A brief without test customers: the limits on model calls and on waiting, the one fallback extraction, the coverage audit, what it reports and what `--coverage block` stops, the four kinds of evidence, the input hashes |
 
 `benchmarks/harness/fixture_spec.py` is a hand-written spec for the kit's Brief A and B. It is test data,
 never an input of a real build. `benchmarks/harness/freya_sim.py` stands in for the Freya engine and the

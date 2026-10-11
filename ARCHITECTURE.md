@@ -23,6 +23,7 @@ builder/
   pipeline.py              the stages of a build, in order; `release` builds and deploys one spec
   config/settings.py       paths, defaults, key loading, which variables are secrets
   extraction/claude.py     prompt, Claude call, repair loop
+  extraction/coverage.py   does the spec carry the mandatory rules of its documents? One model call, checked by code
   extraction/spend.py      paid model calls behind a spending limit
   spec/models.py           agent-spec/1 vocabulary and expression walking
   spec/openapi.py          the bank tool API: operations, fields, $ref
@@ -99,6 +100,7 @@ this table, and that no module of the builder imports `benchmarks` or `tests`.
 | `validation/workflow` | `validation/safety` |
 | `compiler/compiler` | `spec/models`, `runtime/runtime` (located as a file, embedded as text) |
 | `extraction/claude` | `spec/models`, `config/settings` |
+| `extraction/coverage` | `extraction/claude`, `spec/models` |
 | `tracing/trace`, `freya/versioning` | `config/settings` |
 | `freya/deployment` | `freya/versioning` |
 | `optimization/diagnosis` | `optimization/policy` |
@@ -389,6 +391,31 @@ adding a note for each product without a promise before closing.
 
 The offline tests play the phone model's tool calls by hand. They say nothing about what
 the phone model will actually do.
+
+### What a run reports, and under which name
+
+`builder/run.py` keeps one row per check it made (`Evidence`) and writes each to the trace as
+`evidence | kind | check | status | detail`. There are four kinds, and a row never moves between them:
+
+| Kind | Checks | What a PASS says |
+| --- | --- | --- |
+| Deterministic static checks | credential check of the spec and of the workflow, spec validation, compilation, workflow validation, tool-contract validation (`pipeline.release`, `pipeline.build_workflow`) | The spec is executable against the tool API and the workflow is well-formed. Nothing about a call |
+| LLM-based document audits | the audit of the `audit` strategy (`extraction/claude.py`), the coverage audit (`extraction/coverage.py`), the rules the extractor reported as not expressible | A model read the documents and code confirmed its quotations. A reading, not a proof |
+| Platform validation | dry run, publication, export (`freya/deployment.py`), read-back of the published version, export checked against the build (`run.py`) | Freya accepted, stored and publishes the workflow that was built |
+| Live behavioral simulation | the simulated customers of the suites that were named | Those cases passed, once each. Without a suite this row is `NOT TESTED` |
+
+Statuses: `PASS` and `FAIL` for a check that was made, `SKIP` for one left out (with the reason),
+`UNVERIFIED` for one whose result cannot be relied on (a reply that could not be read, a revision that
+was not audited again, a save that did not answer), `NOT TESTED` for one the run never came to. No
+number is computed from the rows.
+
+A brief without test customers has no fourth kind, so the run is bounded and conservative instead
+(`run.py`): at most four model calls, none started in the minutes kept for the end, each waited for
+at most `--model-call-seconds` (`within` leaves a call behind, it cannot interrupt it); one fallback
+extraction with `single` when the first gives no valid spec; one published version and no candidate.
+The coverage audit reports and the run publishes; with `--coverage block` it stops a run before
+publication, and only for an omission that is firm: the model reports the rule as missing, its sentence is in the documents word for word, and a figure or code
+word of that sentence occurs nowhere in the spec. A figure that does occur is never taken as coverage.
 
 ## Deployment and versions
 

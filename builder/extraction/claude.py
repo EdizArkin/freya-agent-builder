@@ -228,15 +228,21 @@ def parse_json(text):
 
 
 class AnthropicClient:
-    """One streamed Messages call per turn. Credentials come from the environment, never from arguments."""
+    """One streamed Messages call per turn. Credentials come from the environment, never from arguments.
 
-    def __init__(self, model=None, max_tokens=32000, effort='high', fallback=True):
+    `timeout` is what the SDK is given for one attempt, in seconds, and `retries` how often it may try again by
+    itself. A run with a deadline sets both before each call (builder/run.py). The SDK's timeout ends a
+    connection that stays silent; it is no limit on a reply that keeps arriving, so a caller that must go on at
+    a certain time has to stop waiting by itself."""
+
+    def __init__(self, model=None, max_tokens=32000, effort='high', fallback=True, timeout=900.0, retries=2):
         self.model = settings.extraction_model(model)
         self.max_tokens, self.effort, self.fallback = max_tokens, effort, fallback
+        self.timeout, self.retries = timeout, retries
 
     def complete(self, system, messages):
         import anthropic
-        client = anthropic.Anthropic(timeout=900.0, max_retries=2)
+        client = anthropic.Anthropic(timeout=max(1.0, float(self.timeout)), max_retries=int(self.retries))
         kwargs = dict(model=self.model, max_tokens=self.max_tokens, system=system, messages=messages,
                       thinking={'type': 'adaptive'}, output_config={'effort': self.effort})
         try:
@@ -344,16 +350,31 @@ def squeeze(text):
     return re.sub(r'\s+', ' ', str(text)).strip().casefold()
 
 
-def parse_list(text):
-    """The JSON array in a reply, or [] when there is none: a check that cannot be read finds nothing."""
+def read_list(text):
+    """The objects of the JSON array in a reply, or None when the reply has no array that can be read."""
     start, end = text.find('['), text.rfind(']')
     if start < 0 or end <= start:
-        return []
+        return None
     try:
         found = json.loads(text[start:end + 1])
     except ValueError:
-        return []
-    return [f for f in found if isinstance(f, dict)] if isinstance(found, list) else []
+        return None
+    return [f for f in found if isinstance(f, dict)] if isinstance(found, list) else None
+
+
+def parse_list(text):
+    """The JSON array in a reply, or [] when there is none: a check that cannot be read finds nothing."""
+    return read_list(text) or []
+
+
+# What a check of a spec against its documents came to. A check that was not made, or whose reply could not be
+# read, is never reported as passed.
+PASS, FAIL, SKIP, UNVERIFIED = 'PASS', 'FAIL', 'SKIP', 'UNVERIFIED'
+
+
+def _note(outcome, status, detail):
+    if outcome is not None:
+        outcome.update(status=status, detail=detail)
 
 
 def quoted(findings, briefs, openapi_text):
@@ -383,13 +404,19 @@ def revise(spec, findings, briefs, openapi_text, client, check, trace, system, u
         return spec
 
 
-def run(strategy, briefs, openapi_text, client, check, trace=lambda line: None, digest=None, system=None, usage=None, repairs=2):
+def run(strategy, briefs, openapi_text, client, check, trace=lambda line: None, digest=None, system=None, usage=None, repairs=2, outcome=None):
     """Extract with one of STRATEGIES. `digest(spec)` or `digest(spec, other)` returns what a spec makes the agent do,
-    as {item: value}; the audit and the comparison work on it, never on the JSON as written."""
+    as {item: value}; the audit and the comparison work on it, never on the JSON as written.
+
+    `outcome`, a dict, is filled with what the audit of the `audit` strategy came to: `status` and `detail`. A
+    caller that passes it also gets the valid spec of the extraction when the audit or its revision cannot be
+    made (the call fails, or is refused for want of time or of calls), with the outcome saying so. Without it
+    such a failure is raised, as before."""
     if strategy not in STRATEGIES:
         raise ValueError('unknown extraction strategy %r; one of %s' % (strategy, ', '.join(STRATEGIES)))
     first = extract(briefs, openapi_text, client, check, trace, repairs, system, usage)
     if strategy == 'single':
+        _note(outcome, SKIP, 'the single strategy makes no audit')
         return first
     if digest is None:
         raise ValueError('the %s strategy needs a digest of the spec' % strategy)
@@ -397,14 +424,38 @@ def run(strategy, briefs, openapi_text, client, check, trace=lambda line: None, 
 
     if strategy == 'audit':
         content = documents + '\n\n<what_the_specification_does>\n' + render(digest(first)) + '\n</what_the_specification_does>'
-        text, _ = ask(client, AUDIT, [{'role': 'user', 'content': content}], 'audit the high-risk content of the spec against the documents', trace, usage)
-        findings = quoted(parse_list(text), briefs, openapi_text)
+        try:
+            text, _ = ask(client, AUDIT, [{'role': 'user', 'content': content}], 'audit the high-risk content of the spec against the documents', trace, usage)
+        except Exception as exc:
+            if outcome is None:
+                raise
+            _note(outcome, SKIP, 'the audit call was not made or failed (%s: %s); the spec is as extracted' % (type(exc).__name__, str(exc)[:200]))
+            trace('audit: not made, the valid spec of the extraction is kept | %s: %s' % (type(exc).__name__, str(exc)[:200]))
+            return first
+        listed = read_list(text)
+        findings = quoted(listed or [], briefs, openapi_text)
         trace('audit: %d finding(s) with evidence from the documents' % len(findings))
         for f in findings:
             trace('finding: %s | %s | evidence: %s' % (f.get('item'), str(f.get('problem'))[:300], squeeze(f.get('evidence', ''))[:300]))
         if not findings:
+            if listed is None:
+                _note(outcome, UNVERIFIED, 'the reply of the audit could not be read; it found nothing and proves nothing')
+            else:
+                _note(outcome, PASS, 'no finding with evidence from the documents' + (' (%d without evidence ignored)' % len(listed) if listed else ''))
             return first
-        return revise(first, findings, briefs, openapi_text, client, check, trace, system, usage, 'revise the spec after the audit')
+        try:
+            revised = revise(first, findings, briefs, openapi_text, client, check, trace, system, usage, 'revise the spec after the audit')
+        except Exception as exc:
+            if outcome is None:
+                raise
+            _note(outcome, FAIL, '%d finding(s) with evidence; the revision was not made (%s: %s); the spec is as extracted' % (len(findings), type(exc).__name__, str(exc)[:200]))
+            trace('audit: the revision was not made, the valid spec of the extraction is kept | %s: %s' % (type(exc).__name__, str(exc)[:200]))
+            return first
+        if revised is first:
+            _note(outcome, FAIL, '%d finding(s) with evidence; the revision was refused by validation; the spec is as extracted' % len(findings))
+        else:
+            _note(outcome, UNVERIFIED, '%d finding(s) with evidence; the spec was revised and validated; the revision was not audited again' % len(findings))
+        return revised
 
     second = extract(briefs, openapi_text, client, check, trace, repairs, system, usage)
     a, b = digest(first, second), digest(second, first)
