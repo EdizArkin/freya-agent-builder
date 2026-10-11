@@ -16,6 +16,7 @@ DEPLOYMENT = 'deployment.json'           # which Freya workflow this build was s
 EXPORT = 'exported.workflow.json'        # the workflow as stored on Freya; the file to submit
 EVALUATION = 'evaluation.json'           # practice-customer results
 VERSIONS = 'versions'                    # one folder per version id; immutable
+HISTORY = 'history.jsonl'                # one line per deploy or rollback of the slot; only ever appended to
 
 
 def build_id(slot):
@@ -35,6 +36,12 @@ class BuildStore:
         path = self.path(name)
         path.write_text(json.dumps(data, indent=1, ensure_ascii=False), encoding='utf-8')
         return path
+
+    def append(self, name, row):
+        """Add one line to a file that is never rewritten."""
+        with self.path(name).open('a', encoding='utf-8') as out:
+            out.write(json.dumps(row, ensure_ascii=False) + '\n')
+        return self.path(name)
 
     def version(self, version_id):
         return self.dir / VERSIONS / build_id(version_id)

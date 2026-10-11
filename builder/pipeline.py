@@ -119,6 +119,8 @@ def main(argv=None, client=None):
         if a.deploy:
             record = deployment.deploy(freya_client.load(a.kit), slot, workflow, files.path(store.EXPORT), trace)
             files.write_json(store.DEPLOYMENT, record)
+            if record.get('history'):
+                files.append(store.HISTORY, record['history'])
             if a.test:
                 cases = json.loads((Path(a.kit) / 'public-test-set.json').read_text(encoding='utf-8'))
                 simulation.run_practice_cases(freya_client.load_runner(a.kit), record['agent_id'], a.test, cases, files.path(store.EVALUATION), trace,

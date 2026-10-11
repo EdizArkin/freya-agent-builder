@@ -552,7 +552,7 @@ class Versions(unittest.TestCase):
         self.assertNotEqual(versioning.version_id({'a': 1}), versioning.version_id({'a': 2}))
         self.assertRegex(versioning.version_id({}), r'^wf-[0-9a-f]{12}$')
         record = versioning.build_record('slot', {'unsupported': ['a rule']}, {'nodes': {}}, {'kind': 'extraction', 'strategy': 'audit', 'prompt_version': 'v2'})
-        self.assertEqual(sorted(record), ['built_at', 'local_workflow_sha256', 'slot', 'source', 'spec_sha256', 'unsupported', 'version_id', 'workflow_bytes'])
+        self.assertEqual(sorted(record), ['builder_commit', 'built_at', 'local_workflow_sha256', 'slot', 'source', 'spec_sha256', 'unsupported', 'version_id', 'workflow_bytes'])
         self.assertEqual((record['version_id'], record['unsupported'], record['source']['prompt_version']), (versioning.version_id({'nodes': {}}), ['a rule'], 'v2'))
 
     def test_an_archived_version_is_never_rewritten(self):

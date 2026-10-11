@@ -401,7 +401,10 @@ The files at the top of the folder belong to the latest build of the slot and ar
 next one. A version id (`wf-` and twelve hex digits) is the hash of the compiled workflow, so the
 same spec compiled by the same builder has the same id everywhere. `versions/<version-id>/` is
 never rewritten: it is what a later build is compared with, and what can be deployed again
-(`--spec outputs/<slot>/versions/<version-id>/spec.json`). Nothing in the builder rolls back.
+(`--spec outputs/<slot>/versions/<version-id>/spec.json`). Since M18 phase 3 a deploy also records what the
+platform published (its version number and id) with the builder's commit, in `outputs/<slot>/history.jsonl`,
+and `freya/deployment.rollback` publishes an earlier platform version of the same workflow again. No command
+calls it yet. See `benchmarks/reports/m18-phase3-versioning.md`.
 
 ## Verified and not verified
 

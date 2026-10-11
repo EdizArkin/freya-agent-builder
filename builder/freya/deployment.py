@@ -8,7 +8,8 @@ deploy() does, in this order:
                version. The kit offers no save without publish.
 3. export    - reads the stored workflow back into a local file.
 
-There is no approval step and no rollback. The caller's --deploy flag is the only gate.
+There is no approval step. The caller's --deploy flag is the only gate. `rollback` publishes an earlier
+platform version of the same workflow again; no command calls it yet.
 `departures` compares what the platform stores with what was sent, after the fact.
 """
 from builder.freya import versioning
@@ -53,4 +54,44 @@ def deploy(freya, slot, workflow, export_path, trace, registry=versioning.REGIST
         'new workflow created' if created else 'existing workflow updated'))
     freya.export_workflow(saved['workflow_id'], str(export_path))
     trace('freya: exported %s' % export_path)
-    return versioning.deployment_record(slot, saved, workflow, created)
+    record = versioning.deployment_record(slot, saved, workflow, created)
+    state = platform_versions(freya, saved['workflow_id'])
+    if state:
+        # The platform's own account of what is published now, kept with the deploy and in the slot's history.
+        record['platform'] = state
+        record['history'] = versioning.history_row('created' if created else 'updated', slot, saved['workflow_id'], state,
+                                                   record['version_id'], record['local_workflow_sha256'])
+        trace('freya: platform version %s is published (%s of %s)' % ((state['published'] or {}).get('number'), (state['published'] or {}).get('id'), state['count']))
+    return record
+
+
+def platform_versions(freya, workflow_id):
+    """The platform versions of a workflow, or None with a client that cannot list them."""
+    if not hasattr(freya, 'api') or not hasattr(freya, 'workspace_id'):
+        return None
+    listed = freya.api('GET', '/api/v2/versions/workflow/' + workflow_id, workspaceId=freya.workspace_id())
+    return versioning.platform_state(listed.get('versions') if isinstance(listed, dict) else listed)
+
+
+def rollback(freya, slot, workflow_id, to_number, trace, reason=''):
+    """Make an earlier platform version of the same workflow the published one. Nothing is deleted and no version
+    is made: the newer versions stay in the list. Returns the history line of the rollback.
+
+    The platform runs calls on the published version. The definition that a read of the workflow returns stays
+    the one that was saved last; it is not what runs."""
+    listed = freya.api('GET', '/api/v2/versions/workflow/' + workflow_id, workspaceId=freya.workspace_id())
+    versions = listed.get('versions') if isinstance(listed, dict) else listed
+    before = versioning.platform_state(versions)
+    target = [v for v in versions or [] if v.get('versionNumber') == to_number]
+    if not target:
+        raise ValueError('%s has no platform version %s' % (slot, to_number))
+    if (before['published'] or {}).get('number') == to_number:
+        raise ValueError('platform version %s of %s is already the published one' % (to_number, slot))
+    freya.api('POST', '/api/v2/versions/workflow/%s/publish' % workflow_id, {'versionId': target[0]['id']})
+    after = platform_versions(freya, workflow_id)
+    if (after['published'] or {}).get('number') != to_number:
+        raise RuntimeError('the platform did not publish version %s of %s' % (to_number, slot))
+    trace('freya: rolled back %s from platform version %s to %s' % (slot, (before['published'] or {}).get('number'), to_number))
+    return versioning.history_row('rollback', slot, workflow_id, after, provenance={
+        'from_platform_version': (before['published'] or {}).get('number'), 'from_platform_version_id': (before['published'] or {}).get('id'),
+        'to_platform_version': to_number, 'to_platform_version_id': target[0]['id'], 'reason': reason})
