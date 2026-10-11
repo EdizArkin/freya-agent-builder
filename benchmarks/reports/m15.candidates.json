@@ -1,0 +1,22 @@
+{
+ "frozen_on": "2026-10-11",
+ "frozen_before": "any extraction of package f or g",
+ "model": "claude-sonnet-5-5",
+ "configuration": {"effort": "high", "max_tokens": 32000, "thinking": "adaptive", "server_side_fallback": false, "repair_turns": 2, "repeat": 1},
+ "prompt": "the extraction prompt as committed, no replaced sections (digest 083c66052cdf131b)",
+ "candidates": [
+  {"name": "single", "strategy": "single", "repeat": 1},
+  {"name": "audit", "strategy": "audit", "repeat": 1},
+  {"name": "double", "strategy": "double", "repeat": 1}
+ ],
+ "selection_rule": [
+  "Applied once, to the one batch on package f. No candidate, prompt, schema or code is changed in response to f.",
+  "1. A candidate without a valid spec loses to one with a valid spec.",
+  "2. Higher critical-rule recall wins.",
+  "3. Then the higher extraction score.",
+  "4. Then the lower incorrect-policy rate.",
+  "5. Candidates equal on 1 to 4 are of equivalent quality: the lower cost wins, then the lower latency.",
+  "The decision is written to m15.selection.json and committed before package g is opened."
+ ],
+ "final_rule": "Package g is run once, on the selected candidate only. Nothing is decided from g."
+}
