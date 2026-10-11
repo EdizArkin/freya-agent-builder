@@ -304,6 +304,12 @@ temp/
 # exported and the trace of that run. Nothing else under these folders is published.
 !/submission/final-r2.workflow.json
 !/traces/final-r2.log
+# The submission itself, under the names submission.json gives: byte copies of the two files above, and submission.json.
+!/submission/final.workflow.json
+!/submission/final.log
+!/submission/submission.json
+# The first build of the final case, kept locally as a fallback. Never published.
+/artifacts/
 
 # Freya workflow ids of deployed agents (written by --deploy)
 .freya-agents.json
