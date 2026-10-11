@@ -178,7 +178,7 @@ def evidence(document, texts):
     of the services under it: a path whose last part stands in a document as a name of its own, and whose part
     before it stands in a document as part of an address, is found that way, and its row says so. A method is
     looked for on a line that also names the path or its last fixed part, and failing that anywhere in a
-    document that states the path."""
+    document that names the path or the service."""
     lines = [(name, number, line) for name, text in texts for number, line in enumerate(str(text).splitlines(), 1)]
 
     def find(pattern, flags=0, also=None):
@@ -215,8 +215,11 @@ def evidence(document, texts):
             stated = need(title, 'path', path, stated)
             near = find(word(method), re.I, shape) or (find(word(method), re.I, re.escape(fixed[-1])) if fixed else None)
             if not near and stated:
+                # Any document that names the path or the service, not only the first one that does: a service is
+                # often mentioned in passing before the document that describes it.
+                holders = {name for name, _, line in lines if re.search(shape, line) or (fixed and re.search(word(fixed[-1]), line))}
                 near = next(({'document': name, 'line': number, 'text': line.strip()[:200]} for name, number, line in lines
-                             if name == stated['document'] and re.search(word(method), line, re.I)), None)
+                             if name in holders and re.search(word(method), line, re.I)), None)
             need(title, 'method', method.upper(), near)
             requests = set()
             for param in (op.get('parameters') or []) + ((item or {}).get('parameters') or []):

@@ -284,6 +284,8 @@ class RequestsWithObjectsInside(unittest.TestCase):
         self.assertEqual(problems, [])
         path = next(row for row in rows if row['what'] == 'path' and row['value'] == '/shelf.reserve')
         self.assertTrue(path['text'].startswith('(the last part as a name of its own, the part before it as part of an address) Services: `shelf.lookup`'))
+        earlier = [('a-notes.md', 'The desk also offers shelf.reserve, see the contract.'), ('contract.md', WRAPPED_TEXT)]
+        self.assertEqual(evidence(wrapped(), earlier)[1], [], 'a service that an earlier document only mentions has its method in the document that describes it')
         other = wrapped()
         other['paths']['/shelf.cancel'] = other['paths']['/shelf.reserve']
         self.assertIn("POST /shelf.cancel: the path '/shelf.cancel' stands in no document", evidence(other, [('contract.md', WRAPPED_TEXT)])[1])

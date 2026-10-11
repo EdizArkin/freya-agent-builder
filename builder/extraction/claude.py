@@ -421,7 +421,7 @@ def extract(briefs, openapi_text, client, check, trace=lambda line: None, repair
     """Return a spec that `check` accepts. `check(spec)` raises SpecError with the problems it finds."""
     messages = [{'role': 'user', 'content': user_message(briefs, openapi_text, system)}]
     for attempt in range(repairs + 1):
-        purpose = 'extract agent-spec/1 from the brief' if attempt == 0 else 'repair the spec after compiler errors (round %d)' % attempt
+        purpose = 'extract %s from the brief' % (GENERAL if system == GENERAL_PROMPT else 'agent-spec/1') if attempt == 0 else 'repair the spec after compiler errors (round %d)' % attempt
         text, content = ask(client, system or SYSTEM, messages, purpose, trace, usage)
         try:
             candidate = parse_json(text)

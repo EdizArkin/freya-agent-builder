@@ -295,9 +295,11 @@ temp/
 !/demo/*/*/.gitkeep
 # A brief of the kit, copied or combined for a demo run, is kit material
 /demo/*/combined-brief.md
-# The traces of the hidden briefs are part of the submission (the rule for *.log above would hide them)
-!/traces/
-!/traces/*.log
+# The trace of a real run and the workflow it exported are handed in by e-mail. They are written from the case
+# documents (rule text, tool addresses, what the documents disagree on) and stay out of the repository.
+/traces/
+/submission/*
+!/submission/.gitkeep
 
 # Freya workflow ids of deployed agents (written by --deploy)
 .freya-agents.json
