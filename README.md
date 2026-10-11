@@ -25,8 +25,9 @@ python -m venv .venv
 .venv/Scripts/pip install -r requirements.txt        # the anthropic SDK; gepa only for one experiment script
 ```
 
-Put the official starter kit, unchanged, in `freya_starter_kit/` at the repository root (or name its
-folder with `--kit`). It is not part of this repository: the kit states no terms for passing it on, so
+Get the official starter kit from the event (the hackathon page, Data tab, "Download the kit"), unzip it,
+and put it, unchanged, in `freya_starter_kit/` at the repository root (or name its folder with `--kit`).
+Copy its `env.example` to `env.sh` there only if you keep keys in the kit; this builder reads `.env.sh`. It is not part of this repository: the kit states no terms for passing it on, so
 it is not committed here. The builder uses its `freya.py` to deploy, and the customer text and ledger
 scoring of its `tools/run_cases.py` to test. Without the kit no command can reach Freya. Put keys in
 `.env.sh` at the repo root, using the names in [.env.example](.env.example): `FREYA_API_KEY`,

@@ -244,8 +244,10 @@ session.json
 
 # Local Freya material that is not the starter kit (exports, experiments)
 local_freya/
-# The official starter kit is put in freya_starter_kit/ by whoever runs the builder. Whether it may be committed is
-# for its owner to say; these lines make sure that what a run leaves in it never is: keys, persona ids, result logs.
+# The official starter kit is put in freya_starter_kit/ by whoever runs the builder. It states no terms for passing it
+# on, so the whole folder stays out of the repository. The lines below it name what must never be committed even if
+# that changes: keys, persona ids, result logs.
+freya_starter_kit/
 freya_starter_kit/env.sh
 freya_starter_kit/.personas.json
 freya_starter_kit/results/
@@ -291,6 +293,8 @@ temp/
 /demo/*/workflows/*
 /demo/*/results/*
 !/demo/*/*/.gitkeep
+# A brief of the kit, copied or combined for a demo run, is kit material
+/demo/*/combined-brief.md
 # The traces of the hidden briefs are part of the submission (the rule for *.log above would hide them)
 !/traces/
 !/traces/*.log

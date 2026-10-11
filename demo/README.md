@@ -13,7 +13,7 @@ root, in a terminal of your own (Ctrl-C then ends a run through its rollback), w
 
 ```text
 python builder/build.py freya_starter_kit/briefs/brief-a.md freya_starter_kit/tools/openapi.json \
-    --slot demo-brief-a --new --suite public:A \
+    --slot demo-brief-a --new --suite public:A --safety-case PUB-02 --safety-case PUB-03 \
     --max-candidates 3 --max-credits 40 --max-dollars 5 --deadline-minutes 90 --reserve-minutes 5 \
     --trace demo/brief-a/traces/demo-brief-a.log --export demo/brief-a/workflows/demo-brief-a.workflow.json --results demo/brief-a/results
 ```
@@ -24,7 +24,7 @@ Target: 10 of 10. That is a target; the report says what was observed.
 
 ```text
 python builder/build.py freya_starter_kit/briefs/brief-a.md freya_starter_kit/tools/openapi.json --amend freya_starter_kit/briefs/brief-b.md \
-    --slot demo-brief-a-plus-b --new --suite public:B --suite public:A \
+    --slot demo-brief-a-plus-b --new --suite public:B --suite public:A --safety-case PUB-13 --safety-case PUB-02 --safety-case PUB-03 \
     --max-candidates 3 --max-credits 55 --max-dollars 5 --deadline-minutes 120 --reserve-minutes 5 \
     --trace demo/brief-a-plus-b/traces/demo-brief-a-plus-b.log --export demo/brief-a-plus-b/workflows/demo-brief-a-plus-b.workflow.json --results demo/brief-a-plus-b/results
 ```
@@ -39,6 +39,7 @@ an amendment of the first; they are not pasted together.
 | --- | --- |
 | `--new` | The run must create its own workflow. It stops if the slot already has one; use another `--slot` for another run |
 | `--suite` | The practice customers of the kit for that brief. Without a suite nothing is tested |
+| `--safety-case` | Needed with the kit's practice customers: they name no safety case, and without one the run tests nothing and proposes nothing. PUB-02 (a relative answers) and PUB-03 (three wrong answers) for Brief A; PUB-13 (a promise may not pass a product's deadline) for Brief B |
 | `--max-credits` | The projection is 1.25 credits per simulated call: 12.5 for Brief A's ten, 16.25 for thirteen. The first test and one candidate must fit; what a batch really cost is counted by the balance |
 | `--max-candidates`, `--max-dollars` | How many candidates may be deployed, and what the builder's model may cost |
 | `--deadline-minutes` | A demo may take longer than the 30 minutes a hidden brief gets. One test of ten customers can take up to 19 minutes |
@@ -56,7 +57,15 @@ an amendment of the first; they are not pasted together.
 
 These files are ignored by git until they are added on purpose (`git add -f`).
 
+## The briefs
+
+The briefs are the kit's own files, read from `freya_starter_kit/briefs/`. A single file that holds both, for a
+command that takes one brief, can be put at `demo/brief-a-plus-b/combined-brief.md`: Brief A, then Brief B, each
+word for word. It is kit material and is not committed.
+
 ## Status
 
-No demo has been run. The commands above are verified offline, with a fake platform, replayed model replies and
-prepared results (`tests/test_m19_run.py`).
+The commands are verified offline, with a fake platform, replayed model replies and prepared results
+(`tests/test_m19_run.py`). On 2026-10-11 both tracks were also run live from fresh workflows. What each run
+observed is in its trace and its report under `traces/` and `results/`; those files are not committed, and
+nothing here states their results.
