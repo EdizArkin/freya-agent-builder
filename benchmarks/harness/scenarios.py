@@ -1,7 +1,7 @@
 """Benchmark definitions: loading, checking, and turning one scenario into a simulated call.
 
 Nothing here talks to the network. The engine and the bank are the offline stand-ins of
-tests/freya_sim.py, which copy what live calls showed on 2026-10-10. A pass in this harness
+benchmarks/harness/freya_sim.py, which copy what live calls showed on 2026-10-10. A pass in this harness
 says what the generated runtime does with a given sequence of tool calls. It says nothing
 about what a phone model will say or which tool calls it will choose.
 """
@@ -17,10 +17,11 @@ ROOT = BENCH.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from builder.config import settings  # noqa: E402
 from builder.pipeline import build_workflow  # noqa: E402
-from tests.freya_sim import Bank, Sim  # noqa: E402
+from benchmarks.harness.freya_sim import Bank, Sim  # noqa: E402
 
-KIT = ROOT / 'local_freya' / 'starter_kit'
+KIT = settings.KIT
 EDGE_CASES = BENCH / 'edge_cases'
 SYNTHETIC = BENCH / 'synthetic_briefs'
 EXPECTED = BENCH / 'expected' / 'ledger_assertions.yaml'
@@ -29,7 +30,11 @@ MATRIX = BENCH / 'requirements' / 'coverage_matrix.md'
 TIERS = ('runtime', 'scripted', 'live_only')
 MODES = ('offline', 'live', 'both', 'specification')
 STEP_KINDS = ('call', 'together', 'faults', 'check')
-GAP_KINDS = ('defect', 'unenforced', 'schema', 'platform', 'tool_api')
+# Why a documented gap is there, in the words of the report. One table: the definitions are checked against its names.
+GAP_KINDS = {'defect': 'the builder does something wrong', 'unenforced': 'left to the phone model although code could enforce it',
+             'schema': 'agent-spec/1 cannot express the rule',
+             'platform': 'cannot be enforced from inside tool hooks on this platform',
+             'tool_api': 'the tool API has no operation that could enforce it'}
 DEFAULT_VARIABLES = {'now': '2026-10-14T11:00', 'title': 'Ms', 'first_name': 'Ada', 'last_name': 'Okafor'}
 CUSTOMER_ID = 'c_benchmark'
 
@@ -142,8 +147,8 @@ def spec_for(brief, overrides=None):
     if brief in overrides:
         return load(overrides[brief]), str(overrides[brief])
     if brief in ('A', 'B'):
-        from tests.fixture_spec import spec as fixture
-        return fixture(brief == 'B'), 'tests/fixture_spec.py (hand-written)'
+        from benchmarks.harness.fixture_spec import spec as fixture
+        return fixture(brief == 'B'), 'benchmarks/harness/fixture_spec.py (hand-written)'
     path = SYNTHETIC / ('brief-%s.spec.yaml' % brief.lower())
     return load(path), path.relative_to(ROOT).as_posix() + ' (hand-written reference)'
 
@@ -187,10 +192,11 @@ def resolve(value, products, identity=None):
 
 class Call(Sim):
     """The offline engine as the benchmark drives it. Calls of one message run side by side, each on
-    its own copy of the variables, as live calls showed; see tests/freya_sim.py for what is known
+    its own copy of the variables, as live calls showed; see benchmarks/harness/freya_sim.py for what is known
     and what is assumed about the merge."""
 
     def call(self, name, args, time_passes=True):
+        """`time_passes` is taken and not used: a frozen scenario file still carries the key from the time the runtime read a clock."""
         result = self.play(name, args)
         return result.get('data') if isinstance(result.get('data'), dict) else {}
 

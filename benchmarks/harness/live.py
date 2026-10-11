@@ -9,6 +9,7 @@
     python benchmarks/harness/live.py simulate  --slot m17-m16-v1 --scenarios benchmarks/live/m17.scenarios.json --agent m16 --live
     python benchmarks/harness/live.py simulate  --slot m17-a-v1 --public A --only PUB-06 --each --live   one scenario as a simulation of its own
     python benchmarks/harness/live.py backfill  --live                                   transcripts that could not be read when a simulation ended
+    python benchmarks/harness/live.py recover   --run M19 [--name NAME --simulation-id ID --iteration-id ID] --live   a simulation that was started and never recorded
     python benchmarks/harness/live.py summary
     python benchmarks/harness/live.py credits   --label "before the run" --live
 
@@ -19,12 +20,15 @@ across commands: every call is written to outputs/<run>/spend.json and counted b
 a selection or final package. `dry-run` asks the platform to validate a workflow and stores nothing. `simulate` starts one simulation per agent
 and suite (Regression, Safety, Robustness), named by builder.evaluation.simulation.suite_name; every scenario of
 the suite is one persona of it, with its own bank session, call, tool trace, ledger and verdict. It writes one
-record per simulation.
+record per simulation. Before a simulation is started, what is known of it is written to outputs/<run>/pending/:
+if the command does not live to see the result, `recover` lists what is pending and, given the two ids the
+platform gave the simulation, reads its verdicts, calls and bank records into an ordinary record.
 
 What is written, all under the git-ignored outputs/:
     outputs/<run>/spend.json                         every paid model call of the run
     outputs/<run>/simulations/<simulation id>.json   the whole record: transcript, tool calls, ledger, verdicts
     outputs/<run>/index.jsonl                        one line per simulation: id, name, workflow, version, result
+    outputs/<run>/pending/<name>.json                a simulation that was started and has no record yet
     outputs/<slot>/versions/<version id>/results.jsonl   the same lines, kept with the version they tested
 """
 import argparse
@@ -43,6 +47,7 @@ from builder.artifacts import store  # noqa: E402
 from builder.config import settings  # noqa: E402
 from builder.evaluation import simulation  # noqa: E402
 from builder.extraction import claude  # noqa: E402
+from builder.extraction.spend import Budget, spent  # noqa: E402,F401  (the limit of a run is the builder's; kept under these names)
 from builder.freya import client as freya_client  # noqa: E402
 from builder.freya import deployment, versioning  # noqa: E402
 
@@ -50,30 +55,6 @@ from builder.freya import deployment, versioning  # noqa: E402
 # conversation, the last two are outside the builder.
 CLASSES = ('extraction', 'schema', 'compiler', 'runtime', 'deployment', 'conversation', 'voice_platform', 'harness_or_judge')
 MUTATIONS = ('promises', 'notes', 'callbacks', 'transfers')
-
-
-class Budget(experiment.Metered):
-    """The spending limit of a run, across commands: what earlier commands spent is read before the first call
-    and every call is written down before the next one. The rest is the meter of the experiments: a call is
-    made only if the limit covers it at its most, and a failed call is charged at that amount."""
-
-    def __init__(self, client, max_dollars, ledger):
-        experiment.Metered.__init__(self, client, max_dollars)
-        self.ledger = Path(ledger)
-        self.usage = json.loads(self.ledger.read_text(encoding='utf-8')) if self.ledger.is_file() else []
-        self.before = len(self.usage)
-
-    def complete(self, system, messages):
-        try:
-            return experiment.Metered.complete(self, system, messages)
-        finally:
-            self.ledger.parent.mkdir(parents=True, exist_ok=True)
-            self.ledger.write_text(json.dumps(self.usage, indent=1), encoding='utf-8')
-
-
-def spent(ledger):
-    usage = json.loads(Path(ledger).read_text(encoding='utf-8')) if Path(ledger).is_file() else []
-    return experiment.dollars(usage), len(usage)
 
 
 # ---------------------------------------------------------------- scenarios
@@ -265,8 +246,7 @@ def cmd_credits(args):
     what the run cost on the platform; the platform states no price for a simulation."""
     if not need_live(args):
         return 2
-    freya = freya_client.load(args.kit)
-    got = freya.api('GET', '/api/v2/workspaces/%s/credits' % freya.workspace_id())
+    got = freya_client.credits(freya_client.load(args.kit, patiently=True))
     row = {'at': time.strftime('%Y-%m-%dT%H:%M:%S%z'), 'label': args.label, 'creditsLeft': got.get('creditsLeft'), 'creditUsdRate': got.get('creditUsdRate')}
     with (run_dir(args) / 'credits.jsonl').open('a', encoding='utf-8') as out:
         out.write(json.dumps(row) + '\n')
@@ -415,17 +395,22 @@ def cmd_simulate(args):
         print('%s is not deployed from this machine' % args.slot)
         return 1
     folder = run_dir(args)
-    (folder / 'simulations').mkdir(exist_ok=True)
-    index = folder / 'index.jsonl'
-    taken = {json.loads(line)['name'] for line in index.read_text(encoding='utf-8').splitlines() if line.strip()} if index.is_file() else set()
+    taken = names_taken(folder)
     runner = freya_client.load_runner(args.kit)
+    reads = freya_client.patient(runner.freya.api) if hasattr(runner.freya, 'api') else None
     failed, not_run = 0, []
     groups = suites(cases, args.each)
     while groups:
         group = groups.pop(0)
         name = unique(name_of(group, args), taken)
+        about = {'slot': args.slot, 'workflow_id': entry['workflow_id'], 'version_id': built.get('version_id'), 'platform_version': deployed.get('platform_version'),
+                 'run': args.run, 'label': args.version, 'style': args.style}
+        pending = simulation.Pending(folder / 'pending' / (store.build_id(name) + '.json'), about=about, gates={c['id']: c.get('gate') or '' for c in group},
+                                     source={'public': args.public, 'scenarios': args.scenarios, 'agent': args.agent})
+        if reads:
+            runner.freya.api = pending.watch(reads)
         try:
-            record = simulation.run(runner, entry['agent_id'], group, name, folder / 'personas.json', print, style=args.style)
+            record = simulation.run(runner, entry['agent_id'], group, name, folder / 'personas.json', print, style=args.style, pending=pending)
         except simulation.SharedCustomer as exc:
             # Nothing was started. The cases of this suite run one by one instead, so that each keeps a ledger of its own.
             print('NOT GROUPED %s: %s' % (name, exc))
@@ -435,30 +420,86 @@ def cmd_simulate(args):
                 groups = [[c] for c in group] + groups
             continue
         except Exception as exc:
-            # A simulation that could not be started or read has no result. It is named here and never counted:
-            # run it again with --only. If it was started on Freya, it stays there under its name without a record.
+            # A simulation that could not be started or read has no result. It is named here and never counted. If it
+            # was started on Freya, what is known of it stays in outputs/<run>/pending/ and `recover` can read it later.
             not_run += [c['id'] for c in group]
             print('NOT RUN %s | %s: %s' % (', '.join(c['id'] for c in group), type(exc).__name__, str(exc)[:200]))
+            if pending.path.is_file():
+                print('  it may have run on Freya; kept for `recover`: %s' % pending.path)
             continue
         taken.add(name)
-        for row in record['rows']:
-            annotate(row, next(c for c in group if c['id'] == row['id']).get('gate') or '')
-        about = {'slot': args.slot, 'workflow_id': entry['workflow_id'], 'version_id': built.get('version_id'), 'platform_version': deployed.get('platform_version'),
-                 'run': args.run, 'label': args.version, 'style': args.style}
-        record.update(about)
-        (folder / 'simulations' / (record['simulation_id'] + '.json')).write_text(json.dumps(record, indent=1, ensure_ascii=False), encoding='utf-8')
-        line = simulation.index_row(record, **about)
-        for item, row in zip(line['scenarios'], record['rows']):
-            item.update(in_brief(row))
-        for target in (index, files.version(built.get('version_id') or 'unversioned') / 'results.jsonl'):
-            target.parent.mkdir(parents=True, exist_ok=True)
-            with target.open('a', encoding='utf-8') as out:
-                out.write(json.dumps(line, ensure_ascii=False) + '\n')
+        write_record(folder, files, record, about, {c['id']: c.get('gate') or '' for c in group})
+        pending.clear()
         failed += record['total'] - record['passed']
         print('%s | simulation %s | %d / %d' % (name, record['simulation_id'], record['passed'], record['total']))
     if not_run:
         print('not run, to be repeated: --only ' + ','.join(not_run))
     return 1 if failed or not_run else 0
+
+
+def names_taken(folder):
+    index = Path(folder) / 'index.jsonl'
+    return {json.loads(line)['name'] for line in index.read_text(encoding='utf-8').splitlines() if line.strip()} if index.is_file() else set()
+
+
+def write_record(folder, files, record, about, gates):
+    """Put the record of one simulation on disk: the whole record, its line in the index of the run, and the same
+    line beside the version it tested. `about` says which slot, workflow and version it ran on."""
+    for row in record['rows']:
+        annotate(row, gates.get(row['id']) or '')
+    record.update(about)
+    (folder / 'simulations').mkdir(parents=True, exist_ok=True)
+    (folder / 'simulations' / (record['simulation_id'] + '.json')).write_text(json.dumps(record, indent=1, ensure_ascii=False), encoding='utf-8')
+    line = simulation.index_row(record, **about)
+    for item, row in zip(line['scenarios'], record['rows']):
+        item.update(in_brief(row))
+    for target in (folder / 'index.jsonl', files.version(about.get('version_id') or 'unversioned') / 'results.jsonl'):
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with target.open('a', encoding='utf-8') as out:
+            out.write(json.dumps(line, ensure_ascii=False) + '\n')
+    return line
+
+
+def cmd_recover(args):
+    """A simulation that was started and has no record: list what is pending, or read one into a record.
+
+    Reading needs the simulation id and the iteration id the platform gave it. The pending file lists the ids the
+    platform answered with when the simulation was created; the Freya UI shows them as well. Nothing is started."""
+    folder = run_dir(args)
+    waiting = sorted((folder / 'pending').glob('*.json')) if (folder / 'pending').is_dir() else []
+    if not waiting:
+        print('nothing is pending in %s' % folder)
+        return 0
+    chosen = [p for p in waiting if not args.name or read(p).get('name') == args.name]
+    if not (args.simulation_id and args.iteration_id) or len(chosen) != 1:
+        for path in chosen or waiting:
+            kept = read(path)
+            print('%s | started %s | slot %s | version %s | cases %s' % (kept.get('name'), kept.get('started_at'), (kept.get('about') or {}).get('slot'),
+                                                                        (kept.get('about') or {}).get('version_id'), ', '.join(c['id'] for c in kept.get('cases') or [])))
+            for request in kept.get('requests') or []:
+                print('   %s %s -> %s' % (request.get('method'), request.get('path'), json.dumps(request.get('ids'))))
+        print('%d pending. To read one: recover --name "<name>" --simulation-id ID --iteration-id ID --live' % len(waiting))
+        return 0 if not args.name else 1
+    if not need_live(args):
+        return 2
+    kept = read(chosen[0])
+    about, source = kept.get('about') or {}, kept.get('source') or {}
+    only = {c['id'] for c in kept.get('cases') or []}
+    cases = public_cases(args.kit, source['public'], only) if source.get('public') else load_scenarios(source.get('scenarios'), args.kit, source.get('agent'), only)
+    runner = freya_client.load_runner(args.kit)
+    if hasattr(runner.freya, 'api'):
+        runner.freya.api = freya_client.patient(runner.freya.api)
+    if any(line['simulation_id'] == args.simulation_id for line, _ in records(args)):
+        print('simulation %s already has a record in this run: nothing is written twice' % args.simulation_id)
+        return 1
+    record = simulation.recover(runner, kept, cases, args.simulation_id, args.iteration_id, print)
+    write_record(folder, store.BuildStore(args.out, about.get('slot')), record, about, kept.get('gates') or {})
+    chosen[0].unlink()
+    print('%s | simulation %s | %d / %d | recovered' % (record['name'], record['simulation_id'], record['passed'], record['total']))
+    return 0
+
+
+patient = freya_client.patient          # where it was before it was the builder's; kept under this name
 
 
 def annotate(row, gate):
@@ -559,7 +600,7 @@ def cmd_summary(args):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('command', choices=('plan', 'build', 'dev', 'dry-run', 'inspect', 'simulate', 'backfill', 'summary', 'credits'))
+    ap.add_argument('command', choices=('plan', 'build', 'dev', 'dry-run', 'inspect', 'simulate', 'backfill', 'recover', 'summary', 'credits'))
     ap.add_argument('--live', action='store_true', help='permit calls to Freya, the bank mock and, for build, Anthropic')
     ap.add_argument('--run', default='M17', help='the first part of every simulation name, and the folder of the run under --out')
     ap.add_argument('--version', default='v1', help='the last part of every simulation name: the version label of the workflow under test')
@@ -584,6 +625,9 @@ def main(argv=None):
     ap.add_argument('--only', help='simulate: comma-separated scenario ids')
     ap.add_argument('--style', help="simulate: a way of talking of the kit's customers (pieces, corrects, talkative, asks_back, in_words)")
     ap.add_argument('--each', action='store_true', help='plan, simulate: one simulation per scenario, named after it, instead of one per suite')
+    ap.add_argument('--name', help='recover: the name of the pending simulation')
+    ap.add_argument('--simulation-id', help='recover: the id the platform gave the simulation')
+    ap.add_argument('--iteration-id', help='recover: the id of its iteration')
     args = ap.parse_args(argv)
     if args.command in ('build', 'dry-run', 'inspect', 'simulate') and not args.slot:
         ap.error(args.command + ' needs --slot')
@@ -593,7 +637,7 @@ def main(argv=None):
         ap.error('dry-run needs --spec and --tool-spec or --package')
     if args.command == 'simulate' and not (args.public or args.scenarios):
         ap.error('simulate needs --public or --scenarios')
-    return {'plan': cmd_plan, 'build': cmd_build, 'dev': cmd_dev, 'credits': cmd_credits, 'dry-run': cmd_dry_run, 'inspect': cmd_inspect, 'simulate': cmd_simulate, 'backfill': cmd_backfill, 'summary': cmd_summary}[args.command](args)
+    return {'plan': cmd_plan, 'build': cmd_build, 'dev': cmd_dev, 'credits': cmd_credits, 'dry-run': cmd_dry_run, 'inspect': cmd_inspect, 'simulate': cmd_simulate, 'backfill': cmd_backfill, 'recover': cmd_recover, 'summary': cmd_summary}[args.command](args)
 
 
 if __name__ == '__main__':

@@ -8,7 +8,7 @@ from builder.compiler import compiler
 from builder.config import settings
 from builder.runtime import runtime
 from builder.spec.openapi import Api
-from tests.fixture_spec import spec as fixture
+from benchmarks.harness.fixture_spec import spec as fixture
 from tests.support import OPENAPI
 
 PACKAGE = settings.ROOT / 'builder'
@@ -23,14 +23,25 @@ ALLOWED = {
     'builder.spec.openapi': {'builder.spec.models'},
     'builder.validation.spec': {'builder.runtime.runtime', 'builder.spec.models'},
     'builder.validation.safety': {'builder.config.settings'},
-    'builder.validation.contract': set(),
+    'builder.validation.contract': {'builder.spec.openapi'},
     'builder.validation.workflow': {'builder.validation.safety'},
     'builder.compiler.compiler': {'builder.runtime.runtime', 'builder.spec.models'},
     'builder.extraction.claude': {'builder.config.settings', 'builder.spec.models'},
+    'builder.extraction.spend': set(),
     'builder.tracing.trace': {'builder.config.settings'},
     'builder.freya.versioning': {'builder.config.settings'},
     'builder.freya.deployment': {'builder.freya.versioning'},
-    'builder.__main__': {'builder.pipeline'},
+    'builder.__main__': {'builder.pipeline', 'builder.optimization.cli'},
+    # The optimization run is a product feature: it uses the builder's own machinery and is handed its evaluation.
+    'builder.optimization.policy': set(),
+    'builder.optimization.diagnosis': {'builder.optimization.policy', 'builder.optimization'},
+    'builder.optimization.candidate': {'builder.extraction.claude', 'builder.spec.models', 'builder.extraction', 'builder.spec'},
+    'builder.optimization.loop': {'builder.pipeline', 'builder.artifacts.store', 'builder.artifacts', 'builder.extraction.spend', 'builder.extraction', 'builder.freya.deployment',
+                                  'builder.freya.versioning', 'builder.freya', 'builder.optimization.candidate', 'builder.optimization.diagnosis', 'builder.optimization.policy',
+                                  'builder.optimization', 'builder.spec.openapi', 'builder.spec', 'builder.validation.spec', 'builder.validation', 'builder'},
+    'builder.optimization.cli': {'builder.artifacts.store', 'builder.artifacts', 'builder.config.settings', 'builder.config', 'builder.extraction.claude', 'builder.extraction.spend',
+                                 'builder.extraction', 'builder.freya.client', 'builder.freya', 'builder.optimization.loop', 'builder.optimization.policy', 'builder.optimization',
+                                 'builder.tracing.trace', 'builder.tracing'},
 }
 
 
@@ -89,8 +100,9 @@ class Boundaries(unittest.TestCase):
             visit(name, [])
 
     def test_only_the_named_modules_can_reach_the_network_or_a_subprocess(self):
-        reach = {'anthropic': {'builder.extraction.claude'}, 'subprocess': {'builder.evaluation.simulation'},
-                 'importlib.util': {'builder.freya.client'}}
+        # No module of the builder runs a subprocess. `importlib` alone loads the evaluation module an optimization run
+        # is handed, by its name; `importlib.util` loads the kit.
+        reach = {'anthropic': {'builder.extraction.claude'}, 'subprocess': set(), 'importlib.util': {'builder.freya.client'}, 'importlib': {'builder.optimization.cli'}}
         for name, path in modules().items():
             used = imports(path)
             for library, owners in reach.items():
@@ -106,6 +118,18 @@ class Boundaries(unittest.TestCase):
                      'builder.spec.models', 'builder.spec.openapi', 'builder.runtime.runtime'):
             used = imports(modules()[name])
             self.assertFalse({u for u in used if u.startswith(('builder.freya', 'builder.evaluation', 'builder.extraction', 'builder.pipeline'))}, name)
+
+    def test_the_builder_never_imports_the_harness_or_the_tests_and_the_harness_never_imports_the_tests(self):
+        """The builder is handed its evaluation: it names the module (settings.EVALUATION) and loads it when a run
+        starts. The offline engine stand-in is the harness's own, so nothing that is not a test depends on tests/."""
+        for name, path in modules().items():
+            self.assertFalse({u for u in imports(path) if u.split('.')[0] in ('benchmarks', 'tests')}, name)
+        for path in (settings.ROOT / 'benchmarks' / 'harness').glob('*.py'):
+            self.assertFalse({u for u in imports(path) if u.split('.')[0] == 'tests'}, path.name)
+        self.assertEqual(settings.EVALUATION, 'benchmarks.harness.evaluation')
+        for name in ('freya_sim.py', 'fixture_spec.py'):
+            self.assertFalse((settings.ROOT / 'tests' / name).exists(), name)
+            self.assertTrue((settings.ROOT / 'benchmarks' / 'harness' / name).is_file(), name)
 
 
 class EmbeddedRuntime(unittest.TestCase):
@@ -131,7 +155,7 @@ class EmbeddedRuntime(unittest.TestCase):
         cfg = compiler.runtime_cfg(fixture(True), Api(OPENAPI))
         functions, header = compiler._library()
         self.assertEqual(sorted(functions), sorted(n for n, v in vars(runtime).items() if callable(v) and getattr(v, '__module__', '') == runtime.__name__))
-        for entry in ('setup', 'load_account', 'pre_identity', 'post_identity', 'post_account', 'pre_promise', 'post_promise', 'pre_note',
+        for entry in ('setup', 'load_account', 'pre_identity', 'post_identity', 'post_account', 'pre_check', 'post_check', 'pre_promise', 'post_promise', 'pre_note',
                       'post_note', 'pre_callback', 'post_callback', 'pre_transfer', 'post_transfer', 'pre_close', 'post_close'):
             code = compiler.runtime_code(entry, entry + '(CFG, vars, config, result)', cfg)
             tree = ast.parse(code)

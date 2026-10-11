@@ -8,8 +8,8 @@ from builder.compiler.compiler import CompileError
 from builder.pipeline import build_workflow
 from builder.spec.openapi import Api
 from builder.validation import contract
-from tests.fixture_spec import spec as fixture
-from tests.freya_sim import Bank, Sim
+from benchmarks.harness.fixture_spec import spec as fixture
+from benchmarks.harness.freya_sim import Bank, Sim
 from tests.support import CASES, OPENAPI
 
 API = Api(OPENAPI)

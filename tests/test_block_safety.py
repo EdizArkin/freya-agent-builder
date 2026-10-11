@@ -19,7 +19,7 @@ from builder.spec.models import SpecError
 from builder.spec.openapi import Api
 from builder.validation import contract
 from builder.validation.spec import validate
-from tests.fixture_spec import spec as fixture
+from benchmarks.harness.fixture_spec import spec as fixture
 from tests.renamed import CALL, PLACEHOLDER, VARIANTS, PermissiveBank, Renamed, snapshot
 from tests.support import OPENAPI
 

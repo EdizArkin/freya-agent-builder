@@ -23,10 +23,7 @@ from benchmarks.harness import assertions as check  # noqa: E402
 from benchmarks.harness import scenarios as defs  # noqa: E402
 
 PASS, FAIL, GAP, FIXED, SPEC_ONLY = 'PASS', 'FAIL', 'GAP', 'UNEXPECTED PASS', 'NOT RUN'
-GAP_KINDS = {'defect': 'the builder does something wrong', 'unenforced': 'left to the phone model although code could enforce it',
-             'schema': 'agent-spec/1 cannot express the rule',
-             'platform': 'cannot be enforced from inside tool hooks on this platform',
-             'tool_api': 'the tool API has no operation that could enforce it'}
+GAP_KINDS = defs.GAP_KINDS
 
 
 def run_steps(scenario, sim, bank, products, identity):
@@ -191,7 +188,7 @@ def main(argv=None):
     ap.add_argument('--report-dir', default=str(defs.BENCH / 'reports'))
     ap.add_argument('--no-report', action='store_true')
     ap.add_argument('--list', action='store_true')
-    ap.add_argument('--export-live', metavar='DIR')
+    ap.add_argument('--export-live', metavar='DIR', help='deprecated: case files for the kit\'s own runner. Live scenarios are run by benchmarks/harness/live.py simulate')
     args = ap.parse_args(argv)
 
     scenarios, expected = defs.load_scenarios(), defs.load_expected()

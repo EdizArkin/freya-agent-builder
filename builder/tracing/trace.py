@@ -1,4 +1,4 @@
-"""The trace of one build: plain text, one timestamped line per event, credentials redacted."""
+"""The trace of one build or one optimization run: plain text, one timestamped line per event, credentials redacted."""
 import time
 from pathlib import Path
 
@@ -6,10 +6,12 @@ from builder.config import settings
 
 
 class Trace:
-    def __init__(self, path):
+    def __init__(self, path, append=False):
+        """A build starts its trace anew. A run that is taken up again by a later command adds to its own (`append`)."""
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.path.write_text('', encoding='utf-8')
+        if not append or not self.path.is_file():
+            self.path.write_text('', encoding='utf-8')
 
     def __call__(self, line):
         for value in settings.secret_values():

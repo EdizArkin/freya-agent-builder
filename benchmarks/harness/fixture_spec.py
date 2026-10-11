@@ -2,6 +2,8 @@
 
 OFFLINE TEST DATA ONLY. It exists to exercise the compiler and runtime without a
 model call. A real build gets its spec from the extraction model, never from here.
+It is the spec the offline benchmark runs the kit's two briefs against, and the one
+the tests compile; it lives with the harness because the harness needs it.
 """
 
 ALWAYS = """You are Freya Bank's digital assistant on an outbound call. Address the customer as {{title}} {{last_name}}.

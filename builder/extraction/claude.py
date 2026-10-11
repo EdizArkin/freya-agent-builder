@@ -258,6 +258,16 @@ class AnthropicClient:
         return text, usage, message.content
 
 
+def sdk_installed():
+    """Whether this Python can make the call at all. A paid command asks before it starts: a meter charges a call
+    that ends in an error at its most, and a call that fails on the import was never sent."""
+    try:
+        import anthropic  # noqa: F401
+    except ImportError:
+        return False
+    return True
+
+
 class ReplayClient:
     """Offline stand-in: replays prepared replies in order."""
 

@@ -9,8 +9,8 @@ from builder.compiler.compiler import runtime_cfg
 from builder.pipeline import build_workflow
 from builder.runtime import runtime as rt
 from builder.spec.openapi import Api
-from tests.fixture_spec import spec as fixture
-from tests.freya_sim import Bank, Sim
+from benchmarks.harness.fixture_spec import spec as fixture
+from benchmarks.harness.freya_sim import Bank, Sim
 from tests.support import OPENAPI, refusal
 from tests.test_enforcement import after_error, start as start_call, tools_called, verified
 from tests.test_runtime import ledger, start as start_case, verify

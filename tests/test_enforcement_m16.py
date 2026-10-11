@@ -18,7 +18,7 @@ from builder.runtime import runtime as rt
 from builder.spec.models import SpecError
 from builder.spec.openapi import Api
 from builder.validation.spec import digest, validate
-from tests.fixture_spec import spec as fixture
+from benchmarks.harness.fixture_spec import spec as fixture
 from tests.renamed import PRODUCTS, Renamed
 from tests.support import OPENAPI, refusal
 

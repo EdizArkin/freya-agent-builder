@@ -52,7 +52,7 @@ python benchmarks/harness/run_benchmarks.py --list                list, run noth
 
 The run takes a few seconds. Exit code 0 means no unexpected result: every executable scenario passed or failed exactly where a known gap is documented. Exit code 1 means a scenario failed without a documented gap, or passed although a gap is documented. Exit code 2 means the definitions contradict each other.
 
-By default Brief A and B scenarios run against the hand-written spec of `tests/fixture_spec.py`. To run them against a spec the builder extracted:
+By default Brief A and B scenarios run against the hand-written spec of `benchmarks/harness/fixture_spec.py`. To run them against a spec the builder extracted:
 
 ```
 python benchmarks/harness/run_benchmarks.py --spec A=outputs/<build>/spec.json --spec B=outputs/<build>/spec.json
@@ -168,7 +168,7 @@ python benchmarks/harness/live.py summary                                       
 - **Scenarios** of `benchmarks/live/` borrow the bank account of a practice case (`bank_case`), because the bank opens a session only for one. The file holds no account data of the kit: amounts are placeholders that are filled from the local kit when a scenario runs.
 - **What a pass means.** The bank's ledger holds exactly the expected records and the platform's judge found every check true in the transcript: the kit's rule. A simulation is a text chat. It shows nothing about audio.
 
-The older export for the kit's own runner still exists. The bank creates a practice session from a case id only, so a live scenario has to use the account of one of the kit's thirteen practice cases. Sixteen scenarios of the offline suite do. For them
+The older export for the kit's own runner still exists and is deprecated: live scenarios are run by `live.py simulate`. The bank creates a practice session from a case id only, so a live scenario has to use the account of one of the kit's thirteen practice cases. Sixteen scenarios of the offline suite do. For them
 
 ```
 python benchmarks/harness/run_benchmarks.py --export-live outputs/benchmarks/live

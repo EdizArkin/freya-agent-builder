@@ -8,7 +8,7 @@ from builder.pipeline import build_workflow
 from builder.spec.models import TOOLS, SpecError
 from builder.spec.openapi import Api
 from builder.validation.spec import validate
-from tests.fixture_spec import spec as fixture
+from benchmarks.harness.fixture_spec import spec as fixture
 from tests.support import OPENAPI
 
 

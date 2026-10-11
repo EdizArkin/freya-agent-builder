@@ -11,7 +11,7 @@ import random
 
 from benchmarks.harness.rules import MappedBank, Recorded
 from builder.pipeline import build_workflow
-from tests.fixture_spec import spec as fixture
+from benchmarks.harness.fixture_spec import spec as fixture
 from tests.support import OPENAPI
 
 CALL = 'c_real_call'

@@ -12,7 +12,7 @@ from builder.config import settings
 from builder.extraction import claude
 from builder.freya import client as freya_client
 from builder.freya import versioning
-from tests.fixture_spec import spec as fixture
+from benchmarks.harness.fixture_spec import spec as fixture
 from tests.support import KIT
 
 FLAGS = ('--brief', '--tool-spec', '--slot', '--out', '--spec', '--live-extract', '--model', '--max-tokens',

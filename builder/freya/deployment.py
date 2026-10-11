@@ -8,8 +8,9 @@ deploy() does, in this order:
                version. The kit offers no save without publish.
 3. export    - reads the stored workflow back into a local file.
 
-There is no approval step. The caller's --deploy flag is the only gate. `rollback` publishes an earlier
-platform version of the same workflow again; no command calls it yet.
+There is no approval step. The caller's --deploy flag (or --live of an optimization run) is the only gate.
+`rollback` publishes an earlier platform version of the same workflow again; the optimization run calls it when
+a candidate does not replace the incumbent (builder/optimization/loop.py).
 `departures` compares what the platform stores with what was sent, after the fact.
 """
 from builder.freya import versioning

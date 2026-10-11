@@ -8,7 +8,7 @@ from builder.extraction import claude
 from builder.spec.models import SpecError
 from builder.spec.openapi import Api
 from builder.validation.spec import digest, validate
-from tests.fixture_spec import spec as fixture
+from benchmarks.harness.fixture_spec import spec as fixture
 from tests.support import KIT, OPENAPI
 
 API = Api(OPENAPI)

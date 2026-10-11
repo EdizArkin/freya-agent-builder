@@ -269,9 +269,6 @@ class Sim:
             raise LookupError(name + ' is not available in node ' + self.node)
         return found[0]
 
-    def _new_message(self):
-        """A model turn lies between two messages. Kept for callers; the runtime no longer reads a clock."""
-
     def tool(self, name, **args):
         """The phone model calls a tool in the current conversation node."""
         result = self.play(name, args)

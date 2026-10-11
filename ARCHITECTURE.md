@@ -16,10 +16,11 @@ must not be trusted with: dates, amounts, counting, tool-call limits and the clo
 
 ```text
 builder/
-  __main__.py              python -m builder
-  pipeline.py              the stages, in order; the only module that knows all the others
+  __main__.py              python -m builder, and python -m builder optimize
+  pipeline.py              the stages of a build, in order; `release` builds and deploys one spec
   config/settings.py       paths, defaults, key loading, which variables are secrets
   extraction/claude.py     prompt, Claude call, repair loop
+  extraction/spend.py      paid model calls behind a spending limit
   spec/models.py           agent-spec/1 vocabulary and expression walking
   spec/openapi.py          the bank tool API: operations, fields, $ref
   validation/spec.py       is the spec executable against this API?
@@ -28,13 +29,23 @@ builder/
   validation/contract.py   does a request, or a compiled tool, agree with the tool API?
   compiler/compiler.py     spec + API -> workflow; embeds the runtime
   runtime/runtime.py       the deterministic runtime, embedded as source
-  freya/client.py          loads the starter kit's freya.py and its case runner
-  freya/deployment.py      dry run, save and publish, export
-  freya/versioning.py      slot registry, deployment record, version ids
-  evaluation/simulation.py named simulations on Freya; transcript checks
-  tracing/trace.py         the build trace, with redaction
-  artifacts/store.py       outputs/<build-id>/, its file names, the version archive
-tests/                     offline tests, one file per area
+  freya/client.py          loads the starter kit's freya.py and its case runner; patient reads; credits
+  freya/deployment.py      dry run, save and publish, export; platform versions and rollback
+  freya/versioning.py      slot registry, deployment record, version ids, history lines
+  evaluation/simulation.py named simulations on Freya; pending records and recovery; transcript checks
+  optimization/loop.py     the optimization run: one step, and steps until a limit
+  optimization/diagnosis.py   which failed case is next, and which failures need code
+  optimization/candidate.py   one guarded change of words, proposed by a model
+  optimization/policy.py   the decision and the limits of a run
+  optimization/cli.py      python -m builder optimize
+  tracing/trace.py         the trace of a build or a run, with redaction
+  artifacts/store.py       outputs/<build-id>/, its file names, the version archive, restoring a version
+benchmarks/
+  harness/                 evaluation: offline scenarios, the engine stand-in (freya_sim.py), the fixture
+                           spec, live simulations (live.py), the evaluation an optimization run is
+                           handed (evaluation.py), extraction experiments
+  edge_cases/ synthetic_briefs/ expected/ live/ packages/ references/ reports/   definitions, frozen packages, reports
+tests/                     offline tests, one file per area; nothing outside tests/ imports from it
 outputs/                   build artifacts (git-ignored)
 local_freya/               the official starter kit (git-ignored)
 ```
@@ -61,17 +72,20 @@ flowchart LR
 ```
 
 `pipeline.main` runs these stages and writes every result through `artifacts/store` and
-every event through `tracing/trace`. The solid part is offline. The dotted part touches
+every event through `tracing/trace`. The stages after the spec are also a function,
+`pipeline.release`: an optimization run builds and deploys its candidates through it. The solid part is offline. The dotted part touches
 Freya and runs only with its flag. The extraction call runs only with `--live-extract`.
 
 ## Module dependencies
 
-Arrows read "imports". `pipeline` imports everything and nothing imports `pipeline` except
-`__main__`. There are no cycles; `tests/test_architecture.py` enforces this table.
+Arrows read "imports". `pipeline` imports the modules of a build, and only `__main__` and
+`optimization/loop` import `pipeline`. There are no cycles; `tests/test_architecture.py` enforces
+this table, and that no module of the builder imports `benchmarks` or `tests`.
 
 | Module | Imports |
 | --- | --- |
-| `runtime/runtime`, `config/settings`, `artifacts/store`, `freya/client`, `evaluation/simulation`, `validation/contract` | nothing from the builder |
+| `runtime/runtime`, `config/settings`, `artifacts/store`, `freya/client`, `evaluation/simulation`, `extraction/spend`, `optimization/policy` | nothing from the builder |
+| `validation/contract` | `spec/openapi` (the one resolver of `$ref`) |
 | `spec/models` | `runtime/runtime` (the list of date expression kinds) |
 | `spec/openapi` | `spec/models` |
 | `validation/spec` | `spec/models`, `runtime/runtime` (to evaluate expressions on sample products) |
@@ -81,11 +95,16 @@ Arrows read "imports". `pipeline` imports everything and nothing imports `pipeli
 | `extraction/claude` | `spec/models`, `config/settings` |
 | `tracing/trace`, `freya/versioning` | `config/settings` |
 | `freya/deployment` | `freya/versioning` |
+| `optimization/diagnosis` | `optimization/policy` |
+| `optimization/candidate` | `extraction/claude`, `spec/models` |
+| `optimization/loop` | `pipeline`, `artifacts/store`, `extraction/spend`, `freya/deployment`, `freya/versioning`, `spec/openapi`, `validation/spec`, the three other `optimization` modules |
+| `optimization/cli` | `optimization/loop`, `optimization/policy`, `artifacts/store`, `config/settings`, `extraction/claude`, `extraction/spend`, `freya/client`, `tracing/trace` |
 
 Only three modules can leave the process: `extraction/claude` (the Anthropic SDK, imported
 inside the call), `freya/client` (loads the kit client and the kit's case runner) and
 `evaluation/simulation` (starts simulations through the modules it is handed; it opens no
-connection of its own).
+connection of its own). `optimization/cli` loads the evaluation module by name and reaches
+nothing by itself.
 
 ## agent-spec/1
 
@@ -138,7 +157,7 @@ setup ──► contact ──► get_account ──► account_facts ──► 
 | `contact` | Who is on the line; identity | `verify_identity`, `schedule_callback`, `transfer_to_agent`, `close_call` |
 | `get_account` | Run by the engine after identity is fully verified | none |
 | `account_facts` | Computes every named value and the limits per product | none |
-| `negotiate` | The rest of the call | `create_promise`, `add_note` if the brief uses it, `transfer_to_agent`, `close_call` |
+| `negotiate` | The rest of the call | `check_promise` (the builder's own, since M18), `create_promise`, `add_note` if the brief uses it, `transfer_to_agent`, `close_call` |
 | `end` | Hangs up after `close_call` succeeded | none |
 
 Tools are generated from the tool API file: URL, fields, types, enums. Each conversation
@@ -209,7 +228,7 @@ The bank saved both notes. Both post-hooks read the arguments of one call, so th
 recorded one note of two, told the model twice that the same product was noted, and refused
 the next close once; the repeated close went through.
 
-**Offline.** `tests/freya_sim.py` plays this with `hooks='shared'`, and
+**Offline.** `benchmarks/harness/freya_sim.py` plays this with `hooks='shared'`, and
 `tests/test_concurrency.py` (`SharedHooks`) keeps the reproduction as expected failures.
 
 **Plan A, call-specific context in a post-hook: not available.** The kit documents `result`
@@ -266,9 +285,9 @@ model through `LAST REJECTED TOOL CALL` in the live state and the failure rules 
 model sees the blocked call itself as a failed call. Whether the phone model follows that as well as it
 followed a tool result is not known; it has not run on Freya.
 
-`tests/test_block_safety.py` plays all 27 places where the runtime blocks under eight namings of the
+`tests/test_block_safety.py` plays all 33 places where the runtime blocks under eight namings of the
 tool API, against a bank that follows the documented contract and against one that carries out
-anything that still names the call: 432 blocked calls, no change at either bank, and no value of the
+anything that still names the call: 528 blocked calls, no change at either bank, and no value of the
 call left in any blocked request.
 
 Before a call leaves, `send` compares it with the tool API: fields the API does not have are
@@ -345,7 +364,8 @@ Enforced by the runtime or by the graph, whatever the phone model does:
 Left to the phone model, guided by rule text and by `what_to_do_next`, and therefore not
 deterministic: recognising who is on the line and what the person means; what may be said
 before verification; asking in the prescribed order; counting persuasion attempts and
-"offer once" rules; reading back and waiting for a clear yes before `create_promise`;
+"offer once" rules; the words of the read-back (that a read-back and a clear yes came before
+`create_promise` is enforced since M18, as far as the engine shows it: `runtime.unconfirmed`);
 choosing the outcome where it depends on what was said; saying prescribed sentences;
 adding a note for each product without a promise before closing.
 
@@ -356,9 +376,9 @@ adding a note for each product without a promise before closing.
 | Spec validation | `validation/spec.py`, on every build | The spec names only fields, values and operations the API has, and its expressions compute |
 | Workflow validation | `validation/workflow.py`, on every build | The workflow obeys the documented platform rules |
 | Safety validation | `validation/safety.py`, on spec and workflow | No credential in an artifact |
-| Tool API contract | `validation/contract.py`, on every build as trace lines, never a reason to fail; on every request the benchmarks play | Compiled tools and outgoing requests have the URL, method, fields, types and allowed values of the tool API. A keyword of the document it does not implement is reported as not checked |
+| Tool API contract | `validation/contract.py`, on every build: a compiled tool that departs from the tool API fails the build (`pipeline.build_workflow`), notes on the document are trace lines; on every request the benchmarks play | Compiled tools and outgoing requests have the URL, method, fields, types and allowed values of the tool API. A keyword of the document it does not implement is reported as not checked |
 | Platform dry run | `freya/deployment.py`, with `--deploy` | The platform accepts the workflow |
-| Offline tests | `tests/`, with `tests/freya_sim.py` standing in for the engine and the bank | The runtime does the right thing when given a tool call |
+| Offline tests | `tests/`, with `benchmarks/harness/freya_sim.py` standing in for the engine and the bank | The runtime does the right thing when given a tool call |
 | Real evaluation | `evaluation/simulation.py`, with `--test`; `benchmarks/harness/live.py` for single scenarios | A phone agent on Freya handles the practice customers. Every simulation is named by `simulation_name` (run, brief, scenario, expected result, version); a case passes when the bank's ledger and the platform's judge both pass, by the kit's scoring. A simulation is a text chat and shows nothing about audio |
 
 The offline tests play the phone model's tool calls by hand. They say nothing about what
@@ -366,7 +386,9 @@ the phone model will actually do.
 
 ## Deployment and versions
 
-All platform calls go through the starter kit's `freya.py`; the builder adds none.
+All platform calls go through the starter kit's `freya.py`. The builder calls the kit's `api`
+directly on three routes the kit has no function for: the versions of a workflow, publishing one of
+them, and the workspace's credit balance.
 
 | Question | Answer |
 | --- | --- |
@@ -375,11 +397,67 @@ All platform calls go through the starter kit's `freya.py`; the builder adds non
 | Can a workflow be updated? | Yes. Saving a known slot replaces the definition of the same workflow |
 | Are save and publish separate? | Not in the path the builder uses. `save_workflow` on a known slot updates **and publishes** |
 | Can the deployed workflow be read back? | Yes, `export_workflow`; the builder does it after every deploy |
-| Local vs deployed comparison? | Not implemented. The platform adds its own fields to a stored workflow |
-| Rollback? | Not implemented. The platform keeps versions and has a publish call; the kit has no helper for an older version |
+| Local vs deployed comparison? | `deployment.departures`, used by `benchmarks/harness/live.py inspect`: what the platform stores against what was sent. The platform adds its own fields to a stored workflow; those are listed apart |
+| Rollback? | `deployment.rollback` publishes an earlier platform version of the same workflow again; nothing is deleted. An optimization run calls it when a candidate does not replace the incumbent, and then puts the files of the slot back (`store.restore`). Verified on a disposable workflow (M18 phase 3); not yet verified that a call after a rollback runs the earlier version |
 | Which build is deployed? | `outputs/<build-id>/deployment.json`: ids, created or updated, platform version, hash of the local workflow |
 
-`--deploy` is the only gate. There is no approval step and no diff before an update.
+`--deploy` is the only gate of a build, `--live` of an optimization run. There is no approval step and
+no diff before an update.
+
+## Self-optimization
+
+`python -m builder optimize` improves a deployed agent by itself, within limits. The run is the
+builder's (`builder/optimization/`); the evaluation is handed to it.
+
+```text
+published version ──► results ──► diagnosis ──► one change ──► validate, compile ──► new version
+   (incumbent)        (bound to     (which case,   of words        (same gates as      of the same
+                       its build)    what needs                     a build)            workflow
+                                     code)                                                 │
+        ┌───────────────────────────────────────────────────────────────────────────────────┘
+        ▼
+   simulate ──► decide ──► keep it, or publish the incumbent again and put the files back ──► next step
+```
+
+| Part | Module | What it does |
+| --- | --- | --- |
+| The run | `optimization/loop.py` | `step` is one candidate; `run` repeats until a limit or until nothing is left that a candidate can address. An accepted candidate is the incumbent of the next step, because every step reads what is published |
+| Diagnosis | `optimization/diagnosis.py` | Files every failed case from its own records. Wrong bank records come before a judge's finding. A forbidden record that a runtime check must refuse, or a tool call that failed without being refused, needs a change of code: it is reported and no candidate is made for it |
+| Candidate | `optimization/candidate.py` | A model proposes one replacement of one passage of the rule text, guidance or tool descriptions. Refused: any change of what the runtime enforces (`digest`), a replacement that drops a sentence that forbids, requires or limits something, a prescribed sentence, a tool or value name, or a template that is not a call variable of the spec |
+| Decision | `optimization/policy.py` | The only place that decides: evidence, then safety, then regression, then improvement. It also holds the limits of a run (candidates, Freya credits, minutes) |
+| Command | `optimization/cli.py` | Reads keys, builds the model client behind a dollar limit, loads the evaluation by name, runs, reports |
+
+**The evaluation boundary.** The builder imports nothing from `benchmarks/`. It names a module
+(`settings.EVALUATION`, or `--evaluation`) and loads it when a run starts. That module offers
+`Evaluation(args)` with `cases()`, `safety_cases()`, `stored(version_id)` and
+`run(version_id, label, only)`. This repository's is `benchmarks/harness/evaluation.py`: it runs the
+suites through `live.py simulate` and returns one row per case with the bank's verdict, the judge's
+verdict, the records the scenario forbids, the transcript and the tool calls. It decides nothing.
+
+**What a run guarantees, and what tests it** (`tests/test_m18_loop.py`, `tests/test_recovery.py`):
+
+| Guarantee | How |
+| --- | --- |
+| The incumbent is what runs | Read from the platform's published version, mapped through `history.jsonl` to a build, with the spec from that build's archive. The files at the top of the slot's folder are never trusted, and are put back if they are another build's |
+| A candidate differs by its change only | The incumbent's spec must compile to the incumbent's version id. If the builder itself changed, the run stops, or with `--rebuild` tests this builder's build of the same spec as a candidate of its own |
+| Results belong to the version they are counted for | Rows are looked up by version id and workflow, never by a label. A build that already has results is not tested again. A candidate's calls must report the platform version published for them, when the incumbent's own results show the platform reports that number |
+| No decision without complete evidence | A case without both verdicts and the list of forbidden records is no result, for the candidate and for the incumbent alike. An incumbent without results is simulated first, once |
+| Every way out after the deploy goes back | An exception, a missing result, Ctrl-C or an exiting command all end in the rollback, the read-back of the published version and a line in the audit file; an interrupt is raised again afterwards |
+| The slot on disk follows the platform | After a rollback the spec, workflow, build record, deployment record and export are the incumbent's again. An export of another version is moved aside, never left as the file to submit |
+| Runtime code is never rewritten by a model | A candidate changes words. A change of the builder reaches an agent only as a `--rebuild` candidate, through the same gates |
+
+A deploy keeps its export beside its version (`versions/<version-id>/exported.workflow.json`), because the
+platform's export is the definition saved last, not the published one.
+
+**Status.** All of this is verified offline only, with a fake platform, replayed model replies and prepared
+results. No run of `python -m builder optimize` has reached Freya or a model. The two live rounds of M18
+used a hand-made candidate and an earlier script (`benchmarks/reports/m18-phase4-optimization.md`).
+
+**Limits of the design.** A candidate can only change words, so it cannot fix a failure of the runtime, the
+compiler, the tool API or the platform. The check of what a candidate keeps is a check of words, not of
+meaning: a sentence that is added can still be wrong, and only the evaluation shows it. One simulation per
+version decides; that is one sample of a phone model. The decision rejects a candidate while any of its
+cases has wrong bank records, including a case the incumbent already fails.
 
 ## Artifacts
 
@@ -403,8 +481,9 @@ same spec compiled by the same builder has the same id everywhere. `versions/<ve
 never rewritten: it is what a later build is compared with, and what can be deployed again
 (`--spec outputs/<slot>/versions/<version-id>/spec.json`). Since M18 phase 3 a deploy also records what the
 platform published (its version number and id) with the builder's commit, in `outputs/<slot>/history.jsonl`,
-and `freya/deployment.rollback` publishes an earlier platform version of the same workflow again. No command
-calls it yet. See `benchmarks/reports/m18-phase3-versioning.md`.
+and `freya/deployment.rollback` publishes an earlier platform version of the same workflow again; the
+optimization run calls it. See `benchmarks/reports/m18-phase3-versioning.md`. Two specs that compile to the
+same workflow share one version folder, and the spec that was archived first stays.
 
 ## Verified and not verified
 
@@ -453,6 +532,13 @@ clear yes, as far as the engine's turn counter and its list of what was said sho
 (`runtime.unconfirmed`). Whatever cannot be read is refused. This is evidence of a confirmation, not
 proof of consent. Conditions, limits and what has to be verified live:
 `benchmarks/reports/m18-phase2-implementation.md`.
+
+Not verified live after M18 phase 4: the optimization run (see "Self-optimization"), and the change of the
+runtime known as `c1`: a `check_promise` whose values the rules refuse is answered as a normal result that
+says "not accepted" with the reason, instead of leaving as a detached request that the phone model read as
+a service failure. Nothing is registered by such a check, so the confirmation gate is as it was. It is
+tested offline (`tests/test_m18_confirmation.py`); every agent built from this tree carries it, and no
+published agent does yet.
 
 Other limits: the tests and `--deploy` need the git-ignored starter kit; persuasion
 counting and other conversational rules are prompt-dependent; the tool names are assumed

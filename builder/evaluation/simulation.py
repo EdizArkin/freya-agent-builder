@@ -207,29 +207,60 @@ def spoken(messages):
     return {'slowest_turn_s': slowest_turn(messages), 'speech': speech_findings(messages), 'tool_trace': tool_trace(messages), 'messages': messages}
 
 
-def run(runner, agent_id, cases, name, persona_cache, trace=lambda line: None, style=None, max_seconds=420):
-    """One simulation on Freya under the name `name`: every case once. Returns the record of the simulation.
+class Pending:
+    """What is known of a simulation before the platform has answered, kept in a file until its record is written.
 
-    A case is in the kit's format (id, brief, title, variables, identity, script, expected, checks). Its bank
-    account is that of the practice case `bank_case` (default: its own id): the bank opens a session only for
-    a practice case. A case passes when the bank's ledger holds exactly the expected records and the platform's
-    judge finds every check true in the transcript: the kit's rule, with the kit's scoring."""
-    ids = personas(runner, cases, persona_cache, style)
-    sessions = {c['id']: runner.http('/v1/practice/sessions', {'case': c.get('bank_case') or c['id']})['variables'] for c in cases}
-    variables = {c['id']: dict(sessions[c['id']], **(c.get('override_variables') or {})) for c in cases}
-    # Every case has its own persona and its own bank session, so the customers of one simulation are judged and
-    # scored apart. That holds only while no two of them share a persona or a bank customer: checked, not assumed.
-    customers = [sessions[c['id']]['customer_id'] for c in cases]
-    if len(set(customers)) != len(cases) or len(set(ids.values())) != len(cases):
-        raise SharedCustomer('two cases of "%s" share a bank customer or a persona; their records could not be told apart' % name)
-    trace('simulation: starting "%s" | agent %s | %d case(s): %s' % (name, agent_id, len(cases), ', '.join(c['id'] for c in cases)))
-    started, at = time.time(), time.strftime('%Y-%m-%dT%H:%M:%S%z')
-    sim_id, iteration_id, status = runner.freya.run_simulation(agent_id, name, {ids[c['id']]: variables[c['id']] for c in cases}, max_seconds)
-    seconds = round(time.time() - started)
+    A simulation runs for minutes inside the kit's `run_simulation`. If that call does not return (a failed
+    connection, a stopped process), the simulation may still finish on the platform, and its bank records are
+    still at the bank under customers that only this process knew. This file is written before the simulation is
+    started: its name, the agent, and for every case its persona and its bank customer. `note` adds what the
+    platform answered to each request that created something. With it a finished simulation can be read later
+    (`recover`). The file is removed by `clear` once the record of the simulation is on disk."""
+
+    def __init__(self, path, **about):
+        self.path, self.data = Path(path), dict(about, requests=[])
+
+    def write(self, **more):
+        self.data.update(more)
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self.path.write_text(json.dumps(self.data, indent=1, ensure_ascii=False, default=str), encoding='utf-8')
+
+    def note(self, method, path, answer):
+        """The ids in the answer to a request that was not a read: the simulation and its iteration are among them."""
+        ids = {}
+        for key, value in (answer.items() if isinstance(answer, dict) else []):
+            if isinstance(value, (str, int)) and not isinstance(value, bool) and str(key).lower().endswith('id'):
+                ids[key] = value
+            elif isinstance(value, dict):
+                ids.update({'%s.%s' % (key, k): v for k, v in value.items() if isinstance(v, (str, int)) and not isinstance(v, bool) and str(k).lower().endswith('id')})
+        self.data['requests'].append({'method': method, 'path': path, 'ids': ids})
+        if self.path.is_file():
+            self.write()
+
+    def watch(self, api):
+        """The kit's `api`, with every request that is not a read noted here."""
+        def call(method, path, body=None, **params):
+            answer = api(method, path, body, **params)
+            if method != 'GET':
+                try:
+                    self.note(method, path, answer)
+                except Exception:
+                    pass
+            return answer
+        return call
+
+    def clear(self):
+        if self.path.is_file():
+            self.path.unlink()
+
+
+def collect(runner, agent_id, cases, name, ids, customers, sim_id, iteration_id, status, at, seconds, trace=lambda line: None):
+    """The record of a simulation that has run: per case the bank's ledger, the judge's verdict and the call.
+    `ids` and `customers` are the persona and the bank customer of each case, as they were when it was started."""
     runs = {r['personaId']: r for r in runner.freya.get_iteration(sim_id, iteration_id)['runs']}
     rows = []
     for c in cases:
-        customer = sessions[c['id']]['customer_id']
+        customer = customers[c['id']]
         ledger = runner.http('/v1/practice/ledger/' + customer)
         scored = runner.score_ledger(c, ledger)
         judged = runs.get(ids[c['id']], {})
@@ -248,6 +279,46 @@ def run(runner, agent_id, cases, name, persona_cache, trace=lambda line: None, s
                                             ''.join(' | ' + f[:200] for f in failed)))
     return {'simulation_id': sim_id, 'iteration_id': iteration_id, 'name': name, 'status': status, 'agent_id': agent_id, 'started_at': at,
             'seconds': seconds, 'passed': sum(r['pass'] for r in rows), 'total': len(rows), 'rows': rows}
+
+
+def run(runner, agent_id, cases, name, persona_cache, trace=lambda line: None, style=None, max_seconds=420, pending=None):
+    """One simulation on Freya under the name `name`: every case once. Returns the record of the simulation.
+
+    A case is in the kit's format (id, brief, title, variables, identity, script, expected, checks). Its bank
+    account is that of the practice case `bank_case` (default: its own id): the bank opens a session only for
+    a practice case. A case passes when the bank's ledger holds exactly the expected records and the platform's
+    judge finds every check true in the transcript: the kit's rule, with the kit's scoring.
+
+    `pending` (a Pending) is written before the simulation is started and left in place if this function does
+    not return; the caller clears it when the record it gets back is on disk."""
+    ids = personas(runner, cases, persona_cache, style)
+    sessions = {c['id']: runner.http('/v1/practice/sessions', {'case': c.get('bank_case') or c['id']})['variables'] for c in cases}
+    variables = {c['id']: dict(sessions[c['id']], **(c.get('override_variables') or {})) for c in cases}
+    # Every case has its own persona and its own bank session, so the customers of one simulation are judged and
+    # scored apart. That holds only while no two of them share a persona or a bank customer: checked, not assumed.
+    customers = {c['id']: sessions[c['id']]['customer_id'] for c in cases}
+    if len(set(customers.values())) != len(cases) or len(set(ids.values())) != len(cases):
+        raise SharedCustomer('two cases of "%s" share a bank customer or a persona; their records could not be told apart' % name)
+    trace('simulation: starting "%s" | agent %s | %d case(s): %s' % (name, agent_id, len(cases), ', '.join(c['id'] for c in cases)))
+    started, at = time.time(), time.strftime('%Y-%m-%dT%H:%M:%S%z')
+    if pending is not None:
+        pending.write(name=name, agent_id=agent_id, started_at=at, style=style,
+                      cases=[{'id': c['id'], 'bank_case': c.get('bank_case') or c['id'], 'persona_id': ids[c['id']], 'customer_id': customers[c['id']]} for c in cases])
+    sim_id, iteration_id, status = runner.freya.run_simulation(agent_id, name, {ids[c['id']]: variables[c['id']] for c in cases}, max_seconds)
+    return collect(runner, agent_id, cases, name, ids, customers, sim_id, iteration_id, status, at, round(time.time() - started), trace)
+
+
+def recover(runner, pending, cases, sim_id, iteration_id, trace=lambda line: None):
+    """The record of a simulation that was started and never recorded, from what `Pending` kept of it and the
+    two ids the platform gave it. `cases` are its cases as they were run. Nothing is started and nothing is
+    created: the judge's verdicts and the calls are read from the platform, the ledgers from the bank."""
+    kept = {c['id']: c for c in pending.get('cases') or []}
+    lost = [c['id'] for c in cases if c['id'] not in kept]
+    if lost or not cases:
+        raise ValueError('the pending record of "%s" does not hold the case(s) %s' % (pending.get('name'), ', '.join(lost) or 'asked for'))
+    record = collect(runner, pending.get('agent_id'), cases, pending.get('name'), {i: k['persona_id'] for i, k in kept.items()}, {i: k['customer_id'] for i, k in kept.items()},
+                     sim_id, iteration_id, 'recovered', pending.get('started_at'), None, trace)
+    return dict(record, recovered=True)
 
 
 def index_row(record, **about):

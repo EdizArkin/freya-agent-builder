@@ -2,7 +2,7 @@
 
 Every test plays tool calls and a conversation against the compiled workflow and the stand-in bank, with the
 bank's ledger as the criterion. The stand-in engine gives the hooks what two probe calls showed the platform
-gives them: the count of customer turns and the list of what was said (tests/freya_sim.py).
+gives them: the count of customer turns and the list of what was said (benchmarks/harness/freya_sim.py).
 
 What these tests show is what the gate does with a conversation it is given. They do not show that a phone
 model takes the path the gate allows, and nothing here proves that a person meant a yes.
@@ -18,8 +18,8 @@ from builder.runtime import runtime as rt
 from builder.spec.models import SpecError
 from builder.spec.openapi import Api
 from builder.validation import contract
-from tests.fixture_spec import spec as fixture
-from tests.freya_sim import Sim
+from benchmarks.harness.fixture_spec import spec as fixture
+from benchmarks.harness.freya_sim import Sim
 from tests.renamed import VARIANTS, PermissiveBank, Renamed, snapshot
 from tests.support import OPENAPI, refusal
 from tests.test_hook_faults import faulted

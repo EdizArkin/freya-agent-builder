@@ -6,6 +6,9 @@ Without flags nothing leaves this machine. --live-extract permits the Anthropic
 call, --deploy permits creating/updating the workflow on Freya, --test runs the
 kit's practice customers against it as one named simulation. Every run writes
 outputs/<slot>/trace.txt and archives its spec and workflow under their version id.
+
+`build_workflow` and `release` are the same stages as functions: the optimization run
+(python -m builder optimize, builder/optimization/) builds and deploys its candidates through them.
 """
 import argparse
 import json
@@ -46,6 +49,36 @@ def build_workflow(spec, document, best_effort=False):
     if departures:
         raise CompileError('the compiled tools do not match the tool API: ' + '; '.join(departures))
     return workflow, dict({'warnings': warnings, 'contract': contract.document_notes(api)}, **report)
+
+
+def release(files, slot, spec, document, source, trace, best_effort=False, platform=None, registry=versioning.REGISTRY):
+    """Stages 3 and 4 of a build for one spec: validate, compile, validate, archive under the version id and, with
+    a platform, deploy as the published version of the slot's workflow. Returns (workflow, build record,
+    deployment record or None) and raises what a stage raises.
+
+    `platform` is a function that returns the Freya client; it is called only when the workflow is ready, so a
+    build that fails before never loads it. The files at the top of the slot's folder become those of this build."""
+    if leaks(spec):
+        raise SpecError(['credential leak in the spec at ' + leak for leak in leaks(spec)])
+    trace('spec written: %s' % files.write_json(store.SPEC, spec))
+    workflow, report = build_workflow(spec, document, best_effort)
+    workflow_path = files.write_json(store.WORKFLOW, workflow)
+    for warning in report['warnings']:
+        trace('warning: ' + warning)
+    for line in report['contract']:
+        trace('tool API contract: ' + line)
+    trace('compiled and locally validated: %s | %d bytes | nodes %s' % (workflow_path, report['bytes'], ', '.join(report['nodes'])))
+    built = versioning.build_record(slot, spec, workflow, source)
+    files.write_json(store.BUILD, built)
+    trace('version %s archived: %s' % (built['version_id'], files.archive(built['version_id'], spec, workflow, built)))
+    if platform is None:
+        return workflow, built, None
+    record = deployment.deploy(platform(), slot, workflow, files.path(store.EXPORT), trace, registry)
+    files.write_json(store.DEPLOYMENT, record)
+    files.keep(built['version_id'], store.EXPORT)
+    if record.get('history'):
+        files.append(store.HISTORY, record['history'])
+    return workflow, built, record
 
 
 def arguments(argv=None):
@@ -99,28 +132,10 @@ def main(argv=None, client=None):
                               digest=lambda one, other=None: digest(one, api, other), system=claude.system_prompt(version=a.prompt_version))
         else:
             raise SystemExit('No spec source: pass --live-extract to call the model, or --spec FILE to reuse one.')
-        if leaks(spec):
-            raise SpecError(['credential leak in the spec at ' + leak for leak in leaks(spec)])
-        trace('spec written: %s' % files.write_json(store.SPEC, spec))
 
-        # 3. validate, compile, validate
-        workflow, report = build_workflow(spec, document, a.best_effort)
-        workflow_path = files.write_json(store.WORKFLOW, workflow)
-        for warning in report['warnings']:
-            trace('warning: ' + warning)
-        for line in report['contract']:
-            trace('tool API contract: ' + line)
-        trace('compiled and locally validated: %s | %d bytes | nodes %s' % (workflow_path, report['bytes'], ', '.join(report['nodes'])))
-        built = versioning.build_record(slot, spec, workflow, source)
-        files.write_json(store.BUILD, built)
-        trace('version %s archived: %s' % (built['version_id'], files.archive(built['version_id'], spec, workflow, built)))
-
-        # 4. the platform, only when asked
+        # 3. validate, compile, validate, archive; 4. the platform, only when asked
+        workflow, built, record = release(files, slot, spec, document, source, trace, a.best_effort, (lambda: freya_client.load(a.kit)) if a.deploy else None)
         if a.deploy:
-            record = deployment.deploy(freya_client.load(a.kit), slot, workflow, files.path(store.EXPORT), trace)
-            files.write_json(store.DEPLOYMENT, record)
-            if record.get('history'):
-                files.append(store.HISTORY, record['history'])
             if a.test:
                 cases = json.loads((Path(a.kit) / 'public-test-set.json').read_text(encoding='utf-8'))
                 simulation.run_practice_cases(freya_client.load_runner(a.kit), record['agent_id'], a.test, cases, files.path(store.EVALUATION), trace,

@@ -13,7 +13,7 @@ import unittest
 from unittest import mock
 
 from builder.compiler import compiler
-from tests import freya_sim
+from benchmarks.harness import freya_sim
 from tests.renamed import CALL, PLACEHOLDER, Renamed, snapshot
 
 PROMISE = dict(product_id='p1', amount=500, date='2026-10-15')

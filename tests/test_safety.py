@@ -6,7 +6,7 @@ from unittest import mock
 from builder.pipeline import build_workflow
 from builder.validation.safety import leaks
 from builder.validation.workflow import check_workflow
-from tests.fixture_spec import spec as fixture
+from benchmarks.harness.fixture_spec import spec as fixture
 from tests.support import OPENAPI
 
 

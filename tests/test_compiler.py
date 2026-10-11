@@ -7,8 +7,8 @@ import unittest
 from builder.pipeline import build_workflow
 from builder.spec.models import SpecError
 from builder.validation.workflow import check_workflow
-from tests.fixture_spec import spec as fixture
-from tests.freya_sim import Bank, Sim
+from benchmarks.harness.fixture_spec import spec as fixture
+from benchmarks.harness.freya_sim import Bank, Sim
 from tests.support import OPENAPI
 
 

@@ -6,6 +6,8 @@ that is not implemented is reported as not checked; it is never passed silently.
 import datetime
 import re
 
+from builder.spec.openapi import resolve
+
 CHECKED = ('$ref', 'type', 'enum', 'required', 'properties', 'additionalProperties', 'format', 'minimum', 'maximum',
            'exclusiveMinimum', 'exclusiveMaximum', 'minLength', 'maxLength', 'pattern', 'items', 'minItems',
            'maxItems', 'nullable', 'allOf')
@@ -18,17 +20,6 @@ TYPES = {'string': str, 'boolean': bool, 'object': dict, 'array': list}
 # than its operation, because its pre-hook replaces the body before the request leaves. The compiler builds
 # them under these names (compiler.CHECK_TOOL, CHECK_TRANSPORT); a test holds the two together.
 RUNTIME_TOOLS = {'check_promise': 'get_account'}
-
-
-def resolve(document, schema):
-    for _ in range(20):
-        if not (isinstance(schema, dict) and '$ref' in schema):
-            break
-        node = document
-        for part in str(schema['$ref']).lstrip('#/').split('/'):
-            node = node.get(part, {}) if isinstance(node, dict) else {}
-        schema = node
-    return schema if isinstance(schema, dict) else {}
 
 
 def _is(kind, value):

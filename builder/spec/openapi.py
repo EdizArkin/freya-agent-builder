@@ -2,6 +2,18 @@
 from builder.spec.models import TOOLS
 
 
+def resolve(document, schema):
+    """The schema a `$ref` points to, followed through the document; {} for a reference that leads nowhere."""
+    for _ in range(20):
+        if not (isinstance(schema, dict) and '$ref' in schema):
+            break
+        node = document
+        for part in str(schema['$ref']).lstrip('#/').split('/'):
+            node = node.get(part, {}) if isinstance(node, dict) else {}
+        schema = node
+    return schema if isinstance(schema, dict) else {}
+
+
 class Api:
     """Operations by tool name, with their request fields, response fields and URLs."""
 
@@ -18,15 +30,7 @@ class Api:
                 self.ops[name] = {'path': path, 'method': method.upper(), 'op': op}
 
     def _resolve(self, schema):
-        for _ in range(20):
-            if isinstance(schema, dict) and '$ref' in schema:
-                node = self.document
-                for part in schema['$ref'].lstrip('#/').split('/'):
-                    node = node.get(part, {})
-                schema = node
-            else:
-                break
-        return schema if isinstance(schema, dict) else {}
+        return resolve(self.document, schema)
 
     def url(self, tool):
         return self.base + self.ops[tool]['path']

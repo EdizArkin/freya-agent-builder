@@ -55,7 +55,7 @@ from builder.spec.models import SpecError  # noqa: E402
 from builder.spec.openapi import Api  # noqa: E402
 from builder.validation import contract  # noqa: E402
 from builder.validation.spec import validate  # noqa: E402
-from tests.freya_sim import Bank  # noqa: E402
+from benchmarks.harness.freya_sim import Bank  # noqa: E402
 
 KINDS = ('fact', 'structure', 'calls', 'text', 'prompt', 'live')
 STRONG = ('fact', 'structure', 'calls')

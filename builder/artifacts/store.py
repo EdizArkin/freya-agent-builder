@@ -55,3 +55,51 @@ class BuildStore:
             if not (folder / name).exists():
                 (folder / name).write_text(json.dumps(data, indent=1, ensure_ascii=False), encoding='utf-8')
         return folder
+
+    def keep(self, version_id, name):
+        """Put a copy of a file of the latest build beside its version, once: the export of a deploy."""
+        source, target = self.path(name), self.version(version_id) / name
+        if source.is_file() and not target.exists():
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(source.read_bytes())
+        return target
+
+    def read(self, name, version_id=None, default=None):
+        """A JSON file of the latest build, or of one archived version; `default` when it is not there."""
+        path = (self.version(version_id) if version_id else self.dir) / name
+        return json.loads(path.read_text(encoding='utf-8')) if path.is_file() else default
+
+    def history(self):
+        """The lines of the slot's history, oldest first."""
+        path = self.path(HISTORY)
+        return [json.loads(line) for line in path.read_text(encoding='utf-8').splitlines() if line.strip()] if path.is_file() else []
+
+    def restore(self, version_id, deployment=None):
+        """Make an archived version the latest build of the slot again: what a rollback on the platform needs on
+        this machine, so that the next command reads and stamps the version that runs. Returns what was done.
+
+        The spec, the workflow and the build record come back from the archive. The export comes back when the
+        version was deployed with its export kept; otherwise the export that is there belongs to another
+        version, and it is moved aside under a name that says so instead of staying "the file to submit"."""
+        folder = self.version(version_id)
+        missing = [name for name in (SPEC, WORKFLOW, BUILD) if not (folder / name).is_file()]
+        if missing:
+            raise FileNotFoundError('version %s of this slot has no archived %s' % (version_id, ', '.join(missing)))
+        done = []
+        for name in (SPEC, WORKFLOW, BUILD):
+            if not self.path(name).is_file() or self.path(name).read_bytes() != (folder / name).read_bytes():
+                self.path(name).write_bytes((folder / name).read_bytes())
+                done.append('restored ' + name)
+        export = self.path(EXPORT)
+        if (folder / EXPORT).is_file():
+            if not export.is_file() or export.read_bytes() != (folder / EXPORT).read_bytes():
+                export.write_bytes((folder / EXPORT).read_bytes())
+                done.append('restored ' + EXPORT)
+        elif export.is_file() and done:
+            aside = self.path('exported.not-%s.workflow.json' % build_id(version_id))
+            export.replace(aside)
+            done.append('moved %s to %s: it is not the export of %s' % (EXPORT, aside.name, version_id))
+        if deployment is not None:
+            self.write_json(DEPLOYMENT, deployment)
+            done.append('rewrote ' + DEPLOYMENT)
+        return done
