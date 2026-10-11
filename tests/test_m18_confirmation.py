@@ -48,6 +48,12 @@ def create(api, sim, product='p1', amount=500, date=D15):
     return api.call(sim, 'create_promise', product_id=product, amount=amount, date=date)
 
 
+def declined(said):
+    """The reason a check gives for values it does not accept. It comes as a result, not as a failed call."""
+    assert said.get('checked') is False and said.get('recorded') is False, said
+    return said['what_to_do_next']
+
+
 def recorded(said):
     return 'is now recorded' in said.get('what_to_do_next', '')
 
@@ -171,9 +177,11 @@ class TheAllowedPath(unittest.TestCase):
         self.assertTrue(recorded(create(api, sim)))
         self.assertEqual([name for name, _ in sim.requests][-2:], ['check_promise', 'create_promise'])
         self.assertEqual([m.get('role') for m in sim.talk[-6:]], ['assistant', 'tool', 'assistant', 'user', 'assistant', 'tool'], 'check and its answer, read-back, yes, record and its answer')
+        said, before = len(sim.talk), len(sim.requests)
         refused = create(api, sim, product='p2', amount=10)
-        self.assertIn('is below the lowest amount', refusal(sim, refused), 'a value the check refuses is neither read back nor sent to be recorded')
-        self.assertEqual([name for name, _ in sim.requests][-1], 'check_promise')
+        self.assertIn('is below the lowest amount', refusal(sim, refused), 'the record of a value the check declined is refused with the same reason')
+        self.assertEqual([name for name, _ in sim.requests][before:], ['check_promise', 'create_promise'])
+        self.assertEqual([m.get('role') for m in sim.talk[said:]], ['assistant', 'tool', 'assistant', 'tool'], 'a declined value is not read back')
 
 
 def rt_cfg(api):
@@ -410,7 +418,7 @@ class RepeatedCallsAndFailures(unittest.TestCase):
         api, sim, bank = confirmed()
         self.assertTrue(recorded(create(api, sim)))
         self.assertIn('already recorded', refusal(sim, create(api, sim)))
-        self.assertIn('already recorded', refusal(sim, check(api, sim)))
+        self.assertIn('already recorded', declined(check(api, sim)))
         self.assertEqual(len(bank.ledger['promises']), 1)
 
     def test_a_failing_promise_service_is_tried_again_without_a_new_read_back(self):
@@ -454,11 +462,36 @@ class TheRulesBeforeTheReadBack(unittest.TestCase):
                 api.call(sim, step[0], **step[1])
                 sim.compliant = False
             sim.hear('Tomorrow.')
-            was = snapshot(bank)
-            out.append(refusal(sim, api.call(sim, tool, **args)))
+            was, sent = snapshot(bank), len(sim.requests)
+            said = api.call(sim, tool, **args)
+            if tool == 'check_promise':
+                reason = declined(said).split(' This is not a service problem')[0].replace('NOT ACCEPTED: ', 'NOT RECORDED: ', 1)
+                self.assertEqual(sim.requests[sent][1]['body'], {'customer_id': 'c_real_call'}, 'a declined check leaves as the bare account request')
+                self.assertEqual([k for k in sim.vars if '_reg_' in k and sim.vars[k]], [k for k in sim.vars if '_reg_' in k and sim.vars[k] and args['product_id'] not in k], 'and registers nothing')
+            else:
+                reason = refusal(sim, said)
+            out.append(reason)
             self.assertEqual(snapshot(bank), was, tool)
         self.assertEqual(out[0], out[1], args)
         return out[0]
+
+    def test_a_declined_check_answers_with_the_reason_and_is_no_failed_call(self):
+        """Seen live: stopped like a record, a declined check came back as a failed call and the agent reported a system error."""
+        api, sim, bank = call()
+        sim.hear('On Saturday.')
+        said = check(api, sim, date='2026-10-17')
+        text = declined(said)
+        for part in ('NOT ACCEPTED: Sat 2026-10-17 (Saturday 17 October) is not a business day. Offer Mon 2026-10-19', 'This is not a service problem',
+                     'Do not read these values back and do not call create_promise with them'):
+            self.assertIn(part, text)
+        self.assertNotIn('LAST REJECTED TOOL CALL', sim.vars['rt_live'])
+        sim.say('500.00 on Saturday 17 October. Do you confirm?')
+        sim.hear('Yes, I confirm.')
+        self.assertIn('is not a business day', refusal(sim, create(api, sim, date='2026-10-17')), 'the record of a declined value is refused all the same')
+        bank.faults['get_account'] = 1
+        self.assertEqual(check(api, sim, date='2026-10-17'), {})
+        self.assertIn('IF YOUR LAST TOOL CALL GAVE AN ERROR INSTEAD OF A RESULT: NOT RECORDED: Sat 2026-10-17', sim.vars['rt_live'], 'when the account service fails, the reason is in the live state')
+        self.assertEqual(bank.ledger['promises'], [])
 
     def test_limits_and_dates(self):
         for args, part in ((dict(product_id='p1', amount=49.99, date=D15), 'is below the lowest amount'), (dict(product_id='p1', amount=500.01, date=D15), 'is more than the amount due'),
@@ -507,7 +540,7 @@ class TheRulesBeforeTheReadBack(unittest.TestCase):
         api, sim, bank = call()
         api.call(sim, 'transfer_to_agent', queue='support')
         sim.hear('Tomorrow.')
-        self.assertIn('No promise may be recorded after a transfer', refusal(sim, check(api, sim)))
+        self.assertIn('No promise may be recorded after a transfer', declined(check(api, sim)))
 
 
 class TheToolAndTheContract(unittest.TestCase):

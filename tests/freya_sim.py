@@ -189,9 +189,7 @@ class Sim:
     def play(self, name, args, said=None):
         """One tool call of the phone model, with what it says in the same message."""
         if name == 'create_promise' and self.compliant:
-            refused = self.confirm([args])
-            if refused is not None:
-                return refused
+            self.confirm([args])
         result = self._api(self._find(name), args)
         self._called(name, args, result, said)
         self.advance()

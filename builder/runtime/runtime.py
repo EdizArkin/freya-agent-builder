@@ -1270,9 +1270,25 @@ def pre_check(cfg, vars, config):
     pc = cfg['promise']
     st = load_state(vars)
     body = body_of(config)
+    kept = dict()
+    for name in cfg['customer_fields']:
+        if name in body:
+            kept[name] = body[name]
     found = promise_problem(cfg, vars, st, body, False)
     if found[4]:
-        return block(cfg, vars, config, st, 'check', found[4])
+        # Values that cannot be recorded. A check records nothing whatever it is given, so its request need not
+        # be stopped: it leaves as the account request, and the answer carries the reason as a result. A live
+        # call showed why: stopped, it came back to the model as a failed call, and the model reported a system
+        # error instead of offering the day the reason named. Nothing is registered.
+        if shape_problem(cfg, 'account', kept):
+            return block(cfg, vars, config, st, 'check', found[4])
+        config['body'] = kept
+        vars['rt_check_no'] = found[4]
+        vars['rt_block_check'] = ''
+        st['last_block'] = ''
+        opened(st, 'check', found[0], found[4])
+        return save_state(cfg, vars, st)
+    vars['rt_check_no'] = ''
     pid, amount, day = found[0], found[1], found[2]
     prod = [p for p in st['products'] if p['id'] == pid][0]
     now = turn_count(cfg, vars)
@@ -1283,10 +1299,6 @@ def pre_check(cfg, vars, config):
     old = registration(vars, st, pid)
     if not (old and old['c'] == new['c'] and old['a'] == new['a'] and old['d'] == new['d'] and now - old['t'] <= REG_TURNS):
         vars[rec(st, 'reg', pid)] = json.dumps(new)
-    kept = dict()
-    for name in cfg['customer_fields']:
-        if name in body:
-            kept[name] = body[name]
     config['body'] = kept
     problem = shape_problem(cfg, 'account', kept)
     if problem:
@@ -1301,6 +1313,13 @@ def post_check(cfg, vars, result):
     if blocked(cfg, vars, result, 'check'):
         return
     st = load_state(vars)
+    reason = vars.get('rt_check_no') or ''
+    if reason:
+        vars['rt_check_no'] = ''
+        if isinstance(result, dict):
+            result['data'] = dict(checked=False, recorded=False)
+        return finish(cfg, vars, result, st, reason.replace('NOT RECORDED: ', 'NOT ACCEPTED: ', 1) + ' This is not a service problem: nothing is wrong with the system. '
+                      'Do not read these values back and do not call create_promise with them. Tell the person what can be recorded instead, agree it, and call check_promise with the new values.')
     lines = []
     for p in pending(st):
         reg = registration(vars, st, p['id'])
